@@ -1,0 +1,203 @@
+{
+    "=======General=======": "=======================",
+    "data_name": "T5",
+    "system_type": "LHPP2V2",
+    "=======Class=========": "=======================",
+    "CLN_brain_train": "Train_Brain",
+    "CLN_brain_explore": "Explore_Brain",
+    "CLN_brain_buffer": "brain_buffer_reuse",
+    "CLN_buffer_to_train": "buffer_to_train",
+    "CLN_env_account": "env_account",
+    "CLN_env_read_data": "R_T5_skipSwh_balance",
+    "CLN_env_get_data_train": "env_get_data_LHP_train",
+    "CLN_env_get_data_eval": "env_get_data_LHP_eval",
+    "CLN_GenStockList": "API_SH_sl",
+    "=======system type related=": "=======================",
+    "CLN_simulator": "Simulator_LHPP2V2",
+    "CLN_trainer": "LHPP2V2_PPO_trainer",
+    "CLN_TDmemory": "TD_memory_LHPP2V2",
+    "=======CLN_agent detailed===": "=======================",
+    "agent_method_sv": "CNN",
+    "agent_method_joint_lvsv": "CNN",
+    "agent_method_apsv": "HP",
+    "=======action related====": "=======================",
+    "action_type_dict": {
+        "0": "buy",
+        "1": "no_action",
+        "2": "sell",
+        "3": "no_action"
+    },
+    "method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
+    "method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
+    "=======Class_eval_train=======": "=======================",
+    "train_reward_type": "scaler_clip",
+    "train_reward_scaler_factor":20,
+    "eval_reward_type": "scaler",
+    "eval_reward_scaler_factor":1,
+    "=======Train_brain=======": "=======================",
+    "Brian_core": "GPU_1",
+    "Brian_gpu_percent": 0.4,
+    "flag_brain_log_file": false,
+    "flag_brain_log_screen": true,
+    "start_train_count": 0,
+    "num_train_to_save_model": 250,
+    "load_AIO_fnwp": "",
+    "load_config_fnwp": "",
+    "load_weight_fnwp": "",
+    "=======Buffer=======": "=======================",
+    "num_train_record_to_brain": 100,
+    "TDn": 1,
+    "Buffer_nb_Features": 6,
+    "brain_buffer_reuse_times": 4,
+    "=======Explore Procee=====": "=======================",
+    "l_work_core": [
+        "GPU_1"
+    ],
+    "l_percent_gpu_core_for_work": [
+        0.2
+    ],
+    "l_flag_worker_log_file": [
+        false
+    ],
+    "l_flag_worker_log_screen": [
+        true
+    ],
+    "num_workers": 1,
+    "=======Eval process=======": "=======================",
+    "l_eval_core": [
+        "GPU_1", "GPU_1"
+    ],
+    "l_percent_gpu_core_for_eva": [
+        0.2,0.2
+    ],
+    "l_flag_eval_log_file": [
+        false,false
+    ],
+    "l_flag_eval_log_screen": [
+        false,false
+    ],
+    "l_eval_data_name": [
+        "T5","T5_V2_"
+    ],
+    "start_eval_count": 0,
+    "eval_num_process": 2,
+    "=======LOSS=======": "=======================",
+    "LOSS_POLICY": 1.0,
+    "LOSS_V": 0.5,
+    "LOSS_ENTROPY": 0.01,
+    "LOSS_clip": 0.2,
+    "LOSS_sqr_threadhold": 0,
+    "=======Optimizer=====": "=======================",
+    "Brain_optimizer": "Adam",
+    "Brain_leanring_rate": 0.0001,
+    "Brain_gamma": 0.95,
+    "batch_size": 50,
+    "=======Simulator=======": "=======================",
+    "env_min_invest_per_round": 100000,
+    "env_max_invest_per_round": 100000,
+    "env_flag_random_start_in_episode_for_explore": true,
+    "env_flag_random_start_in_episode_for_eval": true,
+    "evn_eval_rest_total_times": 40,
+    "=======train Data=======": "=======================",
+    "train_data_base": 2,
+    "train_data_index": 1,
+    "=======Eval Data=======": "=======================",
+    "eval_data_base": 4,
+    "eval_data_index": 0,
+    "eval_num_stock_per_process": 64,
+    "=======debug=======": "=======================",
+    "flag_record_state": true,
+    "flag_record_buffer_to_server": false,
+    "flag_record_sim": false,
+    "CLN_record_variable": "record_variable2",
+    "record_checked_threahold": 500,
+    "tensorboard_port": 6002,
+    "=======LHP=": "=======================",
+    "LHP": 5,
+    "=======P2=======": "=======================",
+    "P2_current_phase": "Train_Sell",
+    "P2_sell_system_name": "",
+    "P2_sell_model_tc": "",
+    "=======trial=======": "=======================",
+    "Dict_specifc_param": {
+        "accumulate_reward_method": "OS_ForceSell_accumulate_reward"
+    },
+    "=======Net=======": "=======================",
+    "net_config": {
+        "lv_shape": [
+            20,
+            16
+        ],
+        "sv_shape": [
+            20,
+            25,
+            2
+        ],
+        "flag_l_level": [
+            "C",
+            "I",
+            "I",
+            "C"
+        ],
+        "l_kernel_l": [
+            3,
+            0,
+            0,
+            3
+        ],
+        "l_filter_l": [
+            64,
+            128,
+            256,
+            512
+        ],
+        "l_maxpool_l": [
+            2,
+            2,
+            2,
+            2
+        ],
+        "flag_s_level": [
+            "C",
+            "C",
+            "C",
+            "C"
+        ],
+        "s_kernel_l": [
+            3,
+            3,
+            3,
+            3
+        ],
+        "s_filter_l": [
+            32,
+            64,
+            128,
+            256
+        ],
+        "s_maxpool_l": [
+            2,
+            2,
+            2,
+            2
+        ],
+        "dense_l": [
+            512,
+            256
+        ],
+        "dense_prob": [
+            256,
+            128,
+            64,
+            32,
+            2
+        ],
+        "dense_advent": [
+            256,
+            128,
+            64,
+            32,
+            1
+        ]
+    }
+}

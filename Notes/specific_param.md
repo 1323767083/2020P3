@@ -1,0 +1,9 @@
+* LHPP2V2_Trainer introduced
+> * mask_method
+> * accumulate_reward_method
+> * mask_code
+* Simulator_LHPP2V3 introduced
+> * BB_NBD
+* TD_memory_LHPP2V3 introduced
+> * max_record_taken
+> * punish_r_base

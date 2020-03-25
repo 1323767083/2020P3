@@ -1,0 +1,215 @@
+patch again
+[INFO/Eval_process-3] process shutting down
+Process Eval_process-3:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda2/lib/python2.7/multiprocessing/process.py", line 267, in _bootstrap
+    self.run()
+  File "A3C.py", line 718, in run
+    self.i_prepare_summary_are_1ET._get_are_summary_1ET(temp_save_fininshed__eval_loop_count)
+  File "/mnt/data_disk/n_workspace/visual_result.py", line 201, in _get_are_summary_1ET
+    df=self._get_are_summary_1stock_1ET(stock, evalT)
+  File "/mnt/data_disk/n_workspace/visual_result.py", line 149, in _get_are_summary_1stock_1ET
+    df=self._read_stock_are(stock, evalT)
+  File "/mnt/data_disk/n_workspace/visual_result.py", line 87, in _read_stock_are
+    df=patch(df)
+  File "/mnt/data_disk/n_workspace/visual_result.py", line 76, in patch
+    assert len(l_found_indx) == 1 , "dirty solution only can handle one decrease in column {0}".format(len(l_found_indx))
+AssertionError: dirty solution only can handle one decrease in column 26
+[INFO/Eval_process-3] process exiting with exitcode 1
+
+
+
+**********************************************************************
+SH600795 end correct
+**********************************************************************
+
+
+[INFO/Explore_process-4] process shutting down
+Process Explore_process-4:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda2/lib/python2.7/multiprocessing/process.py", line 267, in _bootstrap
+    self.run()
+  File "A3C.py", line 555, in run
+    self.run_env_one_step(Ds["worker_loop_count"])
+  File "A3C.py", line 586, in run_env_one_step
+    s, support_view_dic = i_env.reset()
+  File "/mnt/data_disk/n_workspace/env.py", line 651, in reset
+    state, support_view_dic = Simulator.reset(self)
+  File "/mnt/data_disk/n_workspace/env.py", line 469, in reset
+    state, support_view_dic = self.i_get_data.reset_get_data()
+  File "/mnt/data_disk/n_workspace/env.py", line 216, in reset_get_data
+    assert not done_flag, "{0} period_idx:{1} idx in period: {2}".format(self.stock, self.period_index, self.idx_in_period)
+    AssertionError: SH600795 period_idx:2 idx in period: 783
+
+
+
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda2/envs/jw/lib/python2.7/site-packages/IPython/core/interactiveshell.py", line 2878, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "<ipython-input-11-beb753e8fc0a>", line 1, in <module>
+    data_T5.prepare_summary_T5_V2_()
+  File "/home/rdchujf/n_workspace/source_code/hw/LP192/data_T5.py", line 21, in __init__
+    T_data_qz_3.G_summary_data_1stock(self.data_name,stock)
+  File "/home/rdchujf/n_workspace/source_code/hw/LP192/T_data_qz_3.py", line 351, in __init__
+    self.data.l_np_date_s.append(np.array(l_date_s))
+  File "/home/rdchujf/n_workspace/source_code/hw/LP192/T_data_qz_3.py", line 414, in prepare_data_V2
+    self._prepare_data_add_to_list([l_date_s, l_price_vs_mount, l_sell_dan, l_buy_dan,
+  File "/home/rdchujf/n_workspace/source_code/hw/LP192/T_data_common.py", line 110, in get_df_qz
+    raise ValueError("{0} does not exists".format(fnwp))
+ValueError: /mnt/backup_6G/Stk_qz_3/201801/2018-01-02/601360.csv does not exists
+
+Traceback (most recent call last):
+  File "data_qz.py", line 1110, in <module>
+
+  File "data_qz.py", line 1105, in main
+
+  File "data_qz.py", line 495, in __init__
+    self.prepare_data()
+  File "data_qz.py", line 558, in prepare_data_V2
+    df = self.i_qz.get_df_qz(date_s, self.stock)
+  File "/mnt/Lenovo_external_hard_disk/n_workspace/source_code/hw/LP192/data_common.py", line 129, in get_df_qz
+    raise ValueError("{0} is empty".format(fnwp))
+ValueError: /mnt/backup_6G/Stk_qz_3/201807/2018-07-25/600825.csv is empty
+
+
+Finish prepare SH600074 RL data  213
+Traceback (most recent call last):
+  File "data_T5.py", line 206, in <module>
+    main(sys.argv[1:])
+  File "data_T5.py", line 201, in main
+    G_T5(data_name).prepare_data(stock_list,flag_overwrite= True if choice=="Y" else False)
+  File "/mnt/Lenovo_external_hard_disk/n_workspace/source_code/hw/LP192/data_TTFT.py", line 370, in prepare_data
+    result_flag,ll_np_data_s, ll_np_large_view, ll_np_small_view, ll_support_view=self.prepare_1stock(stock)
+  File "data_T5.py", line 153, in prepare_1stock
+    assert l_np_date_s[period_idx][-1] == i_summary.data.l_np_date_s[period_idx][-1]
+AssertionError
+
+
+First stock SH600971
+
+
+#how to read from tensorboard log
+https://stackoverflow.com/questions/37304461/tensorflow-importing-data-from-a-tensorboard-tfevent-file/37411543
+import tensorflow as tf
+
+
+for event in tf.train.summary_iterator('runs/easy_name/events.out.tfevents.1521590363.DESKTOP-43A62TM'):
+    for value in event.summary.value:
+        print(value.tag)
+        if value.HasField('simple_value'):
+            print(value.simple_value)
+
+
+**********************************************************************
+SH600710 end correct
+**********************************************************************
+
+how to get list items by list of index
+https://www.geeksforgeeks.org/python-accessing-all-elements-at-given-list-of-indexes/
+
+
+If you want to return the element you removed, use pop():
+
+>>> l = [1, 2, 3, 4, 5]
+>>> l.pop(2)
+3
+>>> l
+[1, 2, 4, 5]
+
+However, if you just want to delete an element, use del:
+
+>>> l = [1, 2, 3, 4, 5]
+>>> del l[2]
+>>> l
+[1, 2, 4, 5]
+
+
+          code      date  open_price  highest_price  lowest_price         ...          exchange_ratio_for_tradable_part  exchange_ratio_for_whole  coefficient_fq  Scoefficient_fq  change_flag_Hratio
+193   SH600261  20010518     23.5000        23.7511       23.1987         ...                                  0.013200                  0.004287          1.0043           1.0000             -0.0043
+452   SH600261  20020620     16.9786        17.0089       16.8774         ...                                  0.001415                  0.000460          1.0118           1.0043             -0.0075
+717   SH600261  20030728     11.3321        11.3321       11.1768         ...                                  0.004675                  0.001518          1.0349           1.0118             -0.0231
+1119  SH600261  20050331      8.6405         8.6405        8.5108         ...                                  0.002707                  0.000879          1.0801           1.0349             -0.0452
+1248  SH600261  20051109     14.6460        15.7277       14.6318         ...                                  0.059304                  0.025039          1.4233           1.0801             -0.3432
+1383  SH600261  20060607     21.3597        21.7047       19.5998         ...                                  0.012462                  0.005261          1.7253           1.4233             -0.3020
+1616  SH600261  20070528     39.4287        39.4287       38.5274         ...                                  0.051946                  0.021932          2.2531           1.7253             -0.5278
+1833  SH600261  20080422     34.8885        36.0121       33.1441         ...                                  0.008127                  0.003432          2.9567           2.2531             -0.7036
+2097  SH600261  20090525     38.7067        38.7067       36.8780         ...                                  0.026812                  0.011320          3.0478           2.9567             -0.0911
+2331  SH600261  20100513     64.2300        66.7967       62.3745         ...                                  0.008232                  0.006514          3.0924           3.0478             -0.0446
+2551  SH600261  20110418    101.5866       105.3146      100.7012         ...                                  0.008725                  0.006904          4.6599           3.0924             -1.5675
+2814  SH600261  20120523     83.1098        84.5901       80.4311         ...                                  0.007065                  0.004868          7.0492           4.6599             -2.3893
+3063  SH600261  20130603     98.0535        99.7600       95.9914         ...                                  0.013114                  0.010731          7.1105           7.0492             -0.0613
+3317  SH600261  20140620    115.2960       118.8485      115.1883         ...                                  0.006110                  0.006110         10.7653           7.1105             -3.6548
+3544  SH600261  20150526    169.5814       183.2783      167.9508         ...                                  0.047295                  0.047295         16.3059          10.7653             -5.5406
+3783  SH600261  20160517    118.3911       118.5577      116.8925         ...                                  0.002999                  0.002999         16.6514          16.3059             -0.3455
+4032  SH600261  20170525    108.2550       108.2550      104.1570         ...                                  0.007926                  0.007926         17.0749          16.6514             -0.4235
+4275  SH600261  20180524     72.9099        74.6796       72.0251         ...                                  0.010637                  0.010637         17.6966          17.0749             -0.6217
+4522  SH600261  20190530     65.1310        65.1310       62.7324         ...                                  0.010693                  0.010693         18.4507          17.6966             -0.7541
+
+
+https://stackoverflow.com/questions/44635626/rename-result-columns-from-pandas-aggregation-futurewarning-using-a-dict-with/44635693
+Use groupby apply and return a Series to rename columns
+
+Learning Rate Schedules and Adaptive Learning Rate Methods for Deep Learning
+https://towardsdatascience.com/learning-rate-schedules-and-adaptive-learning-rate-methods-for-deep-learning-2c8f433990d1
+
+Keras learning rate schedules and decay
+https://www.pyimagesearch.com/2019/07/22/keras-learning-rate-schedules-and-decay/
+
+How to Extend Swap Space using Swap file in Linux
+https://www.linuxtechi.com/extend-swap-space-using-swap-file-in-linux/
+
+ML | Reinforcement Learning Algorithm : Python Implementation using Q-learning
+https://www.geeksforgeeks.org/ml-reinforcement-learning-algorithm-python-implementation-using-q-learning/
+
+SARSA Reinforcement Learning
+https://www.geeksforgeeks.org/sarsa-reinforcement-learning/
+
+https://medium.com/@awjuliani
+
+
+  File "/home/rdchujf/anaconda2/lib/python2.7/multiprocessing/process.py", line 267, in _bootstrap
+    self.run()
+  File "/mnt/data_disk/n_workspace/A3C_workers.py", line 414, in run
+    self.i_prepare_summary_are_1ET._get_are_summary_1ET(temp_save_fininshed__eval_loop_count)
+  File "/mnt/data_disk/n_workspace/vresult_data_reward.py", line 168, in _get_are_summary_1ET
+    df,Dic_effective=self._get_are_summary_1stock_1ET(stock, evalT)
+ValueError: need more than 0 values to unpack
+
+
+tow unsual siituation why still has reward and why period has 12 113
+2020-03-03 20:14:16,141 - Eval_0 - INFO - stock:SH601028 episode:14 period_len:13 reward:0.00 finished episode add to record
+2020-03-03 20:14:16,142 - Eval_0 - INFO - stock:SH600136 episode:1 period_len:113 reward:0.00 finished episode add to record
+2020-03-03 20:14:16,143 - Eval_0 - INFO - stock:SH600305 episode:19 period_len:5 reward:-0.13 finished episode add to record
+2020-03-03 20:14:16,144 - Eval_0 - INFO - stock:SH601369 episode:19 period_len:5 reward:-0.06 finished episode add to record
+2020-03-03 20:14:16,144 - Eval_0 - INFO - stock:SH600535 episode:19 period_len:5 reward:-0.06 finished episode add to record
+2020-03-03 20:14:16,144 - Eval_0 - INFO - stock:SH600218 episode:19 period_len:5 reward:-0.01 finished episode add to record
+
+
+{'period_idx': 1, 'this_trade_day_hfq_ratio': 7.9879, 'stock_SwhV1': 0.4397883733572103, 'this_trade_day_Nprice': 26.0300704816, 'last_day_flag': False, 'action_return_message': 'Tinpai', 'flag_force_sell': False, 'idx_in_period': 409, 'holding': 0, 'date': '20151118', 'action_taken': 'Buy', 'stock': 'SH600666'}
+0 1
+[0.49606538 0.5039346 ]
+{'period_idx': 2, 'this_trade_day_hfq_ratio': 1.6061, 'stock_SwhV1': 0.5528450029906907, 'this_trade_day_Nprice': 13.29, 'last_day_flag': False, 'action_return_message': 'No_action', 'flag_force_sell': False, 'idx_in_period': 194, 'holding': 0, 'date': '20141229', 'action_taken': 'No_action', 'stock': 'SH600283'}
+1 1
+[0.49886528 0.50113475]
+{'period_idx': 2, 'this_trade_day_hfq_ratio': 4.4768, 'stock_SwhV1': 0.31302213227057935, 'this_trade_day_Nprice': 17.56, 'last_day_flag': False, 'action_return_message': 'No_action', 'flag_force_sell': False, 'idx_in_period': 683, 'holding': 0, 'date': '20161229', 'action_taken': 'No_action', 'stock': 'SH600036'}
+1 1
+[0.4989598  0.50104016]
+{'period_idx': 2, 'this_trade_day_hfq_ratio': 6.1498, 'stock_SwhV1': 1.5, 'this_trade_day_Nprice': 14.48, 'last_day_flag': False, 'action_return_message': 'Success', 'flag_force_sell': False, 'idx_in_period': 319, 'holding': 1, 'date': '20150706', 'action_taken': 'Buy', 'stock': 'SH600815'}
+0 0
+[0.49788687 0.50211316]
+{'period_idx': 0, 'this_trade_day_hfq_ratio': 1.0082, 'stock_SwhV1': -0.3276598426985969, 'this_trade_day_Nprice': 3.3, 'last_day_flag': False, 'action_return_message': 'No_action', 'flag_force_sell': False, 'idx_in_period': 85, 'holding': 1, 'date': '20130916', 'action_taken': 'No_action', 'stock': 'SH601866'}
+3 3
+[0. 0.]
+[INFO/Explore_process-4] process shutting down
+Process Explore_process-4:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda2/lib/python2.7/multiprocessing/process.py", line 267, in _bootstrap
+    self.run()
+  File "/mnt/data_disk/n_workspace/A3C_workers.py", line 259, in run
+    self.run_env_one_step(Ds["worker_loop_count"])
+  File "/mnt/data_disk/n_workspace/A3C_workers.py", line 305, in run_env_one_step
+    support_view_dic["old_ap"] = self.i_ac.get_prob_from_AParray02(self.data.l_ap[idx], actual_action04)
+  File "/mnt/data_disk/n_workspace/action_comm.py", line 31, in get_prob_from_AParray02
+    return AParray02[action04] if self.action_type == "OB" else AParray02[action04-2]
+IndexError: index 3 is out of bounds for axis 0 with size 2
+[INFO/Explore_process-4] process exiting with exitcode 1

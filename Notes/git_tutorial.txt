@@ -1,0 +1,113 @@
+Git Tutorial for Beginners: Command-Line Fundamentals
+https://www.youtube.com/watch?v=HVsySz-h9r4
+
+
+check version
+	$ git --version
+
+set config values
+	$ git config --global user.name "Jiongfan Hu"
+	$ git config --global user.email "jiongfan.hu@qq.com
+	$ git config --list
+
+get help
+	git help <verb>
+	git <verb> --help
+
+INITIALIZE A REPOSITORY FROM EXISTING CODE
+	$ git init
+
+	Before first commit
+	$ git status
+	$ gedit .gitignore
+
+		for example
+		.DS_Store
+		.project
+		*.pyc
+
+	ADD FILES TO STAGING AREA
+	$ git add -A
+	$ git status
+
+	First Commit
+	$ git add -A
+	$ git commit -m "Initial Commit"
+	$ git status
+	$ git log
+
+Cloning a Remote Repo
+	$ git clone <url> <which directory to clone>
+
+Viewing information about remote repository
+	$ git remote -v
+	$ git branch -a  // view both local and remote bratch
+
+Pushing Changes
+	commit changes
+		$ git diff
+		$ git status
+		$ git add -A
+		$ git commit -m "some thing"
+	Then Push
+		git pull origin master   //first pull incase other modify the remote
+		git push origin master
+
+Common Workflow
+	create a branch
+		git branch <branch name>
+		git checkout <branch name>
+		git branch             // show local branch  list of branch the name with * is current branch
+
+	modify and commit as usual
+
+	push branch to remote
+		$ git push -u origin <branch name>
+		$ git branch -a
+		$ git pull
+		$ git push
+
+	Merge a branch
+		$ git checkout master
+		$ git pull origin master
+		$ git branch --merged  // show merged branch
+		$ git merge <branch name>
+		$ git branch --merged  // show merged branch
+		$ git push origin master
+
+	Deleting a branch
+		$ git brnach --merged
+		$ git branch -d <branch name>  //delete local branch
+		$ git branch -a
+		$ git push origin --delete <branch name>  //delete remote branch
+
+
+
+Install diffmerge
+https://sourcegear.com/diffmerge/webhelp/sec__inst__ubuntu.html
+sudo dpkg -i diffmerge_4.2.0.697.stable_amd64.deb
+
+https://sourcegear.com/diffmerge/webhelp/sec__git__linux.html
+git config --global diff.tool diffmerge
+git config --global difftool.diffmerge.cmd "/usr/bin/diffmerge \"\$LOCAL\" \"\$REMOTE\""
+git config --global merge.tool diffmerge
+git config --global mergetool.diffmerge.trustExitCode true
+git config --global mergetool.diffmerge.cmd "/usr/bin/diffmerge --merge --result=\"\$MERGED\"\"\$LOCAL\" \"\$BASE\" \"\$REMOTE\""
+
+
+git stash  //temporary save changes and can move changes between branch
+https://www.youtube.com/watch?v=KLEDKgMmbBI&list=PL-osiE80TeTuRUfjRe54Eea17-YfnOOAx&index=3
+git stash save <message to save>   // may change save to store
+git stash list
+    stash@{0}: On add: message to save
+git stash apply stash@{0}   //load  stash@{0}
+git stash drop stash@{0}    //remove stash@{0}
+git stash clear            // remove all
+git stash pop              // apply first and remove
+
+pycharm help (found under help menu)
+https://www.jetbrains.com/help/pycharm/2018.3/using-git-integration.html?utm_campaign=PC&utm_content=2018.3&utm_medium=link&utm_source=product
+
+pycharm branching/merging/pushing
+https://www.youtube.com/watch?v=AHkiCKG-JhM
+branching:

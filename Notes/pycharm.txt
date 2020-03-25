@@ -1,0 +1,6 @@
+Tell PyCharm code generated fields of class
+https://stackoverflow.com/questions/29943646/tell-pycharm-code-generated-fields-of-class
+
+
+#auto completion for dynamic module attributes in python
+#https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000665110-auto-completion-for-dynamic-module-attributes-in-python
