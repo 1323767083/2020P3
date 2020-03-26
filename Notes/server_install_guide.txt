@@ -1,0 +1,46 @@
+
+
+Install Tensorflow-GPU to use Nvidia GPU using anaconda on Ubuntu 18.04 / 19.04 do AI!
+https://medium.com/datadriveninvestor/install-tensorflow-gpu-to-use-nvidia-gpu-on-ubuntu-18-04-do-ai-71b0ce64ebc5
+
+
+Moving from Python2 to Python3
+https://www.youtube.com/watch?v=ujXm3ndP1L4
+
+Python 2 vs Python 3: Key Differences
+https://www.guru99.com/python-2-vs-python-3.html
+
+
+@@@
+The key differences between Python 2.7.x and Python 3.x with examples
+https://sebastianraschka.com/Articles/2014_python_2_3_key_diff.html
+
+
+
+ln -s /mnt/data_disk/n_workspace/ n_workspace
+ln -s /mnt/data_disk/Stk_qz Stk_qz
+ln -s /mnt/data_disk/Stk_qz_2/ Stk_qz_2
+ln -s /mnt/data_disk/Stk_qz_3_support  Stk_qz_3_support
+ln -s /mnt/data_disk/Stk_TradeByTrade  Stk_TradeByTrade
+
+lrwxrwxrwx  1 rdchujf rdchujf        27 11月 30  2018 n_workspace -> /mnt/data_disk/n_workspace/
+lrwxrwxrwx  1 rdchujf rdchujf        21 11月 30  2018 Stk_qz -> /mnt/data_disk/Stk_qz
+lrwxrwxrwx  1 rdchujf rdchujf        24 11月 30  2018 Stk_qz_2 -> /mnt/data_disk/Stk_qz_2/
+lrwxrwxrwx  1 rdchujf rdchujf        31 3月  25 12:29 Stk_qz_3_support -> /mnt/data_disk/Stk_qz_3_support
+lrwxrwxrwx  1 rdchujf rdchujf        32 11月 30  2018 Stk_TradeByTrade -> /mnt/data_disk/Stk_TradeByTrade/
+
+
+import matplotlib.pyplot as plt
+import tensorflow as tf
+layers = tf.keras.layers
+import numpy as np
+print(tf.__version__)
+
+
+import tensorflow as tf
+print(“tf version = “, tf.__version__)
+with tf.device(‘/gpu:0’):
+a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name=’a’)
+b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name=’b’)
+c = tf.matmul(a, b)
+print (a,b,c)
