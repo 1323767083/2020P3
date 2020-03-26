@@ -10,15 +10,15 @@ hfq_src_base_dir = "/home/rdchujf/Stk_qz_3_support/Stk_Day_FQ_WithHS"
 index_src_base_dir = "/home/rdchujf/Stk_qz_3_support/Stk_Day_Idx"
 
 def keyboard_input():
-    data_name=raw_input ("Data Name to create: ")
+    data_name=input ("Data Name to create: ")
     while True:
-        choice = raw_input ("select stock type s(h) or s(z) sh+sz(a): ")
+        choice = input ("select stock type s(h) or s(z) sh+sz(a): ")
         if choice in ["h", "z","a"]:
             break
     stock_type="SH" if choice=="h" else "SZ" if choice=="z" else "sh+sz"
 
     while True:
-        date_i = input ("IPO date later than YYYYMMDD: ")
+        date_i = eval(input ("IPO date later than YYYYMMDD: "))
         if date_i>20100101:
             break
     return data_name, stock_type,date_i
@@ -245,14 +245,14 @@ class API_qz_from_file:
                # this is to handle 13 in file as 12.99999997 situation
                if "cannot safely convert passed user dtype of int64 for float64 dtyped data" in str(e):
                    df = pd.read_csv(fnwp, header=0, names=self.title_qz)
-                   for item in self.dtype_qz.keys():
+                   for item in list(self.dtype_qz.keys()):
                        df[item]=df[item].astype(self.dtype_qz[item])
                # 6883,undefined,undefined,NaN,NaN,NaN,undefined,undefined,undefined,undefined,undefined
                #error message could not convert string to float: undefined
                elif "undefined" in str(e):
                    df = pd.read_csv(fnwp, header=0, names=self.title_qz)
                    df.dropna(inplace=True)
-                   for item in self.dtype_qz.keys():
+                   for item in list(self.dtype_qz.keys()):
                        df[item]=df[item].astype(self.dtype_qz[item])
                else:
                    raise ValueError(str(e))
@@ -435,7 +435,7 @@ class _API_common_sl:
             if len(df)>=self.least_num_days:
                 sh_stock_list.append(stock)
             else:
-                print "\t{0} does not have enough days after IPO".format(stock)
+                print("\t{0} does not have enough days after IPO".format(stock))
         return sh_stock_list
 
     def get_proper_sz_stock_list(self):
@@ -447,7 +447,7 @@ class _API_common_sl:
             if len(df)>=self.least_num_days:
                 sz_stock_list.append(stock)
             else:
-                print "\t{0} does not have enough days after IPO".format(stock)
+                print("\t{0} does not have enough days after IPO".format(stock))
         return sz_stock_list
 
     def check_exsits(self):
@@ -537,7 +537,7 @@ class API_G_IPO_sl(_API_common_sl):
             if len(df_hfq)==0:
                 raise ValueError("{0} is empty".format(stock))
             if str(df_hfq.iloc[0]["date"])<=self.latest_IPO_date_s:
-                print "add {0} in stock_list".format(stock)
+                print("add {0} in stock_list".format(stock))
                 selected_sl.append(stock)
         self.save_stock_list(selected_sl)
 
@@ -588,7 +588,7 @@ class V1_qz_extract_data_sanity_check:
                 if np.any(df_hfq["date"] == day): #not tinpai
                     fnwp=i_qz.get_fnwp_qz(day,stock)
                     if not os.path.exists(fnwp):
-                        print "missing {0} {1}".format(stock, day)
+                        print("missing {0} {1}".format(stock, day))
                         log.append([stock, day])
 
 
@@ -622,7 +622,7 @@ class V1_qz_extract_data_sanity_check:
                     if os.path.exists(fnwp):
                         b = os.path.getsize(fnwp)
                         if b==0:
-                            print "missing {0} {1}".format(stock, day)
+                            print("missing {0} {1}".format(stock, day))
                             log.append([stock, day])
 
 
@@ -643,8 +643,8 @@ class V1_qz_extract_data_sanity_check:
         for stock in stock_drop_list:
             df=df.drop(df[df["stock"] == stock].index)
 
-        print df.groupby(["date"]).count()
-        print df.groupby(["stock"]).count()
+        print(df.groupby(["date"]).count())
+        print(df.groupby(["stock"]).count())
 
     #----------------interface data available
     def prepare_qz_mising_zero_df(self):

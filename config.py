@@ -377,7 +377,7 @@ class gconfig(gconfig_data):
 
     def read_from_json(self, param_fnwp):
         param = json.load(open(param_fnwp, "r"), object_pairs_hook=OrderedDict)
-        for item in param.keys():
+        for item in list(param.keys()):
             sitem = str(item)
             if not sitem.startswith("======="):
                 self.__dict__[sitem] = param[sitem]
@@ -416,19 +416,19 @@ class gconfig(gconfig_data):
             self.start_train_count=start_train_count_indication1
 
         new_action_type_dict={}
-        for item in self.action_type_dict.keys():
+        for item in list(self.action_type_dict.keys()):
             new_action_type_dict[int(item)]=self.action_type_dict[item]
         self.action_type_dict=new_action_type_dict
 
         # convert unicode to string
-        for item in self.__dict__.keys():
+        for item in list(self.__dict__.keys()):
             # convert unicode to string
-            if type(self.__dict__[str(item)]) is unicode:
+            if type(self.__dict__[str(item)]) is str:
                 # print str(item), gc.__dict__[str(item)]
                 self.__dict__[str(item)] = str(self.__dict__[str(item)])
             # convert list with item in list is unicode
             elif type(self.__dict__[str(item)]) is list:
-                if type(self.__dict__[str(item)][0]) == unicode:
+                if type(self.__dict__[str(item)][0]) == str:
                     self.__dict__[str(item)] = [str(iitem) for iitem in self.__dict__[str(item)]]
             else:
                 continue
@@ -497,7 +497,7 @@ class gconfig(gconfig_data):
             ###"mask_code" is a string, contain P for policy, V for state value, E for entropy "" for non mask
             #for item_title in ["mask_method","accumulate_reward_method","mask_code"]:
             for item_title in ["accumulate_reward_method"]:
-                assert item_title in self.Dict_specifc_param.keys()
+                assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             ##av___change
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
@@ -545,7 +545,7 @@ class gconfig(gconfig_data):
 
             # 8.specific param
             for item_title in ["BB_NBD","max_record_taken","punish_r_base"]:
-                assert item_title in self.Dict_specifc_param.keys()
+                assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
 
@@ -592,7 +592,7 @@ class gconfig(gconfig_data):
 
             # 8.specific param
             for item_title in ["BB_NBD","max_record_taken","punish_r_base"]:
-                assert item_title in self.Dict_specifc_param.keys()
+                assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
             setattr(self.specific_param, "LHPP2V4_epsilon",0.1)
@@ -641,7 +641,7 @@ class gconfig(gconfig_data):
 
             # 8.specific param
             for item_title in ["BB_NBD","max_record_taken","punish_r_base"]:
-                assert item_title in self.Dict_specifc_param.keys()
+                assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
 

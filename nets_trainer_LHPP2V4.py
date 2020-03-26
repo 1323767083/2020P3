@@ -96,9 +96,9 @@ class LHPP2V4_Q_trainer1(Q_base_trainer):
                         #l_target.append(item_r[0] + self.gammaN * item_Qstate_.max(axis=-1))
                         l_target.append(item_r[0] + lc.Brain_gamma **support_view_dic[0, 0]["SdisS_"]* item_Qstate_.max(axis=-1))
                     except Exception as e:
-                        print "there", n_s__lv, n_s__sv, n_s__av,Qstate_
-                        print item_Qstate_
-                        print e
+                        print("there", n_s__lv, n_s__sv, n_s__av,Qstate_)
+                        print(item_Qstate_)
+                        print(e)
                         assert False
                 #assert item_av[0] == 1, item_av
 

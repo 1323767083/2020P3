@@ -60,11 +60,11 @@ def get_addon_setting(system_name,process_name):
     LEvalT = [idx * lgc.num_train_to_save_model for idx in range(LETs[-1] / lgc.num_train_to_save_model + 1)]
     LEvalT.pop(0)
 
-    decision = raw_input("current EvalT from {0} to {1} specify end Eval(Y/N)?".format(LEvalT[0],LEvalT[-1]))
+    decision = input("current EvalT from {0} to {1} specify end Eval(Y/N)?".format(LEvalT[0],LEvalT[-1]))
     if decision == "Y":
         endEvalT=LEvalT[-1]+1
         while not( endEvalT%lgc.num_train_to_save_model==0 and endEvalT<= LEvalT[-1]):
-            endEvalT = int(raw_input("current EvalT from {0} to {1} input specify End TEval?".format(LEvalT[0], LEvalT[-1])))
+            endEvalT = int(input("current EvalT from {0} to {1} input specify End TEval?".format(LEvalT[0], LEvalT[-1])))
         else:
             endEvalT_idx=LEvalT.index(endEvalT)
             del LEvalT[endEvalT_idx:]
@@ -93,7 +93,7 @@ class are_esi_reader:
         if os.path.exists(fnwp):
             df = pd.read_csv(fnwp, header=0)
         else:
-            print "can not find {0}".format(fnwp)
+            print("can not find {0}".format(fnwp))
             df=pd.DataFrame()
         return df
 
@@ -109,7 +109,7 @@ class are_esi_reader:
             else:
                 return True, df
         else:
-            print "can not find {0}".format(fnwp)
+            print("can not find {0}".format(fnwp))
             return False, "File_Not_Found"
 
 

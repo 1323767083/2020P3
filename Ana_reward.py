@@ -85,9 +85,9 @@ class C_debug_reward(Process):
             if cmd_list is not None:
                 if cmd_list[0][:-1] == "save":
                     flag_quit=True
-                    print "command: {0} receive from name pipe: {1} quit to save".format(cmd_list, self.inp.np_fnwp)
+                    print("command: {0} receive from name pipe: {1} quit to save".format(cmd_list, self.inp.np_fnwp))
                 else:
-                    print "command: {0} receive from name pipe: {1}, unknown".format(cmd_list, self.inp.np_fnwp)
+                    print("command: {0} receive from name pipe: {1}, unknown".format(cmd_list, self.inp.np_fnwp))
             time.sleep(1)
 
         E_stop.set()
@@ -134,10 +134,10 @@ class C_debug_reward(Process):
                 date_s=buffer_item[5][0,0]["date"]
 
                 if date_s >= self.quit_date:
-                    print "handling last {0} buffer to train".format(date_s)
+                    print("handling last {0} buffer to train".format(date_s))
                     flag_quit = True
                 else:
-                    print "\thandling {0} buffer to train".format(date_s)
+                    print("\thandling {0} buffer to train".format(date_s))
             self.tb.train_push_many(input_buffer)
 
         return flag_quit

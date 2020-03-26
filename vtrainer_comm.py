@@ -169,7 +169,7 @@ class show_op:
 
 class plot3D:
     def plot3d_surface(self, fig, wb):
-        x, y = np.meshgrid(range(wb[0][0].shape[1]), range(wb[0][0].shape[0]))
+        x, y = np.meshgrid(list(range(wb[0][0].shape[1])), list(range(wb[0][0].shape[0])))
         z = wb[0][0] * 100
         from mpl_toolkits.mplot3d import Axes3D
         plt3d = plt.figure().gca(projection='3d')
@@ -180,7 +180,7 @@ class plot3D:
     def plot3d_surface_sub(self, fig, z):
         #fig = plt.figure()
         #z = wb[0][0]
-        x, y = np.meshgrid(range(z.shape[1]), range(z.shape[0]))
+        x, y = np.meshgrid(list(range(z.shape[1])), list(range(z.shape[0])))
 
         ax = fig.add_subplot(111, projection='3d')
         ax.plot_surface(x, y, z, alpha=0.2, label='parametric curve')
@@ -189,7 +189,7 @@ class plot3D:
 
     def plot3d_line_sub(self, fig, wb):
         # fig = plt.figure()
-        xx, yy = np.meshgrid(range(wb[0][0].shape[0]), range(wb[0][0].shape[1]))
+        xx, yy = np.meshgrid(list(range(wb[0][0].shape[0])), list(range(wb[0][0].shape[1])))
         x = xx.reshape((-1,))
         y = yy.reshape((-1,))
         z = wb[0][0].reshape((-1,))

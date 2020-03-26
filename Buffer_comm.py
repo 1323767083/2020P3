@@ -74,7 +74,7 @@ class brain_buffer_reuse:
     def train_get(self, size):
         if len(self.tq[0])>=size:
             l_selected_idx=[]
-            for opt_reuse_count in reversed(range(self.reuse_times)):
+            for opt_reuse_count in reversed(list(range(self.reuse_times))):
                 lgz = [idx for idx, count in enumerate(self.tq[self.tq_count_idx]) if count ==opt_reuse_count +1]
                 if len(l_selected_idx) + len(lgz)>=size:
                     random.shuffle(lgz)
@@ -89,7 +89,7 @@ class brain_buffer_reuse:
             lresult=[]
             assert len(l_selected_idx)==size
             for tq_idx in range(self.tq_out_numb_col):
-                lresult.append(map(self.tq[tq_idx].__getitem__, l_selected_idx))
+                lresult.append(list(map(self.tq[tq_idx].__getitem__, l_selected_idx)))
             ltoremove_idx=[]
             for tq_idx_idx in l_selected_idx:
                 self.tq[self.tq_count_idx][tq_idx_idx]-=1
@@ -184,7 +184,7 @@ class TD_memory_LHPP2V2_old:
         AccR=0
         success_buy_idx=0
         flag_got_buy=False
-        for idx in list(reversed(range(len(self.memory)))):
+        for idx in list(reversed(list(range(len(self.memory))))):
             on_sv_dic = self.memory[idx][5]
             AccR = self.memory[idx][2] + AccR * self.gamma
             if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
@@ -194,7 +194,7 @@ class TD_memory_LHPP2V2_old:
 
     def get_accumulate_R(self, Num_record):
         AccR=0
-        for idx in list(reversed(range(Num_record))):
+        for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
 
@@ -255,7 +255,7 @@ class TD_memory_LHPP2V2_new:
         AccR=0
         success_buy_idx=0
         flag_got_buy=False
-        for idx in list(reversed(range(len(self.memory)))):
+        for idx in list(reversed(list(range(len(self.memory))))):
             on_sv_dic = self.memory[idx][5]
             AccR = self.memory[idx][2] + AccR * self.gamma
             if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
@@ -265,7 +265,7 @@ class TD_memory_LHPP2V2_new:
 
     def get_accumulate_R(self, Num_record):
         AccR=0
-        for idx in list(reversed(range(Num_record))):
+        for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
 
@@ -336,7 +336,7 @@ class TD_memory_LHPP2V3:
         AccR=0
         success_buy_idx=0
         flag_got_buy=False
-        for idx in list(reversed(range(len(self.memory)))):
+        for idx in list(reversed(list(range(len(self.memory))))):
             on_sv_dic = self.memory[idx][5]
             AccR = self.memory[idx][2] + AccR * self.gamma
             if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
@@ -348,7 +348,7 @@ class TD_memory_LHPP2V3:
 
     def get_accumulate_R(self, Num_record):
         AccR=0
-        for idx in list(reversed(range(Num_record))):
+        for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
 
@@ -418,7 +418,7 @@ class TD_memory_LHPP2V5:
         AccR=0
         success_buy_idx=0
         flag_got_buy=False
-        for idx in list(reversed(range(len(self.memory)))):
+        for idx in list(reversed(list(range(len(self.memory))))):
             on_sv_dic = self.memory[idx][5]
             AccR = self.memory[idx][2] + AccR * self.gamma
             if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
@@ -430,7 +430,7 @@ class TD_memory_LHPP2V5:
 
     def get_accumulate_R(self, Num_record):
         AccR=0
-        for idx in list(reversed(range(Num_record))):
+        for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
 

@@ -87,7 +87,7 @@ class record_variable:
         train_count=100
         saved_trc=20
 
-        lm_values=range (4)
+        lm_values=list(range(4))
         lm_names =["loss", "M_policy_loss","M_value_loss","M_entropy","M_entropy"]
 
         return [[s_lv,s_sv,s_av,a,r,s__lv,s__sv,s__av, Done, Support_view],[train_count, saved_trc]],lm_names,lm_values
@@ -358,14 +358,14 @@ class get_recorder_OS_losses:
     def get_losses_per_stc(self, stc):
         fnwp = os.path.join(self.des_dir, "loss_stc_{0}.csv".format(stc))
         if os.path.exists(fnwp):
-            print "{0} already exist".format(fnwp)
+            print("{0} already exist".format(fnwp))
             df = pd.read_csv(fnwp)
             return df
         df = pd.DataFrame(columns=['stc', 'tc', "valid_count","valid_sell_count", "invalid_count",
                     'loss', 'M_policy_loss', 'M_value_loss', 'M_entropy', 'M_state_value',"M_reward"])
         for tci in range(self.lgc.num_train_to_save_model):
             tc = tci + int(stc)
-            print "handling saved_tc: {0}  tc:{1}".format(stc, tc)
+            print("handling saved_tc: {0}  tc:{1}".format(stc, tc))
             compressed_RD_trainer,raw_loss, raw_sccc = self.ir.read_SC_CC_data_loss_sccc(stc, tc)
             count_valid_record_sell = 0
             count_valid_record_sell_no_action =0
@@ -443,40 +443,40 @@ class record_analysis:
 
         bs=i.read_buffer_data(stock, date)
 
-        print (bs[0][0] == rs_state_lv).all()
+        print((bs[0][0] == rs_state_lv).all())
 
         ss=i.i_sim.loader(stock, date)
         #ss[0]==cs_state_lv
 
         cs_state_sv = cs[0][1][idx]
         rs_state_sv = rs[0][1][idx]
-        print (cs_state_sv == rs_state_sv).all()
+        print((cs_state_sv == rs_state_sv).all())
 
         cs_state_lv_ = cs[0][5][idx]
         rs_state_lv_ = rs[0][5][idx]
-        print (cs_state_lv_ == rs_state_lv_).all()
+        print((cs_state_lv_ == rs_state_lv_).all())
 
         cs_state_sv_ = cs[0][6][idx]
         rs_state_sv_ = rs[0][6][idx]
-        print (cs_state_sv_ == rs_state_sv_).all()
+        print((cs_state_sv_ == rs_state_sv_).all())
 
         cs_state_av = cs[0][2][idx]
         rs_state_av = rs[0][2][idx]
-        print cs_state_av
-        print rs_state_av
+        print(cs_state_av)
+        print(rs_state_av)
 
         cs_state_av_ = cs[0][7][idx]
         rs_state_av_ = rs[0][7][idx]
-        print cs_state_av_
-        print rs_state_av_
+        print(cs_state_av_)
+        print(rs_state_av_)
 
         cs_action = cs[0][3][idx]
         rs_action = rs[0][3][idx]
-        print cs_action
-        print rs_action
+        print(cs_action)
+        print(rs_action)
 
         cs_reward = cs[0][4][idx]
         rs_reward = rs[0][4][idx]
-        print cs_reward
-        print rs_reward
+        print(cs_reward)
+        print(rs_reward)
 

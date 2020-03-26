@@ -190,7 +190,7 @@ class Explore_Brain(Brain):
                 load_jason_custom_objects={"softmax": softmax,"tf":tf, "concatenate":concatenate,"lc":lc}
                 model = model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
                 model.load_weights(weight_fnwp)
-                print "successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp)
+                print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
         return model
 
     def V2_OS_predict(self, state, model):

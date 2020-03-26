@@ -279,11 +279,11 @@ class G_T5(G_T3):
         i_summary=G_summary_data_1stock(self.data_name,stock)
         if not i_summary.flag_prepare_data_ready:
             exclude_stock_list(self.data_name).add_to_exlude_list(stock, reason="no_summary_data")
-            print "Summary data not exists {0}".format(stock)
+            print("Summary data not exists {0}".format(stock))
             return False,"" ,"","",""
 
         if not self.summary_data_sanity_check(stock,i_summary.data):
-            print "Summary data not have enough lenth {0}".format(stock)
+            print("Summary data not have enough lenth {0}".format(stock))
             return False, "", "", "", ""
 
         i_ginform = ginfo_one_stock(stock)
@@ -309,7 +309,7 @@ class G_T5(G_T3):
 
             l_data_s,l_large_view,l_small_view, l_support_view = [],[],[],[]
             for date_s in period:
-                print "\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx)
+                print("\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx))
                 flag_last_day = True if date_s == period[-1] else False
 
                 one_view_period = self.td[self.td <= date_s][-20:]
@@ -345,12 +345,12 @@ def main(argv):
     if "T5" in data_name: # this is to make data for T5 T5_V2_
         stock_list = API_G_IPO_sl(data_name, stock_type, str(date_i)).load_stock_list(1, 0)  # 1, 0 means all
         while True:
-            choice=raw_input("Overwrite exits data for {0}? (Y)es or (N)o: ".format(data_name))
+            choice=input("Overwrite exits data for {0}? (Y)es or (N)o: ".format(data_name))
             if choice in ["Y", "N"]:
                 break
         G_T5(data_name).prepare_data(stock_list,flag_overwrite= True if choice=="Y" else False)
     else:
-        print "data_T5.py on;y support create T5 seriese data, means data name should start with T5 "
+        print("data_T5.py on;y support create T5 seriese data, means data name should start with T5 ")
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -8,7 +8,7 @@ class lconfig:
 def init_gc(lgc):
     global lc
     lc=lconfig()
-    for key in lc.__dict__.keys():
+    for key in list(lc.__dict__.keys()):
         lc.__dict__[key] = lgc.__dict__[key]
 
 

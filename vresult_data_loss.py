@@ -45,7 +45,7 @@ class loss_summary_recorder:
                 lcolumn.append(field+"__"+stat)
         dfr=pd.DataFrame(columns=lcolumn)
         for stc in self.lstc:
-            print "handling ", stc
+            print("handling ", stc)
             df=self.i_get_recorder_OS_losses.get_losses_per_stc(stc)
             lr=[stc]
             for field in self.lfield:
@@ -101,7 +101,7 @@ class ana_loss_data_tb:
                 lcolumn.append(field+"__"+stat)
         dfr=pd.DataFrame(columns=lcolumn)
         for stc in self.lstc:
-            print "handling ", stc
+            print("handling ", stc)
             df=self.get_losses_per_stc(stc)
             if len(df)==0:
                 continue
@@ -140,7 +140,7 @@ class ana_loss_data_tb:
 
         current_tc=0
         current_stc=0
-        print "Handling saved tc ", current_stc
+        print("Handling saved tc ", current_stc)
         flag_one_record_ready=False
         Ditem={}
         df = pd.DataFrame(columns=["stc", "tc"] + self.lfield)
@@ -155,7 +155,7 @@ class ana_loss_data_tb:
                 try:
                     litem = [current_stc, current_tc] + [Ditem[key] for key in self.lfield]
                 except Exception as e:
-                    print "ET {0} not have all loss data quit {1}".format(working_stc, Ditem)
+                    print("ET {0} not have all loss data quit {1}".format(working_stc, Ditem))
                     break
                 current_tc=working_tc
                 Ditem = {}
@@ -172,7 +172,7 @@ class ana_loss_data_tb:
             if working_stc!=current_stc:
                 df.to_csv(fnwp_to_save, index=False)
                 current_stc= working_stc
-                print "Handling saved tc ", current_stc
+                print("Handling saved tc ", current_stc)
                 df = pd.DataFrame(columns=["stc", "tc"] + self.lfield)
                 fnwp_to_save = os.path.join(target_dir, "loss_stc_{0}.csv".format(current_stc))
 
@@ -233,7 +233,7 @@ class ana_loss:
             ax.set_title("{0} @ ET {1}".format(content, ET))
             ax.legend(loc='upper right')
             ax.tick_params(axis='x', rotation=90)
-            ax.set_xticks(range(len(df.index) + 1))
+            ax.set_xticks(list(range(len(df.index) + 1)))
             ax.set_xticklabels(df.index.values, fontsize=7)
 
     def show_loss_summary(self, fig, l_content, l_sfun,ET,fun_plot_reward_count,LEvalT,i_get_data):
@@ -273,6 +273,6 @@ class ana_loss:
             ax.set_title("{0}".format(content))
             ax.legend(loc='upper right')
             ax.tick_params(axis='x', rotation=90)
-            ax.set_xticks(range(len(x_tick_label) + 1))
+            ax.set_xticks(list(range(len(x_tick_label) + 1)))
             ax.set_xticklabels(x_tick_label, fontsize=7)
 

@@ -33,7 +33,7 @@ class FH_RL_data_1stock:
 
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "w") as hf:
-            for idx in xrange(num_periods):
+            for idx in range(num_periods):
                 hf_wg=hf.create_group("period_{0}".format(idx))
                 hf_wg.create_dataset("np_date_s", data=l_np_date_s[idx])
                 hf_wg.create_dataset("np_large_view", data=l_np_large_view[idx])
@@ -47,7 +47,7 @@ class FH_RL_data_1stock:
         l_np_support_view=[]
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period_raw=hf.keys()
+            l_period_raw=list(hf.keys())
             l_period = [item for item in l_period_raw if not str(item).startswith("__")]
             for period in l_period:
                 hf_wg=hf[period]
@@ -65,7 +65,7 @@ class FH_RL_data_1stock:
         l_np_support_view=[]
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
             assert period_num<=len(l_period)-1
             hf_wg = hf["period_{0}".format(period_num)]
             assert isinstance(hf_wg, h5py.Group)
@@ -78,7 +78,7 @@ class FH_RL_data_1stock:
     def get_total_period_num(self):
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
         return len(l_period)
 
     def check_data_avalaible(self):
@@ -107,8 +107,8 @@ class R_T5:
                 self.i_fh.load_main_data()
         else:
             self.flag_prepare_data_ready = False
-            print "{0} {1} RL data file does not exists at {2}".format(self.data_name, self.stock,
-                                                                       self.i_fh.get_dump_fnwp(stock))
+            print("{0} {1} RL data file does not exists at {2}".format(self.data_name, self.stock,
+                                                                       self.i_fh.get_dump_fnwp(stock)))
     def _get_indexs(self, date_s):
         if not self.flag_prepare_data_ready:
             return  False, None, None
@@ -505,11 +505,11 @@ class G_T5:
         i_summary=G_summary_data_1stock(self.data_name,stock)
         if not i_summary.flag_prepare_data_ready:
             exclude_stock_list(self.data_name).add_to_exlude_list(stock, reason="no_summary_data")
-            print "Summary data not exists {0}".format(stock)
+            print("Summary data not exists {0}".format(stock))
             return False,"" ,"","",""
 
         if not self.summary_data_sanity_check(stock,i_summary.data):
-            print "Summary data not have enough lenth {0}".format(stock)
+            print("Summary data not have enough lenth {0}".format(stock))
             return False, "", "", "", ""
 
         i_ginform = ginfo_one_stock(stock)
@@ -535,7 +535,7 @@ class G_T5:
 
             l_data_s,l_large_view,l_small_view, l_support_view = [],[],[],[]
             for date_s in period:
-                print "\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx)
+                print("\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx))
                 flag_last_day = True if date_s == period[-1] else False
 
                 one_view_period = self.td[self.td <= date_s][-20:]
@@ -571,14 +571,14 @@ class G_T5:
         for idx,stock in enumerate(stock_list):
             i_fh = FH_RL_data_1stock(self.data_name, stock)
             if not flag_overwrite and i_fh.check_data_avalaible():
-                print "already exists RL data for {0} {1}".format(self.data_name, stock)
+                print("already exists RL data for {0} {1}".format(self.data_name, stock))
                 continue
             result_flag,ll_np_data_s, ll_np_large_view, ll_np_small_view, ll_support_view=self.prepare_1stock(stock)
             if result_flag:
                 i_fh.save_main_data([ll_np_data_s, ll_np_large_view, ll_np_small_view, ll_support_view])
-                print "Finish prepare {0} RL data  {1}".format(stock, idx)
+                print("Finish prepare {0} RL data  {1}".format(stock, idx))
             else:
-                print "Fail prepare {0} RL data  {1}".format(stock, idx)
+                print("Fail prepare {0} RL data  {1}".format(stock, idx))
 
 
 def main(argv):
@@ -586,12 +586,12 @@ def main(argv):
     if "T5" in data_name: # this is to make data for T5 T5_V2_
         stock_list = API_G_IPO_sl(data_name, stock_type, str(date_i)).load_stock_list(1, 0)  # 1, 0 means all
         while True:
-            choice=raw_input("Overwrite exits data for {0}? (Y)es or (N)o: ".format(data_name))
+            choice=input("Overwrite exits data for {0}? (Y)es or (N)o: ".format(data_name))
             if choice in ["Y", "N"]:
                 break
         G_T5(data_name).prepare_data(stock_list,flag_overwrite= True if choice=="Y" else False)
     else:
-        print "data_T5.py on;y support create T5 seriese data, means data name should start with T5 "
+        print("data_T5.py on;y support create T5 seriese data, means data name should start with T5 ")
 
 if __name__ == '__main__':
     main(sys.argv[1:])

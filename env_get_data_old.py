@@ -106,9 +106,9 @@ class env_get_data_base_base:
         if self.idx_in_period == self.period_end_idx:
 
             if not support_view_dic["last_day_flag"]:
-                print "**********************************************************************"
-                print "{0} end correct".format(self.stock)
-                print "**********************************************************************"
+                print("**********************************************************************")
+                print("{0} end correct".format(self.stock))
+                print("**********************************************************************")
 
             support_view_dic["last_day_flag"]=True
 
@@ -204,9 +204,9 @@ class env_get_data_LHP_train(env_get_data_base_base):
         state, support_view_dic = self.i_sd.read_one_day_data_by_index(self.period_index,self.idx_in_period)
         if self.idx_in_period == self.period_end_idx:
             if not support_view_dic["last_day_flag"]:
-                print "**********************************************************************"
-                print "{0} end correct".format(self.stock)
-                print "**********************************************************************"
+                print("**********************************************************************")
+                print("{0} end correct".format(self.stock))
+                print("**********************************************************************")
             support_view_dic["last_day_flag"]=True
 
         done_flag = support_view_dic["last_day_flag"]

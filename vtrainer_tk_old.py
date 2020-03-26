@@ -306,7 +306,7 @@ class vtrainer_tk(tk.Frame):
                             zip(loss_this_round, RD_brain[1])]), "{0}, {1}".format(loss_this_round, RD_brain)
                 assert num_record_to_train == len(RD_trainer[0]), "{0} {1} ".format(num_record_to_train,
                                                                                     len(RD_trainer[0]))
-                print "optimized on train count {0}".format(tc)
+                print("optimized on train count {0}".format(tc))
                 Dmodel["saved_tc"] = tc + 1
             dc["step_result"].set("optimize to {0}".format(end_tc))
         return optimize_step_in
@@ -527,7 +527,7 @@ class vtrainer_tk(tk.Frame):
         current_row += 1
         tk.Label(container, text="step:", width=width_left,anchor=tk.W,pady = 3).\
             grid(column=0, row=current_row, sticky=tk.W)
-        CBstep = ttk.Combobox(container, values=range(param["max_step"]), width=width_right)
+        CBstep = ttk.Combobox(container, values=list(range(param["max_step"])), width=width_right)
         CBstep.set(0)
         CBstep.grid(column=1, row=current_row, sticky=tk.W)
 

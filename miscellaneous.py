@@ -20,20 +20,20 @@ def getselected_item_name(l_items, colum_per_row=3,flag_sort=True):
         for column_idx in range(colum_per_row):
             prt_str += "({0:<3}){1:<60}".format(row_idx+shift_idx, l_items[row_idx+shift_idx])
             shift_idx+=row_per_column[column_idx]
-        print prt_str
+        print(prt_str)
     if num_column_last_row!=0:
         prt_str = ""
         shift_idx = 0
         for column_idx in range(num_column_last_row):
             prt_str += "({0:<3}){1:<60}".format(num_row+shift_idx, l_items[num_row+shift_idx])
             shift_idx += row_per_column[column_idx]
-        print prt_str
+        print(prt_str)
 
-    selected_item = input("Enter a number: ")
+    selected_item = eval(input("Enter a number: "))
     return l_items[int(selected_item)]
 
 def create_system(RL_systemn_dir):
-    print "select the system to copy from"
+    print("select the system to copy from")
 
     lfn=os.listdir(RL_systemn_dir)
     source_system_name=getselected_item_name(lfn)
@@ -44,12 +44,12 @@ def create_system(RL_systemn_dir):
     new_system_dir=""
     new_system_name=""
     while flag_not_found:
-        new_system_name=raw_input("Enter the new system name: ")
+        new_system_name=input("Enter the new system name: ")
         new_system_dir=os.path.join(RL_systemn_dir,new_system_name)
         if not os.path.exists(new_system_dir):
             flag_not_found=False
         else:
-            decision=raw_input("{0} already exists, delete it? Yes/No".format(new_system_name))
+            decision=input("{0} already exists, delete it? Yes/No".format(new_system_name))
             if decision=="Yes":
                 shutil.rmtree(new_system_dir)
                 flag_not_found = False
@@ -76,7 +76,7 @@ def remove_system_sub_dirs(system_dir):
         directory_to_remove = os.path.join(system_dir, sub_dir)
         if os.path.exists(directory_to_remove):
             shutil.rmtree(directory_to_remove)
-            print "remove ", directory_to_remove
+            print("remove ", directory_to_remove)
 
 
 def start_tensorboard(port, logdir):
@@ -91,7 +91,7 @@ def start_tensorboard(port, logdir):
     tb = program.TensorBoard()
     tb.configure(argv=[None, '--port',str(port) ,'--logdir', logdir])
     url = tb.launch()
-    print "******************************",url
+    print("******************************",url)
     while True:
         time.sleep(6000)
 
@@ -103,7 +103,7 @@ class copy_between_two_machine:
         self.flag_debug=flag_debug
 
     def run_command(self, command_to_run):
-        print command_to_run
+        print(command_to_run)
         if self.flag_debug:
             return ""
         myCmd = os.popen(command_to_run).read()
@@ -157,7 +157,7 @@ class copy_between_two_machine:
         self.run_command(command_to_run)
 
 def create_eval_system(new_data_name):  #new_data_name="T5_V2_"
-    print "select the system to base from"
+    print("select the system to base from")
 
     lfn=os.listdir(sc.base_dir_RL_system)
     source_system_name=getselected_item_name(lfn)
@@ -168,12 +168,12 @@ def create_eval_system(new_data_name):  #new_data_name="T5_V2_"
     new_system_dir=""
     new_system_name=""
     while flag_not_found:
-        new_system_name=raw_input("Enter the new system name: ")
+        new_system_name=input("Enter the new system name: ")
         new_system_dir=os.path.join(sc.base_dir_RL_system,new_system_name)
         if not os.path.exists(new_system_dir):
             flag_not_found=False
         else:
-            decision=raw_input("{0} already exists, delete it? Yes/No".format(new_system_name))
+            decision=input("{0} already exists, delete it? Yes/No".format(new_system_name))
             if decision=="Yes":
                 shutil.rmtree(new_system_dir)
                 flag_not_found = False
@@ -219,7 +219,7 @@ def check_correct(stock):
             fnwp = i.get_dump_fnwp(stock)
             os.rename(fnwp, fnwp+"_old")
             i.save_main_data([l_np_date_s, l_np_large_view, l_np_small_view, l_np_support_view])
-            print "{0} period_idx {1} error found and corrected".format(stock, idx)
+            print("{0} period_idx {1} error found and corrected".format(stock, idx))
             return True
-    print "{0} no error found".format(stock)
+    print("{0} no error found".format(stock))
     return False

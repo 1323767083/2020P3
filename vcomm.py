@@ -127,7 +127,7 @@ class Checkbar(tk.Frame):
             self.vars.append(var)
 
     def state(self):
-        return map((lambda var: var.get()), self.vars)
+        return list(map((lambda var: var.get()), self.vars))
 
     def selcted_item(self):
        selected_states=self.state()

@@ -353,18 +353,18 @@ class Explore_process(client_base):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:
             if cmd_list[0][:-1] == "status":
-                print "|||worker:{0} loop_count:{1} |||l_idx_valid_flag: {2}|||" \
-                    .format(self.process_idx, Ds["worker_loop_count"],self.data.l_idx_valid_flag)
-                print Ds
-                print "are length {0}  ".format([len(self.data.l_log_a_r_e[idx]) for idx in range(len(self.data.l_idx_valid_flag))])
-                print "ssdi length {0}  ".format([len(self.data.l_log_stock_episode[idx]) for idx in range(len(self.data.l_idx_valid_flag))])
+                print("|||worker:{0} loop_count:{1} |||l_idx_valid_flag: {2}|||" \
+                    .format(self.process_idx, Ds["worker_loop_count"],self.data.l_idx_valid_flag))
+                print(Ds)
+                print("are length {0}  ".format([len(self.data.l_log_a_r_e[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
+                print("ssdi length {0}  ".format([len(self.data.l_log_stock_episode[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
             elif cmd_list[0][:-1] == "send_more":
                 self.logger.info("{0}".format(Ds))
                 Ds["accumulate_record_sent_per_update"] =self.max_record_sent_per_update_weight-1000
                 Ds["flag_sent_enough_item"]=False
 
             else:
-                print "Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp)
+                print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 class Eval_process(client_base):
     def __init__(self, process_name, process_idx, data_name,learn_sl,L_output, E_stop):
         client_base.__init__(self, process_name, process_idx, learn_sl,L_output, None, E_stop, None, None)
@@ -494,9 +494,9 @@ class Eval_process(client_base):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:
             if cmd_list[0][:-1] == "status":
-                print "|||{0} for {1}|||".format(eval_state,self.eval_loop_count)
+                print("|||{0} for {1}|||".format(eval_state,self.eval_loop_count))
             else:
-                print "Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp)
+                print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 
     def eval_check_round_finished(self):
         if not any(self.data.l_idx_valid_flag):

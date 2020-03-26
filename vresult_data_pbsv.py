@@ -143,6 +143,6 @@ class ana_pbsv_detail:
             selecte_idx=self.extract_select_item(item)
             show_content.append(npr[:, selecte_idx])
             show_label.append(self.i_ARE_1stock.lgc.action_type_dict[selecte_idx])
-        ax.stackplot(range(len(npr[:, 0])), show_content, labels=show_label)
+        ax.stackplot(list(range(len(npr[:, 0]))), show_content, labels=show_label)
         ax.legend()
         return npr

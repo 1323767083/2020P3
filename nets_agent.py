@@ -46,7 +46,7 @@ def init_agent_config(input_lc):
 
 
     for item_title in nc_item_list:
-        assert item_title in lc.net_config.keys()
+        assert item_title in list(lc.net_config.keys())
         setattr(nc, item_title, lc.net_config[item_title])
 
     nc.lv_shape = tuple(nc.lv_shape)

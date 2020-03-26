@@ -274,9 +274,9 @@ class visual_state_data:
                 else:
                     assert lv_scale_op == 1
                     im = ax.imshow(self.mask_array(lv, lv_mask_op, lv_mask_threadhold).reshape(image_shape),aspect='auto')
-                ax.set_xticks(range(17))
+                ax.set_xticks(list(range(17)))
                 ax.set_xticklabels([str(idx+1) for idx in range(17)])
-                ax.set_yticks(range(20))
+                ax.set_yticks(list(range(20)))
                 ax.set_yticklabels([str(idx+1) for idx in range(20)])
                 cax.tick_params(labelsize=8)
                 cbar = fig.colorbar(im, cax=cax, format='%.0e')
@@ -292,9 +292,9 @@ class visual_state_data:
                 else:
                     assert sv_scale_op==1
                     im = ax.imshow(self.mask_array(sv, sv_mask_op, sv_mask_threadhold).reshape(image_shape),aspect='auto')
-                ax.set_xticks(range(50))
+                ax.set_xticks(list(range(50)))
                 ax.set_xticklabels([str(idx+1) for idx in range(50)])
-                ax.set_yticks(range(20))
+                ax.set_yticks(list(range(20)))
                 ax.set_yticklabels([str(idx+1) for idx in range(20)])
 
                 cax.tick_params(labelsize=8)
@@ -313,9 +313,9 @@ class visual_state_data:
                 im = ax.imshow(self.mask_array(ulv-dlv, 0, 0).reshape(image_shape),aspect='auto')
                 cax.tick_params(labelsize=8)
                 cbar = fig.colorbar(im, cax=cax, format='%.0e')
-                ax.set_xticks(range(17))
+                ax.set_xticks(list(range(17)))
                 ax.set_xticklabels([str(idx+1) for idx in range(17)])
-                ax.set_yticks(range(20))
+                ax.set_yticks(list(range(20)))
                 ax.set_yticklabels([str(idx+1) for idx in range(20)])
 
             else:
@@ -328,9 +328,9 @@ class visual_state_data:
                 im = ax.imshow(self.mask_array(usv-dsv, 0, 0).reshape(image_shape),aspect='auto')
                 cax.tick_params(labelsize=8)
                 cbar = fig.colorbar(im, cax=cax, format='%.0e')
-                ax.set_xticks(range(50))
+                ax.set_xticks(list(range(50)))
                 ax.set_xticklabels([str(idx+1) for idx in range(50)])
-                ax.set_yticks(range(20))
+                ax.set_yticks(list(range(20)))
                 ax.set_yticklabels([str(idx+1) for idx in range(20)])
 
 
@@ -341,7 +341,7 @@ class visual_state_data:
                 if remove_prefix in origin_title:
                     return origin_title[len(remove_prefix):]
             return origin_title
-        l_key = support_view.keys()
+        l_key = list(support_view.keys())
         l_key.remove("stock")
         l_key.remove("date")
         l_key.remove("last_day_flag")

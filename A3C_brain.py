@@ -212,10 +212,10 @@ class Train_Process(Process):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:
             if cmd_list[0][:-1] == "status":
-                print "Brain train_count:{0} count_get_item:{1}" .format(Ds["train_count"],
-                                                                         Ds["accumulate_item_get_this_train_count"])
-                print Ds
+                print("Brain train_count:{0} count_get_item:{1}" .format(Ds["train_count"],
+                                                                         Ds["accumulate_item_get_this_train_count"]))
+                print(Ds)
 
-                print "Brain hold buffer size {0}".format(i_brain.tb.get_buffer_size())
+                print("Brain hold buffer size {0}".format(i_brain.tb.get_buffer_size()))
             else:
-                print "Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp)
+                print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))

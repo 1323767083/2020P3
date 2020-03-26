@@ -16,7 +16,7 @@ def sim(input_1, deduct_1, num_year, fnwp="/home/rdchujf/result.csv"):
 
     df=pd.DataFrame()
     for rr in np.arange(0.001, 0.01,0.0005 ):
-        print "handling {0}".format(rr)
+        print("handling {0}".format(rr))
         a=cal_r2(input_1, deduct_1, rr, num_year)
         df["{0}".format(rr)]=a
     df.to_csv(fnwp, index=False,float_format='%.2f')
@@ -60,7 +60,7 @@ def simj():
     #df = pd.read_csv(fnwp)
     df=pd.DataFrame()
     for rr in np.arange(0.01, 0.06,0.001 ):
-        print "handling {0}".format(rr)
+        print("handling {0}".format(rr))
         a=j3(rr)
         df["{0}".format(rr)]=a
     df.to_csv("/home/rdchujf/Downloads/jiaoresult.csv",index=False, float_format='%.2f')

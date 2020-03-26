@@ -70,7 +70,7 @@ def match_fn_tc(argv):
     lfn = [fn for fn in os.listdir(source_dir)]
     lfn.sort()
     for fn in lfn:
-        print "handling ", fn
+        print("handling ", fn)
         fnwp=os.path.join(source_dir,fn)
         _,_,a3=i.loader(fnwp)
         a3r.append(a3)
@@ -93,7 +93,7 @@ def match_fn_tc(argv):
             tem_end_fn = fn
     df=pd.DataFrame(result, columns=["Train_count", "fn_start", "fn_end"])
     df.to_csv(result_fnwp, index=False)
-    print "result store in {0}".format(result_fnwp)
+    print("result store in {0}".format(result_fnwp))
 
 #####Ana record variable step 2
 def cal_advent(argv):
@@ -107,7 +107,7 @@ def cal_advent(argv):
 
     global Ctrainer,Cagent, lc 
     lc=lconfig()
-    for key in lc.__dict__.keys():
+    for key in list(lc.__dict__.keys()):
         lc.__dict__[key] = lgc.__dict__[key]
     init_agent_config(lc)
     init_trainer_config(lc)
@@ -128,7 +128,7 @@ def cal_advent(argv):
         svc         =   row["Train_count"]
         start_fn    =   row["fn_start"]
         end_fn      =   row["fn_end"]
-        print "handling {0}".format(svc)
+        print("handling {0}".format(svc))
         #get aio fn
         lAIO=[fn for fn in os.listdir(lgc.brain_model_dir) if lgc.actor_model_AIO_fn_seed in fn and "T{0}.h5py".format(svc) in fn]
         assert len(lAIO)==1
@@ -138,7 +138,7 @@ def cal_advent(argv):
         lfn = [fn for fn in os.listdir(lgc.record_variable_dir) if fn >= start_fn and fn <= end_fn]
 
         for fn in lfn:
-            print "\t handling {0}".format(fn)
+            print("\t handling {0}".format(fn))
             #fnwp=os.path.join(lgc.record_variable_dir,fn)
             #a1, a2, a3=rv.loader(fnwp)
             a1, _, _ = rv.loader(fn)
@@ -166,7 +166,7 @@ def cal_advent(argv):
 
             prob,input_a,advents = y_pred[:, :3], y_pred[:, 3:6],y_pred[:, -1:]
 
-            for idx, advent, support_view in zip(range(len(advents)), advents, l_support_view):
+            for idx, advent, support_view in zip(list(range(len(advents))), advents, l_support_view):
                 #print support_view
                 #print support_view[0]
                 #if advent[0] > record_checked_threahold:
@@ -176,7 +176,7 @@ def cal_advent(argv):
     df=pd.DataFrame(result,columns=["train_count","fn","idx_in_fn","stock", "date", "advent"])
     result_fnwp=os.path.join(lgc.system_working_dir,Ana_sub_dir,fn_cal_advent)
     df.to_csv(result_fnwp, index=False)
-    print "result store in {0}".format(result_fnwp)
+    print("result store in {0}".format(result_fnwp))
 
 #####Ana record variable step 3
 def plot_loss_occurance(argv):
@@ -221,7 +221,7 @@ def relation_between_s_and_s__(argv):
     dfr = df[(df["stock"] == stock) & (df["advent"] >= threadhold) & (df["train_count"] == count)]
     #dfr = df[(df["stock"] == "SH600177")  & (df["train_count"] == 100)]
     if len(dfr)==0:
-        print "no data found for stock {0} threadhold {1} count {2}".format(stock,threadhold,count)
+        print("no data found for stock {0} threadhold {1} count {2}".format(stock,threadhold,count))
         return
     dfr=dfr.sort_values(by=["date"])
     dfr["date"] = dfr["date"].astype(str)
@@ -230,10 +230,10 @@ def relation_between_s_and_s__(argv):
     td = API_trade_date().np_date_s
     period=td[(td>=dfr.iloc[0]["date"]) & (td<=dfr.iloc[-1]["date"])]
     if len(period) !=len(dfr):
-        print "mismatch ", len(period), len(dfr)
+        print("mismatch ", len(period), len(dfr))
         return
     else:
-        print "match ", len(period) , len(dfr)
+        print("match ", len(period) , len(dfr))
 
     sbs=step_by_step(system_name)
     for idx, row in dfr.iterrows():
@@ -257,7 +257,7 @@ def relation_between_s_and_s__(argv):
         assert (sv_f == sv_n).all(), "{0} {1} not ok".format(s__date, sn_date)
         assert av_f[0,7]==av_n[0,7]
         assert np.array_equal(av_f, av_n)
-        print "{0} {1} ok".format(s__date, sn_date)
+        print("{0} {1} ok".format(s__date, sn_date))
 
 
 def compare_mean_prepare_data(argv):
@@ -293,7 +293,7 @@ def compare_mean_prepare_data(argv):
     #if flag_need_handle_normal_lv or flag_need_handle_stock_lv:
     if flag_need_handle_normal_lv or any(l_flag_need_handle_stock_lv):
         for fn in lfn:
-            print "handling ", fn
+            print("handling ", fn)
             fnwp=os.path.join(source_dir,fn)
             a1,_,_=i.loader(fnwp)
             llv,_,_,_,_,_,_,_,_,l_support_view=a1
@@ -311,11 +311,11 @@ def compare_mean_prepare_data(argv):
 
         if flag_need_handle_normal_lv:
             pickle.dump(l_result, open(result_fnwp, 'w'))
-            print "result stored in {0}".format(result_fnwp)
+            print("result stored in {0}".format(result_fnwp))
         for idx, need_flag in enumerate(l_flag_need_handle_stock_lv):
             if need_flag:
                 pickle.dump(ll_stock_result[idx], open(l_stock_result_fnwp[idx],"w"))
-                print "result stored in {0}".format(l_stock_result_fnwp[idx])
+                print("result stored in {0}".format(l_stock_result_fnwp[idx]))
     l_input_fnwp=[]
     l_output_fnwp=[]
     mean_std_result_fnwp = os.path.join(result_dir, fn_lv_normal_mean_std)
@@ -336,7 +336,7 @@ def compare_mean_prepare_data(argv):
             l_mean_std.append([temp.mean(),temp.std()])
         df=pd.DataFrame(l_mean_std, columns=["mean","std"])
         df.to_csv(output_file, index=False)
-        print "result stored in {0}".format(output_file)
+        print("result stored in {0}".format(output_file))
 
 
 def compare_mean_plot(argv):
@@ -358,7 +358,7 @@ def compare_mean_plot(argv):
     ax.plot(dfn["mean"]+dfn["std"], dashes=[6, 2])
     ax.plot(dfn["mean"]-dfn["std"], dashes=[6, 2])
     ax.plot(dfs["mean"],label="{0}_lv_mean".format(stock))
-    x_tick = range(17)
+    x_tick = list(range(17))
     x_label = cn_lv
     ax.set_xticks(x_tick)
     ax.set_xticklabels(x_label, fontsize=12)
@@ -424,7 +424,7 @@ def plot_state_item(argv):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
 
-    x=range(len(l_Y))
+    x=list(range(len(l_Y)))
     ax.plot(x, l_Y, label=plotchoice)
     ax.set_xticks(x)
     ax.set_xticklabels(x_tick_label, fontsize=8)
@@ -464,7 +464,7 @@ class step_by_step:
 
 
         self.lc = lconfig()
-        for key in self.lc.__dict__.keys():
+        for key in list(self.lc.__dict__.keys()):
             self.lc.__dict__[key] = self.lgc.__dict__[key]
         init_agent_config(self.lc)
         init_trainer_config(self.lc)
@@ -584,7 +584,7 @@ def Predict_on_recorded_data(argv):
     state, a, r, state_=sbs.load_data_from_record_variables(fn,stock, date_s)
     prob, input_a, advents=sbs.T_predict(state, state_, a, r, Pmodel, Tmodel)
 
-    print prob, input_a, advents, "should advent is {0}".format(9694.671875)
+    print(prob, input_a, advents, "should advent is {0}".format(9694.671875))
 
 def Predict_on_T5_data(argv):
     system_name="htryc"
@@ -608,18 +608,18 @@ def Predict_on_T5_data(argv):
 
     lv, sv, support_view=sbs.load_data_from_T5(stock, date_s)
     if lv is None:
-        print "Can not get {0} {1} data".format(stock, date_s)
+        print("Can not get {0} {1} data".format(stock, date_s))
         return False
     else:
         state=sbs.fabricate_av([lv, sv, support_view], holding, potential_profit)
 
 
     period=td[td>=date_s]
-    print period[4]
+    print(period[4])
 
     lv_, sv_, support_view_=sbs.load_data_from_T5(stock, period[4])
     if lv_ is None:
-        print "Can not get {0} {1} data".format(stock, period[4])
+        print("Can not get {0} {1} data".format(stock, period[4]))
         return False
     else:
         state_ = sbs.fabricate_av([lv_, sv_, support_view_], holding_, potential_profit_)
@@ -629,7 +629,7 @@ def Predict_on_T5_data(argv):
 
     prob, input_a, advents=sbs.T_predict(state, state_, a_onehot, np.expand_dims(np.array([r]), axis=0), Pmodel, Tmodel)
     #print prob, input_a, advents, "should advent is {0}".format(9694.671875)
-    print prob, input_a, advents, "should advent is {0}".format(1452.085083)
+    print(prob, input_a, advents, "should advent is {0}".format(1452.085083))
 
 ######Step by step test plots
 def view_record_data_AV(argv):
@@ -641,8 +641,8 @@ def view_record_data_AV(argv):
     sbs=step_by_step(system_name)
     state, a, r, state_=sbs.load_data_from_record_variables(fn,stock, date_s)
 
-    print state[2]
-    print state_[2]
+    print(state[2])
+    print(state_[2])
 
 class C_view_lv:
     def __init__(self, argv):
@@ -654,7 +654,7 @@ class C_view_lv:
         system_dir = os.path.join("/home/rdchujf/n_workspace/RL/", system_name)
         fnwp = os.path.join(system_dir, "{0}_date.csv".format(stock))
         if not os.path.exists(fnwp):
-            print "run python Ana_impluse_loss.py debug7 "
+            print("run python Ana_impluse_loss.py debug7 ")
             assert False
         df = pd.read_csv(fnwp)
         df["date"] = df["date"].astype(str)
@@ -674,15 +674,15 @@ class C_view_lv:
         pt = PrettyTable()
         for column_name in  df.columns:
             pt.add_column(column_name, df[column_name])
-        print pt
+        print(pt)
 
     def get_keys(self):
         while True:
-            command = raw_input("n for next; q for quit")
+            command = input("n for next; q for quit")
             if len(command)==1 and command in ["n","q"]:
                 break
             else:
-                print "invalid input {0}".format(command)
+                print("invalid input {0}".format(command))
         return command
 
     def run(self):

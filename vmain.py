@@ -24,7 +24,7 @@ def main(argv):
     lfun=lfun_1+lfun_2+lfun_3
     if len(lfun)==1:
         view_class =lfun[0]
-        print ("{0} selected as default".format(view_class))
+        print(("{0} selected as default".format(view_class)))
     else:
         view_class = getselected_item_name(lfun, colum_per_row=1)
 
@@ -34,7 +34,7 @@ def main(argv):
                                                             system_name))if dn.startswith("Eval")]
         if len(leval_process)==1:
             eval_process_name=leval_process[0]
-            print ("{0} selected as default".format(eval_process_name))
+            print(("{0} selected as default".format(eval_process_name)))
         else:
             eval_process_name = getselected_item_name(leval_process,colum_per_row=1)
         Lstock, LEvalT, LYM, lgc = get_addon_setting(system_name, eval_process_name)

@@ -12,7 +12,7 @@ class lconfig:
 def init_gc(lgc):
     global lc
     lc=lconfig()
-    for key in lc.__dict__.keys():
+    for key in list(lc.__dict__.keys()):
         lc.__dict__[key] = lgc.__dict__[key]
     global Csimulator,CGenStockList
     Csimulator =globals()[lc.CLN_simulator]
@@ -70,14 +70,14 @@ class divide_sl_to_process:
                     Csimulator(self.data_name,stock,calledby)
                 except Exception as e:
                     remove_stock_list.append(stock)
-                    print "add {0} to removed stock list".format(stock)
+                    print("add {0} to removed stock list".format(stock))
             df_remove_stock_list = pd.DataFrame(remove_stock_list, columns=["stock"])
             df_remove_stock_list.to_csv(remove_list_fnwp, index=False)
-            print "store remove list to {0}".format(remove_list_fnwp)
+            print("store remove list to {0}".format(remove_list_fnwp))
         else:
             df_remove_stock_list = pd.read_csv(remove_list_fnwp, header=0, names=["stock"])
             remove_stock_list = df_remove_stock_list["stock"].tolist()
-            print "load remove list from {0}".format(remove_list_fnwp)
+            print("load remove list from {0}".format(remove_list_fnwp))
 
         return list(set(stock_list) - set(remove_stock_list))
 

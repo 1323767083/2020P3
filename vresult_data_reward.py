@@ -111,7 +111,7 @@ class ana_reward_data(are_esi_reader):
 
                 return True, df,Summery_effective_count,[l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum]
             except Exception:
-                print "{0} empty file".format(ET_summary_fnwp)
+                print("{0} empty file".format(ET_summary_fnwp))
                 return False, "","No_valid_transaction",""
 
         bar = progressbar.ProgressBar(maxval=len(self.Lstock),
@@ -121,7 +121,7 @@ class ana_reward_data(are_esi_reader):
         df=pd.DataFrame()
         l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum=[],[],[],[],[],[],[]
         Summery_effective_count={"EvalT":evalT}
-        print "preparing ", evalT
+        print("preparing ", evalT)
         for stock_idx, stock in enumerate(self.Lstock):
             flag_opt, dfi, Dic_effective = self._get_are_summary_1stock_1ET(stock, evalT)
             if not flag_opt:
@@ -164,7 +164,7 @@ class ana_reward_data(are_esi_reader):
             return False, "","File_Not_Found",""
         else:
             df.to_csv(ET_summary_fnwp, index=False)
-            pd.DataFrame([Summery_effective_count.values()], columns=Summery_effective_count.keys()).\
+            pd.DataFrame([list(Summery_effective_count.values())], columns=list(Summery_effective_count.keys())).\
                 to_csv(effective_count_fnwp, index=False)
             pickle.dump([l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum], open(stock_statistic_fnwp, "w"))
             if len(df)==0:
@@ -208,10 +208,10 @@ class ana_reward_data(are_esi_reader):
             else:
                 if ET_idx==0:
                     df = dfi
-                    dfse = pd.DataFrame([Dic_Summary.values()], columns=Dic_Summary.keys())
+                    dfse = pd.DataFrame([list(Dic_Summary.values())], columns=list(Dic_Summary.keys()))
                 else:
                     df = df.append(dfi, ignore_index=True)
-                    dfse = dfse.append(pd.DataFrame([Dic_Summary.values()], columns=Dic_Summary.keys()),ignore_index=True)
+                    dfse = dfse.append(pd.DataFrame([list(Dic_Summary.values())], columns=list(Dic_Summary.keys())),ignore_index=True)
                 l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum=l_CSRs
                 ll_CSR_sum.append(l_CSR_sum)
                 ll_CSR_mean.append(l_CSR_mean)
@@ -368,7 +368,7 @@ class ana_reward_plot:
 
         ax.legend(loc='upper left')
         ax.tick_params(axis='x', rotation=90)
-        ax.set_xticks(range(len(self.LEvalT)+1))
+        ax.set_xticks(list(range(len(self.LEvalT)+1)))
         ax.set_xticklabels(self.LEvalT, fontsize=7)
         ax.set_ylabel("reward", fontsize=10)
 
@@ -390,7 +390,7 @@ class ana_reward_plot:
             min_, max_, show_step = env_reward_basic(self.i_ana_data.lgc.eval_reward_scaler_factor,self.i_ana_data.lgc.eval_reward_type).hist_scale()
         else:
             max_, min_, show_step=hist_param
-            print max_, min_, show_step
+            print(max_, min_, show_step)
         df = self.df
         dfr = df[df["EvalT"] == EvalT]
 
@@ -402,7 +402,7 @@ class ana_reward_plot:
 
         l_exceed_showscope = dfr[(dfr["reward"] < min_) | (dfr["reward"] > max_)].reward.tolist()
         if len(l_exceed_showscope)!=0:
-            l_exceed_showscope_count = [[item, count] for item, count in collections.Counter(l_exceed_showscope).items()]
+            l_exceed_showscope_count = [[item, count] for item, count in list(collections.Counter(l_exceed_showscope).items())]
             dfw = pd.DataFrame(l_exceed_showscope_count, columns=["reward", "TC"])
             dfw.sort_values(by=["reward"], inplace=True)
             dfw.reset_index(inplace=True,drop=True)
@@ -424,8 +424,8 @@ class ana_reward_plot:
         ax.clear()
         ax.set_title("reward vs buy_time @ Trains count {0} ".format(EvalT))
         ax.scatter(dfr.reward, dfr.buy_count)
-        ax.set_yticks(range(6))
-        ax.set_yticklabels(range(6), fontsize=10)
+        ax.set_yticks(list(range(6)))
+        ax.set_yticklabels(list(range(6)), fontsize=10)
         ax.set_ylabel("buy_time", fontsize=10)
         ax.set_xlabel("reward", fontsize=10)
 
@@ -480,12 +480,12 @@ class ana_reward_plot:
         for _,row in df_trans.iterrows():
             lindex=dfp[dfp["date"] == row.trans_start].index.tolist()
             if len(lindex)!=1:
-                print "skip", row
+                print("skip", row)
                 continue
             trans_start_index=lindex[0]
             lindex=dfp[dfp["date"] == row.trans_end].index.tolist()
             if len(lindex)!=1:
-                print "skip", row
+                print("skip", row)
                 continue
             trans_end_index=lindex[0]
             ax.plot([trans_start_index,trans_end_index],[row.buy_price, row.sell_price])
@@ -517,7 +517,7 @@ class ana_reward_plot:
 
         ax.xaxis.set_ticks(np.arange(0, 93, 31))
         ax.set_xticklabels(["M1", "M2", "M3"])
-        ax.set_yticks(range(20))
+        ax.set_yticks(list(range(20)))
         ax.set_yticklabels(l_ytick_labals, fontsize=8)
         cax.tick_params(labelsize=8)
 
@@ -532,7 +532,7 @@ class ana_reward_plot:
         ax.plot(self.np_CSR_Psum[:,self.Cidx_stock],label="positive sum", color="c")
         ax.plot(self.np_CSR_Nsum[:,self.Cidx_stock],label="negative sum", color="m")
 
-        ax.xaxis.set_ticks(range(len(self.LEvalT)))
+        ax.xaxis.set_ticks(list(range(len(self.LEvalT))))
         ax.set_xticklabels(self.LEvalT, fontsize=6)
         ax.plot([0,len(self.np_CSR_sum[:,self.Cidx_stock])],[0,0], color="y")
 
@@ -557,7 +557,7 @@ class ana_reward_plot:
         ax.plot(self.np_CSR_sum[self.Cidx_EvalT,:],label="sum", color="b")
         ax.plot(self.np_CSR_Psum[self.Cidx_EvalT,:],label="positive sum", color="c")
         ax.plot(self.np_CSR_Nsum[self.Cidx_EvalT,:],label="negative sum", color="m")
-        ax.xaxis.set_ticks(range(len(self.Lstock)))
+        ax.xaxis.set_ticks(list(range(len(self.Lstock))))
         ax.set_xticklabels(self.Lstock, fontsize=6)
         ax.plot([0, len(self.np_CSR_sum[self.Cidx_EvalT,:])], [0, 0], color="y")
         for tick in ax.get_xticklabels():
@@ -594,9 +594,9 @@ class ana_reward_plot:
             a[a > Dimgc[1]] = self.np_CSR_sum.max()
         #im=ax.imshow(a,norm=mpl.colors.Normalize(vmin=self.np_CSR_sum.min(), vmax=self.np_CSR_sum.max()))
         im = ax.imshow(a, norm=mpl.colors.Normalize(vmin=self.np_CSR_sum.min(), vmax=self.np_CSR_sum.max()))
-        ax.xaxis.set_ticks(range(len(self.Lstock)))
+        ax.xaxis.set_ticks(list(range(len(self.Lstock))))
         ax.set_xticklabels(self.Lstock, fontsize=6)
-        ax.set_yticks(range(len(self.LEvalT)))
+        ax.set_yticks(list(range(len(self.LEvalT))))
         ax.set_yticklabels(self.LEvalT, fontsize=8)
         cax.tick_params(labelsize=8)
         fig.colorbar(im, cax=cax, format='%.0e')

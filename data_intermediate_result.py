@@ -39,7 +39,7 @@ class FH_summary_data_1stock:
 
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "w") as hf:
-            for idx in xrange(num_periods):
+            for idx in range(num_periods):
                 hf_wg=hf.create_group("period_{0}".format(idx))
                 hf_wg.create_dataset("np_date_s",                      data=data.l_np_date_s[idx])
                 hf_wg.create_dataset("np_price_vs_mount",              data=data.l_np_price_vs_mount[idx])
@@ -53,7 +53,7 @@ class FH_summary_data_1stock:
         data=DS_summary_data_1stock()
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
             for period in l_period:
                 hf_wg=hf[period]
                 assert isinstance(hf_wg, h5py.Group)
@@ -70,7 +70,7 @@ class FH_summary_data_1stock:
         data=DS_summary_data_1stock()
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
             assert period_num<=len(l_period)-1
             hf_wg = hf["period_{0}".format(period_num)]
             assert isinstance(hf_wg, h5py.Group)
@@ -86,7 +86,7 @@ class FH_summary_data_1stock:
     def get_total_period_num(self):
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
         return len(l_period)
 
     def check_data_avalaible(self):
@@ -291,7 +291,7 @@ class G_summary_data_1stock:
             l_date_s, l_price_vs_mount, l_sell_dan, l_buy_dan, l_potential_price, l_norm_average_price_and_mount, l_hfq_ratio \
                 = [], [], [], [], [], [], []
             for date_s in period:
-                print "\thandling {0} {1} summary data".format(self.stock, date_s)
+                print("\thandling {0} {1} summary data".format(self.stock, date_s))
                 if not self.i_ginform.check_not_tinpai(date_s):
                     continue
                 df = self.i_qz.get_df_qz(date_s, self.stock)
@@ -323,18 +323,18 @@ class G_summary_data_1stock:
         assert len(periods)==1
         period = periods[0]
         if len(period)==0:
-            print "{0} does not have valid data len(period) is 0".format(self.stock)
+            print("{0} does not have valid data len(period) is 0".format(self.stock))
             exclude_stock_list(self.data_name).add_to_exlude_list(self.stock, reason="no_data_in_specified_period")
             return False
 
         for date_s in period:
-            print "\thandling {0} {1} summary data".format(self.stock, date_s)
+            print("\thandling {0} {1} summary data".format(self.stock, date_s))
             if not self.i_ginform.check_not_tinpai(date_s):
                 continue
             df = self.i_qz.get_df_qz(date_s, self.stock)
             if len(df)==0:
                 if len(l_date_s) != 0:
-                    print "{0} period start {1} to {2} data created".format(self.stock,l_date_s[0], l_date_s[-1])
+                    print("{0} period start {1} to {2} data created".format(self.stock,l_date_s[0], l_date_s[-1]))
                     self._prepare_data_add_to_list([l_date_s, l_price_vs_mount, l_sell_dan, l_buy_dan,
                                                        l_potential_price, l_norm_average_price_and_mount, l_hfq_ratio])
                     l_date_s, l_price_vs_mount, l_sell_dan, l_buy_dan, l_potential_price, \
@@ -351,7 +351,7 @@ class G_summary_data_1stock:
                 l_hfq_ratio.append(self.i_ginform.hfq_ratio(date_s))
         else:
             if len(l_date_s) != 0:
-                print "{0} last period start {1} to {2} data created".format(self.stock,l_date_s[0], l_date_s[-1])
+                print("{0} last period start {1} to {2} data created".format(self.stock,l_date_s[0], l_date_s[-1]))
                 #continue
                 self._prepare_data_add_to_list([l_date_s, l_price_vs_mount, l_sell_dan, l_buy_dan,
                                                 l_potential_price, l_norm_average_price_and_mount, l_hfq_ratio])
@@ -398,7 +398,7 @@ class FH_addon_data_1stock:
             hg_xd=hf.create_group("__param")
             hg_xd.create_dataset("np_scale_param", data=np_scale_param)
             hg_xd.create_dataset("np_start_end_date", data=np_start_end_date)
-            for idx in xrange(num_periods):
+            for idx in range(num_periods):
                 hf_wg = hf.create_group("period_{0}".format(idx))
                 hf_wg.create_dataset("np_date_s", data=l_np_date_s[idx])
                 hf_wg.create_dataset("np_stock_SwhV1", data=l_np_stock_SwhV1[idx])
@@ -415,7 +415,7 @@ class FH_addon_data_1stock:
             hg_xd = hf["__param"]
             np_scale_param=hg_xd["np_scale_param"][:]
             np_start_end_date=hg_xd["np_start_end_date"][:]
-            l_period_raw=hf.keys()
+            l_period_raw=list(hf.keys())
             l_period = [item for item in l_period_raw if not str(item).startswith("__")]
             for idx,period in enumerate(l_period):
                 hf_wg=hf[period]
@@ -523,7 +523,7 @@ class G_addon_data_1stock(FH_addon_data_1stock):
             l_stock_S20V20 = []
             l_syuan_SwhV20 = []
             l_stock_SwhV1  = []
-            print "handling {0} from {1} to {2}".format(stock, np_date_s[0], np_date_s[-1])
+            print("handling {0} from {1} to {2}".format(stock, np_date_s[0], np_date_s[-1]))
             for date_s in np_date_s:
                 l_date_s.append(date_s)
                 period_index = dfs[dfs["date"] <= date_s].index[-20:]
@@ -581,7 +581,7 @@ class G_RL_data_1index:
             l_date=[]
             l_Index_S20V20=[]
             l_Iyuan_SwhV20=[]
-            print "handling  {0} from {1} to {2}".format(index, start_date, end_date)
+            print("handling  {0} from {1} to {2}".format(index, start_date, end_date))
             for date_s in period[19:-1]:
                 #print "handling {0}".format(date_s)
                 period_index=dfi[dfi["date"] <= date_s].index[-20:]
@@ -640,22 +640,23 @@ def main(argv):
         stock_list = API_G_IPO_sl(data_name, stock_type, str(date_i)).load_stock_list(1, 0) # 1, 0 means all
         for idx, stock in enumerate(stock_list):
             if G_summary_data_1stock(data_name, stock).prepare_data():
-                print "finished_{0}_{1}**************************************************".format(idx, stock)
+                print("finished_{0}_{1}**************************************************".format(idx, stock))
             else:
-                print "failed create_{0}_{1}*********************************************".format(idx, stock)
+                print("failed create_{0}_{1}*********************************************".format(idx, stock))
 
     if argv[0]=="prepare_intermediate_addon_data":
         stock_list = API_G_IPO_sl(data_name, stock_type, str(date_i)).load_stock_list(1, 0) # 1, 0 means all
-        refer_data_name=input("input the data_name where scaler read from or (N)ew to create: ")
+        #refer_data_name=eval(input("input the data_name where scaler read from or (N)ew to create: "))
+        refer_data_name = input("input the data_name where scaler read from or (N)ew to create: ")
         if refer_data_name=="N":
             refer_data_name=""
         g = G_addon_data_1stock(data_name, refer_data_name)
         for idx, stock in enumerate(stock_list):
             flag_result,_,_,_,_,_,_=g.prepare_data(stock)
             if not flag_result:
-                print "Wrong_{0}_{1}_store in exclude list*******************************".format(idx,stock)
+                print("Wrong_{0}_{1}_store in exclude list*******************************".format(idx,stock))
             else:
-                print "finished_{0}_{1}**************************************************".format(idx, stock)
+                print("finished_{0}_{1}**************************************************".format(idx, stock))
 
 if __name__ == '__main__':
     main(sys.argv[1:])

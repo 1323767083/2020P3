@@ -32,7 +32,7 @@ class qz_extract_data:
 
         for fn in rar_file_list:
             src_fnwp = os.path.join(working_rar_dir, fn)
-            print "extract {0} to {1}".format(src_fnwp, working_des_dir)
+            print("extract {0} to {1}".format(src_fnwp, working_des_dir))
             patoolib.extract_archive(src_fnwp, outdir=working_des_dir)
 
     def generate_cmd_extract_day_7z_data_fun(self,year, des_base_dir,from_dir ):
@@ -50,14 +50,14 @@ class qz_extract_data:
             for fn in list_7z_file:
                 src_fnwp = os.path.join(sub_dir, fn)
                 if not os.path.exists(src_fnwp):
-                    print "{0} not exists".format(src_fnwp)
+                    print("{0} not exists".format(src_fnwp))
                     error_log.append("{0} not exists".format(src_fnwp))
                 else:
                     #print "extract {0} to {1}".format(src_fnwp, working_des_dir)
                 #print "extract {0} to {1}".format(src_fnwp, working_des_dir)
                     #patoolib.extract_archive(src_fnwp, outdir=working_des_dir)
                     cmd.append("7z x  -o{0} {1}".format(working_des_dir,src_fnwp))
-        print ";".join(cmd)
+        print(";".join(cmd))
 
     def generate_cmd_extract_day_7z_data(self,year,from_dir=""):  #2016 second half :
         self.generate_cmd_extract_day_7z_data_fun(year, self.des_base_dir,from_dir )
@@ -79,7 +79,7 @@ class qz_extract_data:
             for fn in list_7z_file:
                 src_fnwp = os.path.join(sub_dir, fn)
                 if not os.path.exists(src_fnwp):
-                    print "{0} not exists".format(src_fnwp)
+                    print("{0} not exists".format(src_fnwp))
                     error_log.append("{0} not exists".format(src_fnwp))
                 else:
                     #print "extract {0} to {1}".format(src_fnwp, working_des_dir)
@@ -90,7 +90,7 @@ class qz_extract_data:
                     sub_working_dir=os.path.join(working_des_dir,fn_date_with_dash)
                     if not os.path.exists(sub_working_dir): os.mkdir(sub_working_dir)
                     cmd.append("7z x  -o{0} {1}".format(sub_working_dir,src_fnwp))
-        print ";".join(cmd)
+        print(";".join(cmd))
 
     # ----------------interface correct after extract data--------------------------------------
     def solve_folder_under_folder(self):
@@ -103,7 +103,7 @@ class qz_extract_data:
         for folder in folder_list:
             test_folder=os.path.join(working_base_folder,folder,folder)
             if os.path.exists(test_folder):
-                print "handling {0}".format(test_folder)
+                print("handling {0}".format(test_folder))
                 old_working_folder=os.path.join(working_base_folder,folder)
                 new_working_folder=os.path.join(working_base_folder,"{0}_tmp".format(folder))
                 os.rename(old_working_folder,new_working_folder)
@@ -121,8 +121,8 @@ class extract_20180101_qz_data:
         self.des_dir=des_dir
 
         if not os.path.exists(self.des_dir): os.mkdir(self.des_dir)
-        months_2018 = range(201801, 201813, 1)
-        months_2019 = range(201901, 201908, 1)
+        months_2018 = list(range(201801, 201813, 1))
+        months_2019 = list(range(201901, 201908, 1))
         self.months=months_2018 + months_2019
 
 
@@ -143,7 +143,7 @@ class extract_20180101_qz_data:
         for month_to_extract in self.months:
             des_working_dir = os.path.join(self.des_dir, str(month_to_extract))
             if os.path.exists(des_working_dir):
-                print des_working_dir, "exists skip"
+                print(des_working_dir, "exists skip")
                 continue
             self.extract_1month(month_to_extract)
 
@@ -157,7 +157,7 @@ class main():
             des_dir ="/mnt/backup_6G/Stk_qz_3"
             extract_20180101_qz_data(src_dir,des_dir)
         else:
-            print ("not support {0}".format(argv))
+            print(("not support {0}".format(argv)))
 
 
 if __name__ == '__main__':

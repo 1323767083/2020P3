@@ -25,7 +25,7 @@ class main(Process):
         if fun_selected == "learn":
             self.run = self.main_learn
             system_name = argv[1] if len(argv) == 2 else getselected_item_name(os.listdir(sc.base_dir_RL_system))
-            if raw_input("Clean all the sub dir Enter Yes or no: ")== "Yes":
+            if input("Clean all the sub dir Enter Yes or no: ")== "Yes":
                 remove_system_sub_dirs(os.path.join(sc.base_dir_RL_system, system_name))
             self.init_system(system_name)
         elif fun_selected == "eval":
@@ -92,7 +92,7 @@ class main(Process):
                 if cmd_list[0][:-1] == "stop":
                     break
                 else:
-                    print "Unknown command: {0} from name pipe: {1}".format(cmd_list, inp.np_fnwp)
+                    print("Unknown command: {0} from name pipe: {1}".format(cmd_list, inp.np_fnwp))
             assert self.TrainP.is_alive(), "Train_process not alive"
             time.sleep(600)
 
@@ -108,7 +108,7 @@ class main(Process):
                 if cmd_list[0][:-1] == "stop":
                     break
                 else:
-                    print "Unknown command: {0} from name pipe: {1}".format(cmd_list, inp.np_fnwp)
+                    print("Unknown command: {0} from name pipe: {1}".format(cmd_list, inp.np_fnwp))
             time.sleep(600)
         self.join_eval()
 

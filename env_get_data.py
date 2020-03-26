@@ -98,9 +98,9 @@ class env_get_data(env_base_valid_data):
         state, support_view_dic = self.i_sd.read_one_day_data_by_index(self.period_index,self.idx_in_period)
         if self.idx_in_period == self.period_end_idx:
             if not support_view_dic["last_day_flag"]:  # sanity check for data file  correct
-                print "**********************************************************************"
-                print "{0} end correct".format(self.stock)
-                print "**********************************************************************"
+                print("**********************************************************************")
+                print("{0} end correct".format(self.stock))
+                print("**********************************************************************")
             support_view_dic["last_day_flag"]=True
 
         done_flag = support_view_dic["last_day_flag"]

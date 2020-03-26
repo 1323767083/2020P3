@@ -162,7 +162,7 @@ class anaExtreR:
         l_tid_cc=[]
         l_tid_ncc=[]
         for stock in lstock:
-            print "handling ", stock
+            print("handling ", stock)
             dfh = API_HFQ_from_file().get_df_HFQ(stock)
             dfr = df[df["stock"]==stock]
             for idx, row in dfr.iterrows():
@@ -216,10 +216,10 @@ class anaExtreR:
             df = pd.read_csv(fnwp, header=0)
             df["day"] = df["day"].astype(str)
             if len(df[df["day"] == date_s]) > 0:
-                print "Found ", fnwp, df[df["day"] == date_s]
+                print("Found ", fnwp, df[df["day"] == date_s])
                 break
         else:
-            print "Not Found "
+            print("Not Found ")
 
 
     def CmdTool_print_ltid_start_end_date(self,l_tid):
@@ -229,7 +229,7 @@ class anaExtreR:
             if ("201507" in str(df["trans_start"].iloc[0])) or ("201507" in str(df["trans_end"].iloc[0])):
                 pass
             else:
-                print "{0}  {1}  {2}".format(df["trans_id"].iloc[0], df["trans_start"].iloc[0] , df["trans_end"].iloc[0])
+                print("{0}  {1}  {2}".format(df["trans_id"].iloc[0], df["trans_start"].iloc[0] , df["trans_end"].iloc[0]))
 
     def debug_show(self):
         fig, ax_array = plt.subplots(2, 1)
@@ -269,15 +269,15 @@ class anaExtreR:
 
         dfhr=dfh[(dfh["date"]>=str(df.iloc[0]["trans_start"]))&(dfh["date"]<=str(df.iloc[0]["trans_end"]))]
 
-        ax.plot(range(len(dfhr)),dfhr["highest_Nprice"].values, color="b", label="highest_Nprice")
-        ax.plot(range(len(dfhr)),dfhr["lowest_Nprice"].values, color="g", label="lowest_Nprice")
+        ax.plot(list(range(len(dfhr))),dfhr["highest_Nprice"].values, color="b", label="highest_Nprice")
+        ax.plot(list(range(len(dfhr))),dfhr["lowest_Nprice"].values, color="g", label="lowest_Nprice")
 
         ax.plot([0,len(dfhr)-1],[df.iloc[0]["buy_price"],df.iloc[0]["sell_price"]], color="r",label="transaction_price")
         ax2=ax.twinx()
-        ax2.plot(range(len(dfhr)), dfhr["coefficient_fq"].values, color="k", label="coefficient_fq")
+        ax2.plot(list(range(len(dfhr))), dfhr["coefficient_fq"].values, color="k", label="coefficient_fq")
         ax.legend(loc='upper left')
         ax2.legend(loc='upper right')
 
         #ax.tick_params(axis='x', rotation=90)
-        ax.set_xticks(range(len(dfhr)))
+        ax.set_xticks(list(range(len(dfhr))))
         ax.set_xticklabels(dfhr["date"].tolist(), fontsize=7)

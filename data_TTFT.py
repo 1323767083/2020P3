@@ -32,7 +32,7 @@ class FH_RL_data_1stock:
 
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "w") as hf:
-            for idx in xrange(num_periods):
+            for idx in range(num_periods):
                 hf_wg=hf.create_group("period_{0}".format(idx))
                 hf_wg.create_dataset("np_date_s", data=l_np_date_s[idx])
                 hf_wg.create_dataset("np_large_view", data=l_np_large_view[idx])
@@ -46,7 +46,7 @@ class FH_RL_data_1stock:
         l_np_support_view=[]
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period_raw=hf.keys()
+            l_period_raw=list(hf.keys())
             l_period = [item for item in l_period_raw if not str(item).startswith("__")]
             for period in l_period:
                 hf_wg=hf[period]
@@ -64,7 +64,7 @@ class FH_RL_data_1stock:
         l_np_support_view=[]
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
             assert period_num<=len(l_period)-1
             hf_wg = hf["period_{0}".format(period_num)]
             assert isinstance(hf_wg, h5py.Group)
@@ -77,7 +77,7 @@ class FH_RL_data_1stock:
     def get_total_period_num(self):
         fnwp = self.get_dump_fnwp(self.stock)
         with h5py.File(fnwp, "r") as hf:
-            l_period=hf.keys()
+            l_period=list(hf.keys())
         return len(l_period)
 
     def check_data_avalaible(self):
@@ -106,8 +106,8 @@ class R_T3:
                 self.i_fh.load_main_data()
         else:
             self.flag_prepare_data_ready = False
-            print "{0} {1} RL data file does not exists at {2}".format(self.data_name, self.stock,
-                                                                       self.i_fh.get_dump_fnwp(stock))
+            print("{0} {1} RL data file does not exists at {2}".format(self.data_name, self.stock,
+                                                                       self.i_fh.get_dump_fnwp(stock)))
     def _get_indexs(self, date_s):
         if not self.flag_prepare_data_ready:
             return  False, None, None
@@ -305,7 +305,7 @@ class G_T3:
         i_summary=G_summary_data_1stock(self.data_name,stock)
         if not i_summary.flag_prepare_data_ready:
             exclude_stock_list(self.data_name).add_to_exlude_list(stock, reason="no_summary_data")
-            print "Summary data not exists {0}".format(stock)
+            print("Summary data not exists {0}".format(stock))
             return False,"" ,"","",""
 
         i_ginform = ginfo_one_stock(stock)
@@ -315,7 +315,7 @@ class G_T3:
             data_start_s, data_end_s = self._get_period_start_end_dates_from_summary(i_summary.data,period_idx)
             period=self.td[(self.td>=data_start_s) &(self.td<=data_end_s)]
             for date_s in period:
-                print "\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx)
+                print("\thandling {0} {1} RL data period {2}".format(stock, date_s,period_idx))
                 flag_last_day = True if date_s==i_summary.data.l_np_date_s[period_idx][-2] else False
                 #result = self.prepare_1day(stock, date_s, i_summary.data, flag_last_day, i_ginform)
                 flag_found, period_idx = self._check_in_periods(date_s, i_summary.data)
@@ -342,14 +342,14 @@ class G_T3:
         for idx,stock in enumerate(stock_list):
             i_fh = FH_RL_data_1stock(self.data_name, stock)
             if not flag_overwrite and i_fh.check_data_avalaible():
-                print "already exists RL data for {0} {1}".format(self.data_name, stock)
+                print("already exists RL data for {0} {1}".format(self.data_name, stock))
                 continue
             result_flag,ll_np_data_s, ll_np_large_view, ll_np_small_view, ll_support_view=self.prepare_1stock(stock)
             if result_flag:
                 i_fh.save_main_data([ll_np_data_s, ll_np_large_view, ll_np_small_view, ll_support_view])
-                print "Finish prepare {0} RL data  {1}".format(stock, idx)
+                print("Finish prepare {0} RL data  {1}".format(stock, idx))
             else:
-                print "Fail prepare {0} RL data  {1}".format(stock, idx)
+                print("Fail prepare {0} RL data  {1}".format(stock, idx))
 
 
 #FT is obsolete, only due to addon data in its folder, not delete it
@@ -371,7 +371,7 @@ class G_T4:
             #i_base_data = G_RL_data_1stock(self.base_data_name, stock)
             ist = FH_RL_data_1stock(self.base_data_name, stock)
             if not ist.check_data_avalaible():
-                print "{0} {1} data does not exists, fail to prepare {2} {1} data ".format(self.base_data_name, stock, self.data_name)
+                print("{0} {1} data does not exists, fail to prepare {2} {1} data ".format(self.base_data_name, stock, self.data_name))
                 continue
             else:
                 base_l_np_date_s, l_np_large_view, l_np_small_view, l_l_support_view = ist.load_main_data()
@@ -434,7 +434,7 @@ class G_T3_old:
         self.i_fh=FH_RL_data_1stock(data_name,stock)
 
         if self.i_fh.check_data_avalaible():
-            print "{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock))
+            print("{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock)))
             self.flag_RL_day_avalaible=True
             return
         else:
@@ -463,7 +463,7 @@ class G_T3_old:
     #def prepare_one_day_data(self, date_s, flag_last_day,flag_sanity_check=True ):
     def prepare_one_day_data(self, date_s, flag_last_day):
         if self.flag_RL_day_avalaible:
-            print "{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock))
+            print("{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock)))
             return True
 
         if not self.flag_summary_day_ready:
@@ -588,7 +588,7 @@ class G_T3_old:
 
     def prepare_data(self):
         if self.flag_RL_day_avalaible:
-            print "{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock))
+            print("{0} {1} RL data file exists at {2}".format(self.data_name, self.stock, self.i_fh.get_dump_fnwp(self.stock)))
             return True
 
         if not self.flag_summary_day_ready:
@@ -607,7 +607,7 @@ class G_T3_old:
             data_start_s, data_end_s = self._get_td_period_start_end_dates_from_summary_period_idx(period_idx)
             period=self.td[(self.td>=data_start_s) &(self.td<=data_end_s)]
             for date_s in period:
-                print "\thandling {0} {1} RL data period {2}".format(self.stock, date_s,period_idx)
+                print("\thandling {0} {1} RL data period {2}".format(self.stock, date_s,period_idx))
                 flag_last_day = True if date_s==self.sdata.l_np_date_s[period_idx][-2] else False
                 #result=self.prepare_one_day_data(date_s, flag_last_day,flag_sanity_check=False)
                 result = self.prepare_one_day_data(date_s, flag_last_day)

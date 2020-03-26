@@ -14,7 +14,7 @@ def init_trainer_config(input_lc):
     global lc, nc
     lc=input_lc
     nc=nets_conf()
-    for key in nc.__dict__.keys():
+    for key in list(nc.__dict__.keys()):
         nc.__dict__[key] = lc.net_config[key]
     nc.lv_shape = tuple(nc.lv_shape)
     nc.sv_shape = tuple(nc.sv_shape)
