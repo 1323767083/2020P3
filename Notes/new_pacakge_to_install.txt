@@ -1,0 +1,72 @@
+
+setproctitle
+How To Install "python3-setproctitle" Package on Ubuntu
+https://zoomadmin.com/HowToInstall/UbuntuPackage/python3-setproctitle
+need restart
+
+First of all: (otherwise will be very very slow in solving the enviroemnt)
+conda update -n base conda
+
+conda-forge / packages / setproctitle 1.1.10
+https://anaconda.org/conda-forge/setproctitle
+
+
+conda install -c conda-forge setproctitle
+conda install -c conda-forge prettytable
+conda install prettytable matplotlib  progressbar pyinotify
+conda install -c anaconda progressbar
+
+
+
+
+conda install -c conda-forge prettytable setproctitle
+conda install matplotlib   pyinotify pandas
+conda install -c anaconda scikit-learn progressbar
+conda install -c haasad patool
+
+
+mpl_toolkits
+
+Ana_loss need to modify
+
+
+disk enviroment
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 公共的
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 模板
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 视频
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 图片
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 文档
+lrwxrwxrwx  1 rdchujf rdchujf        25 11月 30  2018 下载 -> /mnt/data_disk/Downloads/
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 音乐
+drwxr-xr-x  2 rdchujf rdchujf      4096 11月 30  2018 桌面
+-rw-rw-r--  1 rdchujf rdchujf      5556 3月   7 12:52 a.csv
+drwxrwxr-x 24 rdchujf rdchujf      4096 1月   4  2019 anaconda2
+-rwxrwxr-x  1 rdchujf rdchujf 658699654 1月   4  2019 Anaconda2-2018.12-Linux-x86_64.sh
+-rw-r--r--  1 root    root         5056 4月  16  2019 nordvpn-release_1.0.0_all.deb
+lrwxrwxrwx  1 rdchujf rdchujf        27 11月 30  2018 n_workspace -> /mnt/data_disk/n_workspace/
+lrwxrwxrwx  1 rdchujf rdchujf        21 11月 30  2018 Stk_qz -> /mnt/data_disk/Stk_qz
+lrwxrwxrwx  1 rdchujf rdchujf        24 11月 30  2018 Stk_qz_2 -> /mnt/data_disk/Stk_qz_2/
+lrwxrwxrwx  1 rdchujf rdchujf        31 3月  25 12:29 Stk_qz_3_support -> /mnt/data_disk/Stk_qz_3_support
+lrwxrwxrwx  1 rdchujf rdchujf        32 11月 30  2018 Stk_TradeByTrade -> /mnt/data_disk/Stk_TradeByTrade/
+drwxrwxr-x  3 rdchujf rdchujf      4096 2月  12  2019 tmp
+
+
+==> For changes to take effect, close and re-open your current shell. <==
+
+If you'd prefer that conda's base environment not be activated on startup,
+   set the auto_activate_base parameter to false:
+
+conda config --set auto_activate_base false
+
+Thank you for installing Anaconda3!
+
+===========================================================================
+
+Anaconda and JetBrains are working together to bring you Anaconda-powered
+environments tightly integrated in the PyCharm IDE.
+
+PyCharm for Anaconda is available at:
+https://www.anaconda.com/pycharm
+
+
+conda create -n p37 python=3.7
