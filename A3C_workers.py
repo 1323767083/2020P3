@@ -237,9 +237,8 @@ class Explore_process(client_base):
         random.seed(2)
         np.random.seed(2)
         assert lc.l_percent_gpu_core_for_work[self.process_idx]!=0.0, "only work on GPU"
-        virtual_GPU = init_virtual_GPU(11*1024 * lc.l_percent_gpu_core_for_work[self.process_idx])
+        virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_work[self.process_idx])
         with tf.device(virtual_GPU):
-        #with tf.device("/cpu:0" if lc.l_work_core[self.process_idx] == 0.0 else "/GPU:0"):
             self.logger.info("{0} start".format(self.process_name))
             self.i_wb= locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_work[self.process_idx],
                                                 method_name_of_choose_action=lc.method_name_of_choose_action_for_train)
@@ -397,14 +396,10 @@ class Eval_process(client_base):
         setproctitle.setproctitle("{0}_{1}".format(lc.RL_system_name, self.process_name))
         self.logger.info("start at eval loop count {0}".format(self.eval_loop_count))
         assert lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])]!=0.0, "Only Support GPU"
-        virtual_GPU = init_virtual_GPU(11*1024 * lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])])
+        virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])])
         with tf.device(virtual_GPU):
-        #with tf.device("/cpu:0" if lc.l_eval_core[int(self.process_name[-1])] == 0.0 else "/GPU:0"):
             self.i_eb = locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
                                                        method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
-            #self.i_eb = Eval_Brain(GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
-            #                                           method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
-
             while not self.E_stop.is_set():
                 self.eval_name_pipe_cmd("Waiting for evaluation")
                 model_weight_fnwp = self.eval_init_round()

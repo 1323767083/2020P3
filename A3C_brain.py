@@ -30,9 +30,8 @@ class Train_Process(Process):
         tf.random.set_seed(2)
         init_gc(lc) #init_gc(lgc)
         setproctitle.setproctitle("{0}_{1}".format(lc.RL_system_name,self.process_name))
-        #with tf.device("/cpu:0" if lc.Brian_gpu_percent==0.0 else "/GPU:0"):
         assert lc.Brian_gpu_percent != 0.0, "Only support GPU"
-        virtual_GPU = init_virtual_GPU(11*1024 * lc.Brian_gpu_percent)
+        virtual_GPU = init_virtual_GPU(lc.Brian_gpu_percent)
         with tf.device(virtual_GPU):
             self.logger.info("{0} {1} started".format(self.process_name, self.process_idx))
             if lc.load_AIO_fnwp != "" and lc.load_config_fnwp != "" and lc.load_weight_fnwp != "":

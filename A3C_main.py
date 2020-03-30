@@ -48,21 +48,7 @@ class main(Process):
             raise ValueError("{0} does not exisit".format(param_fnwp))
         lgc=sc.gconfig()
         lgc.read_from_json(param_fnwp)
-        #sanity_check_config(lgc)
         self.lgc=lgc
-        #manually_select_GPU='s'
-        #while manually_select_GPU not in ['n','0', '1']:
-        #    manually_select_GPU=raw_input("Manually set GPU used (0) (1) or (n)ot, following the config:")
-        #else:
-        #    if manually_select_GPU in ['0','1']:
-        #        lgc.Brian_core="GPU_{0}".format(manually_select_GPU)
-        #        lgc.l_work_core=["GPU_{0}".format(manually_select_GPU) for _ in lgc.l_work_core]
-        #        lgc.l_eval_core=["GPU_{0}".format(manually_select_GPU) for _ in lgc.l_eval_core]
-        #        print "lgc.Brian_core, lgc.l_work_core, lgc.l_eval_core set to ", "GPU_{0}".format(manually_select_GPU)
-        #manually_set_tensor_board_port= input("Manually set tensorboard port, or (0) for following config:")
-        #if manually_set_tensor_board_port != 0:
-        #    lgc.tensorboard_port=manually_set_tensor_board_port
-        #    print "tensorboard port set to {0}".format(manually_set_tensor_board_port)
         init_A3C_brain(lgc)
         init_A3C_worker(lgc)
         for pack in [env,pcom,lcom,scom,bcom]:

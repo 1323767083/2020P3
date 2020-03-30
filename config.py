@@ -42,7 +42,7 @@ RL_data_least_length = 23
 RL_da_dan_threadhold = 1000000
 RL_xiao_dan_threadhold = 100000
 
-
+l_GPU_size=[11019,12196]
 conf= \
     {
         "=======General=======": "=======================",
@@ -266,7 +266,7 @@ class gconfig_data:
 
         ###train_brain
         ##core
-        self.Brian_core = float("nan") #"GPU_0"
+        self.Brian_core = ""
         self.Brian_gpu_percent = float("nan") #0.8
         ##log
         self.flag_brain_log_file = float("nan") #True
@@ -286,14 +286,14 @@ class gconfig_data:
         self.brain_buffer_reuse_times = float("nan") #1
 
         # explore class
-        self.l_work_core = [""] #["GPU_0", "GPU_0", "GPU_0"]
+        self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
         self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
         self.l_flag_worker_log_file = [float("nan")] #[True, True, True]
         self.l_flag_worker_log_screen = [float("nan")] #[False, False, False]
         self.num_workers = float("nan") #3
 
         # eval class
-        self.l_eval_core = [""] #["GPU_1", "GPU_1"]
+        self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
         self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
         self.l_flag_eval_log_file = [float("nan")] #[True, True]
         self.l_flag_eval_log_screen = [float("nan")] #[False, False]
@@ -398,6 +398,15 @@ class gconfig(gconfig_data):
         assert len(self.l_percent_gpu_core_for_eva) == self.eval_num_process
         assert len(self.l_flag_eval_log_file) == self.eval_num_process
         assert len(self.l_flag_eval_log_screen) == self.eval_num_process
+
+
+        self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
+
+        self.l_percent_gpu_core_for_work = [l_GPU_size[int(work_core[-1])]*percent_gpu_core
+                            for work_core,percent_gpu_core in zip(self.l_work_core,self.l_percent_gpu_core_for_work)]
+
+        self.l_percent_gpu_core_for_eva =  [l_GPU_size[int(eval_core[-1])]*percent_gpu_core
+                            for eval_core,percent_gpu_core in zip(self.l_eval_core,self.l_percent_gpu_core_for_eva)]
 
         assert self.env_max_invest_per_round>=self.env_min_invest_per_round
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
