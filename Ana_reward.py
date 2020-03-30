@@ -143,7 +143,7 @@ class C_debug_reward(Process):
         return flag_quit
 
     def save_record_buffer(self):
-        pickle.dump(self.tb.train_queue, open(self.dump_record_fnwp,"w"))
+        pickle.dump(self.tb.train_queue, open(self.dump_record_fnwp,"wb"))
 
     def clean_support_view_from_worker_to_server(self,support_view_dic):
         support_view_dic.pop("action_return_message")

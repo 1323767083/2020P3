@@ -8,6 +8,8 @@ import os,sys,h5py
 import numpy as np
 from sklearn import preprocessing
 
+decoder = np.vectorize(lambda x: x.decode())
+
 class FH_RL_data_1stock:
     def __init__(self, data_name,stock):
         self.data_name=data_name
@@ -52,10 +54,10 @@ class FH_RL_data_1stock:
             for period in l_period:
                 hf_wg=hf[period]
                 assert isinstance(hf_wg, h5py.Group)
-                l_np_date_s.append(hf_wg["np_date_s"][:])
+                l_np_date_s.append(decoder(hf_wg["np_date_s"][:]))
                 l_np_large_view.append(hf_wg["np_large_view"][:])
                 l_np_small_view.append(hf_wg["np_np_small_view"][:])
-                l_np_support_view.append(hf_wg["np_support_view"][:])
+                l_np_support_view.append(decoder(hf_wg["np_support_view"][:]))
         return l_np_date_s,l_np_large_view,l_np_small_view, l_np_support_view
 
     def load_main_data_one(self,period_num):
@@ -69,10 +71,10 @@ class FH_RL_data_1stock:
             assert period_num<=len(l_period)-1
             hf_wg = hf["period_{0}".format(period_num)]
             assert isinstance(hf_wg, h5py.Group)
-            l_np_date_s.append(hf_wg["np_date_s"][:])
+            l_np_date_s.append(decoder(hf_wg["np_date_s"][:]))
             l_np_large_view.append(hf_wg["np_large_view"][:])
             l_np_small_view.append(hf_wg["np_np_small_view"][:])
-            l_np_support_view.append(hf_wg["np_support_view"][:])
+            l_np_support_view.append(decoder(hf_wg["np_support_view"][:]))
         return l_np_date_s,l_np_large_view,l_np_small_view, l_np_support_view
 
     def get_total_period_num(self):

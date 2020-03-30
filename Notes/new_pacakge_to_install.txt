@@ -23,7 +23,7 @@ conda install -c conda-forge prettytable setproctitle
 conda install matplotlib   pyinotify pandas
 conda install -c anaconda scikit-learn progressbar
 conda install -c haasad patool
-
+conda install -c conda-forge tensorflow-probability
 
 mpl_toolkits
 

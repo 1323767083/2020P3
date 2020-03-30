@@ -57,26 +57,42 @@ class ana_reward_data(are_esi_reader):
 
         df = df[["action", "reward", "day", "trans_id", "action_result", "trade_Nprice"]]
 
-        df = df.groupby(["trans_id", "action", "action_result"]).\
-            agg({"reward": {"reward": "sum"},
-                "day": {"duration": "count",
-                        "trans_start": "first",
-                        "trans_end": "last"},
-                "trade_Nprice": {"price": "mean"}})  # mean for price because (buy success) (sell sucess) only have one record
+        #df = df.groupby(["trans_id", "action", "action_result"]).\
+        #    agg({"reward": {"reward": "sum"},
+        #        "day": {"duration": "count",
+        #                "trans_start": "first",
+        #                "trans_end": "last"},
+        #        "trade_Nprice": {"price": "mean"}})  # mean for price because (buy success) (sell sucess) only have one record
 
-        df.columns = df.columns.droplevel(0)
+
+        df = df.groupby(["trans_id", "action", "action_result"]).\
+            agg(reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+                duration=pd.NamedAgg(column='day', aggfunc='count'),
+                trans_start=pd.NamedAgg(column='day', aggfunc='first'),
+                trans_end=pd.NamedAgg(column='day', aggfunc='last'),
+                price=pd.NamedAgg(column='trade_Nprice', aggfunc='mean') # mean for price because (buy success) (sell sucess) only have one record
+                )
+        #df.columns = df.columns.droplevel(0)
         df.reset_index(inplace=True)
         df.loc[df.action == 3, 'action'] = 1
         df.sort_values(by=["trans_id", "action"],inplace=True) # new added
-        dfr = df.groupby(["trans_id"]).agg({
-            "trans_start": {"trans_start": "first"},
-            "trans_end": {"trans_end": "last"},
-            "reward": {"reward": "sum"},
-            "duration": {"duration": "sum"},
-            "price": {"buy_price": "first", "sell_price": "last"},
-            "action": {"valid_trans_kpi": "mean"}})
-
-        dfr.columns = dfr.columns.droplevel(0)
+        #dfr = df.groupby(["trans_id"]).agg({
+        #    "trans_start": {"trans_start": "first"},
+        #    "trans_end": {"trans_end": "last"},
+        #    "reward": {"reward": "sum"},
+        #    "duration": {"duration": "sum"},
+        #    "price": {"buy_price": "first", "sell_price": "last"},
+        #    "action": {"valid_trans_kpi": "mean"}})
+        dfr = df.groupby(["trans_id"]).agg(
+            trans_start=pd.NamedAgg(column="trans_start", aggfunc="sum"),
+            trans_end=pd.NamedAgg(column="trans_end", aggfunc="last"),
+            reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+            duration=pd.NamedAgg(column="duration", aggfunc="sum"),
+            buy_price=pd.NamedAgg(column="price", aggfunc="first"),
+            sell_price=pd.NamedAgg(column="price", aggfunc="last"),
+            valid_trans_kpi=pd.NamedAgg(column="action", aggfunc="mean")
+        )
+        #dfr.columns = dfr.columns.droplevel(0)
         # action senario  0,2 valid_trans_cpi=1
         # action senario  0,1,2 valid_trans_cpi=1
         # action senario  0,1,1 valid_trans_cpi=0.666  # this is unfinished trans becouse originally has 3 "no_action  and 3 "Success" (forcesell)
@@ -166,7 +182,7 @@ class ana_reward_data(are_esi_reader):
             df.to_csv(ET_summary_fnwp, index=False)
             pd.DataFrame([list(Summery_effective_count.values())], columns=list(Summery_effective_count.keys())).\
                 to_csv(effective_count_fnwp, index=False)
-            pickle.dump([l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum], open(stock_statistic_fnwp, "w"))
+            pickle.dump([l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum], open(stock_statistic_fnwp, "wb"))
             if len(df)==0:
                 return False, "", "No_valid_transaction",""
             return True,df,Summery_effective_count,[l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum]

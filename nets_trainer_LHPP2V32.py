@@ -12,8 +12,8 @@ class LHPP2V32_PPO_trainer1(base_trainer):
         self.comile_metrics=[self.M_policy_loss, self.M_value_loss,self.M_entropy,self.M_advent,self.MC_advent,
                              self.M_V,self.M_V_,self.M_r,self.M_adjr]
 
-        self.load_jason_custom_objects={"softmax": softmax,"tf":tf, "concatenate":concatenate,"lc":lc}
-        self.load_model_custom_objects={"join_loss": self.join_loss, "tf":tf,"concatenate":concatenate,
+        self.load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
+        self.load_model_custom_objects={"join_loss": self.join_loss, "tf":tf,"concatenate":keras.backend.concatenate,
                                         "M_policy_loss":self.M_policy_loss,"M_value_loss":self.M_value_loss,
                                         "M_entropy":self.M_entropy,
                                         "M_advent":self.M_advent,"MC_advent":self.MC_advent,
@@ -23,24 +23,24 @@ class LHPP2V32_PPO_trainer1(base_trainer):
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
-        input_lv = Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
-        input_sv = Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
-        input_a = Input(shape=(lc.train_action_num,), dtype='float32', name='input_action')
-        input_r = Input(shape=(1,), dtype='float32', name='input_reward')
-        input_P_= Input(shape=(2,), dtype='float32', name='input_P_')
-        input_Q_= Input(shape=(2,), dtype='float32', name='input_Q_')
-        input_flag_buy=Input(shape=(1,), dtype='float32', name='input_buy_flag')
-        input_mask = Input(shape=(1,), dtype='float32', name='input_mask')
-        input_oldAP = Input(shape=(1,), dtype='float32', name='input_oldAP')
+        input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
+        input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
+        input_a = keras.Input(shape=(lc.train_action_num,), dtype='float32', name='input_action')
+        input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
+        input_P_= keras.Input(shape=(2,), dtype='float32', name='input_P_')
+        input_Q_= keras.Input(shape=(2,), dtype='float32', name='input_Q_')
+        input_flag_buy=keras.Input(shape=(1,), dtype='float32', name='input_buy_flag')
+        input_mask = keras.Input(shape=(1,), dtype='float32', name='input_mask')
+        input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
         P, Q = Pmodel([input_lv, input_sv])
-        advent = Lambda(lambda x:tf.reduce_sum(x[0]*x[1], axis=-1,keepdims=True) -
+        advent = keras.layers.Lambda(lambda x:tf.reduce_sum(x[0]*x[1], axis=-1,keepdims=True) -
             (x[2] + x[3]* tf.reduce_sum(x[4]*x[5], axis=-1, keepdims=True)), name="advantage")\
             ([Q,input_a,input_r,input_flag_buy,input_P_,input_Q_])
 
         Optimizer = self.select_optimizer(lc.Brain_optimizer, lc.Brain_leanring_rate)
-        con_out = Concatenate(axis=1, name="train_output")([P, Q, input_a, advent,input_mask,input_oldAP,input_r,input_P_,input_Q_,input_flag_buy])
+        con_out = keras.layers.Concatenate(axis=1, name="train_output")([P, Q, input_a, advent,input_mask,input_oldAP,input_r,input_P_,input_Q_,input_flag_buy])
 
-        Tmodel = Model(inputs=[input_lv, input_sv, input_a, input_r, input_P_, input_Q_, input_flag_buy, input_mask,input_oldAP],
+        Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_r, input_P_, input_Q_, input_flag_buy, input_mask,input_oldAP],
                        outputs=[con_out], name=name)
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
         return Tmodel, Pmodel
@@ -74,13 +74,13 @@ class LHPP2V32_PPO_trainer1(base_trainer):
 
     def join_loss_entropy_part(self, y_true, y_pred):
         prob, _, _, _, _, _,_,_,_,_ = self.extract_y(y_pred)
-        entropy = lc.LOSS_ENTROPY * tf.reduce_sum(prob * tf.log(prob + 1e-10), axis=1, keepdims=True)
+        entropy = lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
         return -entropy
 
     def join_loss_policy_part(self,y_true,y_pred):
         prob, _, input_a, advent, _,oldAP,_,_,_,_= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
-        loss_policy = lc.LOSS_POLICY * K.minimum(prob_ratio * advent,
+        loss_policy = lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * advent,
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - lc.LOSS_clip, clip_value_max=1 + lc.LOSS_clip) * advent)
         return -loss_policy
 

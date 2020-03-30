@@ -1,5 +1,4 @@
 import os,json,re
-import numpy as np
 from collections import OrderedDict
 from action_comm import  actionOBOS
 cwd = os.getcwd()
@@ -276,9 +275,9 @@ class gconfig_data:
         self.start_train_count = float("nan") #0
         self.num_train_to_save_model = float("nan") #1000
 
-        self.load_AIO_fnwp = float("nan") #""
-        self.load_config_fnwp = float("nan") #""
-        self.load_weight_fnwp = float("nan") #""
+        self.load_AIO_fnwp = ""
+        self.load_config_fnwp = ""
+        self.load_weight_fnwp = ""
         #
         ###BUFFER
         self.num_train_record_to_brain = float("nan") #100

@@ -1,4 +1,4 @@
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk#NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tkinter as tk
@@ -35,9 +35,11 @@ class vstate(tk.Frame):
         self.config_dic ={"stock": "SH600000", "date_up": date_s, "date_down": date_s, "l_mask_choice": [0,0,0,0],"l_threadhold": [0,0,0,0],"l_scale_choice": [0,0,0,0]}
         self.ins.show_all_in_one(self.fig, self.config_dic)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.show()
+        #self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        toolbar = NavigationToolbar2TkAgg(self.canvas, self)
+        #toolbar = NavigationToolbar2TkAgg(self.canvas, self)
+        toolbar = NavigationToolbar2Tk(self.canvas, self)
         toolbar.update()
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 

@@ -121,7 +121,7 @@ class Checkbar(tk.Frame):
                 var.set(0)
             chk = tk.Checkbutton(self, text=pick, variable=var)
             if flag_divide:
-                chk.grid(column=idx % 2, row=check_start_row+idx / 2, sticky=anchor)
+                chk.grid(column=idx % 2, row=check_start_row+idx // 2, sticky=anchor)
             else:
                 chk.grid(column=0, row=check_start_row+idx, sticky=anchor)
             self.vars.append(var)

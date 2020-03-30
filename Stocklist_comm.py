@@ -28,7 +28,7 @@ class divide_sl_to_process:
         total_sl=CGenStockList(self.data_name).load_stock_list(data_base, data_index)
         checked_sl = self.sanity_check_stock_list(total_sl, data_base, data_index)
         random.shuffle(checked_sl)
-        num_stock_per_group= len(checked_sl) / num_to_divided
+        num_stock_per_group= len(checked_sl) // num_to_divided
         divided_sl=[]
         start_idx=0
         for _ in range(num_to_divided):

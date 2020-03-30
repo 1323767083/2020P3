@@ -63,7 +63,7 @@ class record_variable:
             fn=dt.datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%S_%f')[:-3]+".pkl"
             fnwp=os.path.join(self.dirwp, fn)
 
-            with open(fnwp, 'w') as f:  # Python 3: open(..., 'wb')
+            with open(fnwp, 'wb') as f:  # Python 3: open(..., 'wb')
                 pickle.dump([self.RD_trainer, self.RD_brain,self.RD_process], f)
             self.F_need_record = False
 
@@ -151,7 +151,7 @@ class record_variable2(record_variable):
         if self.F_need_record and self.F_trainer_recorded and self.F_brain_recorded and self.F_process_recorded:
             compressed_inputs = self._compress_content([self.RD_trainer, self.RD_brain, self.RD_process])
             fnwp = self._get_fnwp(compressed_inputs[2]["saved_train_count"],compressed_inputs[2]["current_train_count"])
-            with open(fnwp, 'w') as f:  # Python 3: open(..., 'wb')
+            with open(fnwp, 'wb') as f:  # Python 3: open(..., 'wb')
                 pickle.dump(compressed_inputs, f)
             self.F_need_record = False
 
@@ -256,7 +256,7 @@ class record_send_to_server:
     def saver(self, inputs):
         fn = dt.datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%S_%f')[:-3] + ".pkl"
         fnwp = os.path.join(self.dirwp, fn)
-        with open(fnwp, 'w') as f:  # Python 3: open(..., 'wb')
+        with open(fnwp, 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump(inputs, f)
         idxfn = fn[:-4]+"_idx" + ".csv"
         idxfnwp = os.path.join(self.dirwp, idxfn)
@@ -274,7 +274,7 @@ class record_sim_stock_data:
     def saver(self, inputs, date):
         fn = date + ".pkl"
         fnwp = os.path.join(self.dirwp, fn)
-        with open(fnwp, 'w') as f:  # Python 3: open(..., 'wb')
+        with open(fnwp, 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump(inputs, f)
     def loader(self, stock, date):
         fnwp=os.path.join(self.dir_base, stock, "{0}.pkl".format(date))

@@ -1,8 +1,9 @@
-from keras.callbacks import  TensorBoard
+#from tensorflow import keras
+import tensorflow as tf
+from tensorflow import keras
 from File_comm import check_model_save_finish_write
 from Buffer_comm import brain_buffer, brain_buffer_reuse
 from nets_trainer import *
-from keras.models import model_from_json
 from action_comm import actionOBOS
 def init_gc(lgc):
     global Ctrainer,Cagent, nc,lc
@@ -11,13 +12,28 @@ def init_gc(lgc):
     init_trainer_config(lc)
     Ctrainer = globals()[lc.CLN_trainer]
 
+def init_virtual_GPU(memory_limit):
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
+    except RuntimeError as e:
+        assert False, e
+    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    return logical_gpus[0]
+
 class Brain:
     def __init__(self, GPU_per_program):
+        assert GPU_per_program != 0.0," Only Support GPU"
+        #keras.backend.set_learning_phase(1)  # add by john for error solved by
+        '''
         if GPU_per_program != 0.0:
             self.start_GPU_env(GPU_per_program)
         else:
             self.start_CPU_env()
-
+        '''
+    '''
     def start_GPU_env(self, GPU_per_program):
         tf.reset_default_graph()
         self.default_graph = tf.get_default_graph()
@@ -29,7 +45,9 @@ class Brain:
         self.session = tf.Session(config=config, graph=self.default_graph)
         K.set_session(self.session)
         K.set_learning_phase(1)  # add by john for error solved by
+    '''
 
+    '''
     def start_CPU_env(self):
         tf.reset_default_graph()
         self.default_graph = tf.get_default_graph()
@@ -42,11 +60,12 @@ class Brain:
         self.session = tf.Session(config=config, graph=self.default_graph)
         K.set_session(self.session)
         K.set_learning_phase(1)  # add by john for error solved by
-
+    '''
 
 class Train_Brain(Brain):
     def __init__(self, GPU_per_program, load_fnwps,train_count_init):
         Brain.__init__(self, GPU_per_program)
+        keras.backend.set_learning_phase(1)  # add by john for error solved by
         self.mc=Ctrainer()
         #self.tb = train_buffer(lc.Buffer_nb_Features)
         self.tb = globals()[lc.CLN_brain_buffer](lc.Buffer_nb_Features)
@@ -59,46 +78,53 @@ class Train_Brain(Brain):
             self.Tmodel, self.Pmodel = self.load_model(load_fnwps)
         self.i_wait = check_model_save_finish_write(time_out=600)
 
-        self.tensorboard = TensorBoard(
-            log_dir=lc.tensorboard_dir,
-            histogram_freq=0,
-            batch_size=lc.batch_size,
-            write_graph=True,
-            write_grads=True
+        #self.tensorboard = keras.callbacks.TensorBoard(
+        #    log_dir=lc.tensorboard_dir,
+        #    histogram_freq=0,
+        #    batch_size=lc.batch_size,
+        #    write_graph=True,
+        #    write_grads=True
+        #)
+        self.tensorboard = keras.callbacks.TensorBoard(
+                log_dir=lc.tensorboard_dir,
+                histogram_freq=0,
+                write_graph=True
         )
         self.tensorboard.set_model(self.Tmodel)
         self.tensorboard_batch_id = train_count_init
 
     def build_model(self):
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                return self.mc.build_train_model(name="T")
+        return self.mc.build_train_model(name="T")
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        #        return self.mc.build_train_model(name="T")
 
     def save_model(self, fnwps):
         model_AIO_fnwp, config_fnwp, weight_fnwp = fnwps
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                self.Tmodel.save(model_AIO_fnwp, overwrite=True, include_optimizer=True)
-                if not os.path.exists(config_fnwp):
-                    model_json = self.Pmodel.to_json()
-                    with open(config_fnwp, "w") as json_file:
-                        json_file.write(model_json)
 
-                model_dn, fn = os.path.split(weight_fnwp)
-                temp_fnwp = os.path.join(model_dn, "temp.h5")
-                with open(temp_fnwp, 'a'):
-                    os.utime(temp_fnwp, None)
-                self.i_wait.start_monitor(temp_fnwp)
-                self.Pmodel.save_weights(temp_fnwp)
-                wait_result = self.i_wait.wait_till_finish()
-                self.i_wait.stop_monitor(temp_fnwp)
-                assert wait_result, "Fail to save {0} in 10 minuts(600 second)".format(weight_fnwp)
-                os.rename(temp_fnwp, weight_fnwp)
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        self.Tmodel.save(model_AIO_fnwp, overwrite=True, include_optimizer=True,save_format="h5")
+        if not os.path.exists(config_fnwp):
+            model_json = self.Pmodel.to_json()
+            with open(config_fnwp, "w") as json_file:
+                json_file.write(model_json)
+
+        model_dn, fn = os.path.split(weight_fnwp)
+        temp_fnwp = os.path.join(model_dn, "temp.h5")
+        with open(temp_fnwp, 'a'):
+            os.utime(temp_fnwp, None)
+        self.i_wait.start_monitor(temp_fnwp)
+        self.Pmodel.save_weights(temp_fnwp,save_format="h5")
+        wait_result = self.i_wait.wait_till_finish()
+        self.i_wait.stop_monitor(temp_fnwp)
+        assert wait_result, "Fail to save {0} in 10 minuts(600 second)".format(weight_fnwp)
+        os.rename(temp_fnwp, weight_fnwp)
 
     def load_model(self, fnwps):
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                return self.mc.load_train_model(fnwps)
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        return self.mc.load_train_model(fnwps)
 
     def named_loss(self, model, loss):
         result = {}
@@ -111,21 +137,22 @@ class Train_Brain(Brain):
         return result
 
     def optimize(self):
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
-                if num_record_to_train != 0:
-                    self.tensorboard.on_epoch_end(self.tensorboard_batch_id,
-                                                  self.named_loss(self.Tmodel, loss_this_round))
-                    self.tensorboard_batch_id += 1
-                    if lc.flag_record_state:
-                        self.mc.rv.recorder_brainer([self.Tmodel.metrics_names, loss_this_round])
-                return num_record_to_train, loss_this_round
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
+        if num_record_to_train != 0:
+            self.tensorboard.on_epoch_end(self.tensorboard_batch_id,
+                                          self.named_loss(self.Tmodel, loss_this_round))
+            self.tensorboard_batch_id += 1
+            if lc.flag_record_state:
+                self.mc.rv.recorder_brainer([self.Tmodel.metrics_names, loss_this_round])
+        return num_record_to_train, loss_this_round
 
 
 class Explore_Brain(Brain):
     def __init__(self, GPU_per_program,method_name_of_choose_action):
         Brain.__init__(self, GPU_per_program )
+        keras.backend.set_learning_phase(0)  # add by john for error solved by
         self.mc = globals()[lc.system_type]()
         self.Pmodel = self.build_model()
         self.i_action= actionOBOS(lc.train_action_type)
@@ -135,31 +162,32 @@ class Explore_Brain(Brain):
         self.predict= self.predict_OS if lc.P2_current_phase == "Train_Sell" else self.predict_OB
 
     def build_model(self):
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                Pmodel = self.mc.build_predict_model("P")
-            return Pmodel
+        #with self.default_graph.as_default():
+        #     with self.session.as_default():
+        Pmodel = self.mc.build_predict_model("P")
+        return Pmodel
 
     def load_weight(self, weight_fnwp):
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                self.Pmodel.load_weights(weight_fnwp)
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        self.Pmodel.load_weights(weight_fnwp)
 
 
     def predict_OS(self, state):
         assert lc.P2_current_phase=="Train_Sell"
         lv, sv, av = state
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                p, v = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
-                return p,v
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
+        return p,v
+
     def predict_OB(self,state):
         assert lc.P2_current_phase == "Train_Buy"
         lv, sv = state
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                p, v = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv})
-                return p, v
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv})
+        return p, v
 
     '''
     def predict(self, state):
@@ -185,20 +213,20 @@ class Explore_Brain(Brain):
         lfn=[fn for fn in os.listdir(OB_model_dir) if re.findall(regex, fn)]
         assert len(lfn)==1, "{0} model with train count {1} not found".format(ob_system_name,Ob_model_tc)
         weight_fnwp=os.path.join(OB_model_dir, lfn[0])
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                load_jason_custom_objects={"softmax": softmax,"tf":tf, "concatenate":concatenate,"lc":lc}
-                model = model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
-                model.load_weights(weight_fnwp)
-                print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
+        model = keras.models.model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
+        model.load_weights(weight_fnwp)
+        print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
         return model
 
     def V2_OS_predict(self, state, model):
         lv, sv, av = state
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                p, v = model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
-                return p,v
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
+        return p,v
 
     LHPP2V2_check_holding = lambda self,av_item: False if av_item[0] == 1 else True
     def choose_action_LHPP2V2(self, state):
@@ -261,10 +289,9 @@ class Explore_Brain(Brain):
 
         assert not lc.flag_multi_buy
         lv, sv, av = state
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                #buy_Qs = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av[:,:lc.specific_param.LHPP2V4_av_len]})
-                buy_Qs = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv})
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        buy_Qs = self.Pmodel.predict({'P_input_lv': lv, 'P_input_sv': sv})
         if not hasattr(self, "OS_agent"):
             self.OS_agent = self.V2_OS_load_model(lc.P2_sell_system_name, lc.P2_sell_model_tc)
             self.i_OS_action = actionOBOS("OS")
@@ -440,6 +467,38 @@ class Explore_Brain(Brain):
             return l_a, l_ap, l_sv
         return base_choose_action_LHPP2V4
     '''
+'''
+class Eval_Brain(Explore_Brain):
+    def build_model(self):
+        #with self.default_graph.as_default():
+        #     with self.session.as_default():
+        Pmodel = self.mc.build_predict_model("E")
+        return Pmodel
+
+    def predict_OS(self, state):
+        assert lc.P2_current_phase=="Train_Sell"
+        lv, sv, av = state
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = self.Pmodel.predict({'E_input_lv': lv, 'E_input_sv': sv, 'E_input_av': av})
+        return p,v
+
+    def predict_OB(self,state):
+        assert lc.P2_current_phase == "Train_Buy"
+        lv, sv = state
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = self.Pmodel.predict({'E_input_lv': lv, 'E_input_sv': sv})
+        return p, v
+
+    def V2_OS_predict(self, state, model):
+        lv, sv, av = state
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        p, v = model.predict({'E_input_lv': lv, 'E_input_sv': sv, 'E_input_av': av})
+        return p,v
+'''
+
 class visual_Explore_Brain(Explore_Brain):
     def __init__(self, GPU_per_program, layer_name):
         Explore_Brain.__init__(self, GPU_per_program)
@@ -450,10 +509,10 @@ class visual_Explore_Brain(Explore_Brain):
 
     def debug_choose_action(self, inputs):
         #lv, sv, av = input
-        with self.default_graph.as_default():
-            with self.session.as_default():
-                action_probs, v, state = self.get_state_fun(inputs)
-                #print action_probs.shape, action_probs
-                action = np.random.choice(np.arange(action_probs[0].shape[0]), p=action_probs[0].ravel())
+        #with self.default_graph.as_default():
+        #    with self.session.as_default():
+        action_probs, v, state = self.get_state_fun(inputs)
+        #print action_probs.shape, action_probs
+        action = np.random.choice(np.arange(action_probs[0].shape[0]), p=action_probs[0].ravel())
         return action, action_probs[0],  v[0], state[0]
 

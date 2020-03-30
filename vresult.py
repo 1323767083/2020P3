@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk #NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 from vcomm import Checkbar,label_entry,img_tool,one_label_entry,one_radion_box,param_input
 from vresult_data_reward import ana_reward
@@ -33,9 +33,11 @@ class vresult(tk.Frame):
 
         self.fig = Figure(figsize=(5, 5), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.show()
+        #self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        toolbar = NavigationToolbar2TkAgg(self.canvas, self)
+        #toolbar = NavigationToolbar2TkAgg(self.canvas, self)
+        toolbar = NavigationToolbar2Tk(self.canvas, self)
         toolbar.update()
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 

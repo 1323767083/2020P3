@@ -1,12 +1,7 @@
-from keras.layers import Reshape, Input, Lambda,Flatten,Subtract, dot,TimeDistributed
-from keras.layers.advanced_activations import *
-from keras.models import Model, model_from_json, load_model
-from keras.optimizers import Adam, SGD, Adagrad, Adadelta
-from keras.layers import Concatenate, concatenate
-from keras.activations import softmax
-import numpy as np
 import tensorflow as tf
-from tensorflow.python.ops import bitwise_ops
+import tensorflow_probability as tfp
+import tensorflow.keras as keras
+import numpy as np
 from nets_agent import *
 from recorder import *
 
@@ -28,31 +23,31 @@ class base_trainer:
             self.rv = globals()[lc.CLN_record_variable](lc)
 
         self.comile_metrics = []
-        self.load_jason_custom_objects = {"softmax": softmax, "tf": tf, "concatenate": concatenate, "lc": lc}
-        self.load_model_custom_objects = {"tf": tf, "concatenate": concatenate, "lc": lc}
+        self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
+        self.load_model_custom_objects = {"tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
 
     def select_optimizer(self, name, learning_rate):
         assert name in ["Adam", "SGD", "Adagrad", "Adadelta"]
         if name == "Adam":
-            Optimizer = Adam(lr=learning_rate)
+            Optimizer = keras.optimizers.Adam(lr=learning_rate)
         elif name == "SGD":
             # Optimizer = SGD(lr=0.01, nesterov=True)
-            Optimizer = SGD(lr=learning_rate, nesterov=True)
+            Optimizer = keras.optimizers.SGD(lr=learning_rate, nesterov=True)
         elif name == "Adagrad":
             # Optimizer = Adagrad(lr=0.01, epsilon=None, decay=0.0)
-            Optimizer = Adagrad(lr=learning_rate)
+            Optimizer = keras.optimizers.Adagrad(lr=learning_rate)
         else:  # name == "AdaDelta":
             # Optimizer= Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
-            Optimizer = Adadelta(lr=learning_rate)
+            Optimizer = keras.optimizers.Adadelta(lr=learning_rate)
         return Optimizer
 
     def load_train_model(self, fnwps):
         model_AIO_fnwp, config_fnwp, weight_fnwp = fnwps
         with open(config_fnwp, 'r') as json_file:
             loaded_model_json = json_file.read()
-        Pmodel = model_from_json(loaded_model_json, custom_objects=self.load_jason_custom_objects)
+        Pmodel = keras.models.model_from_json(loaded_model_json, custom_objects=self.load_jason_custom_objects)
         self.load_model_custom_objects["P"]=Pmodel
-        L_Tmodel = load_model(model_AIO_fnwp, compile=True, custom_objects=self.load_model_custom_objects)
+        L_Tmodel = keras.models.load_model(model_AIO_fnwp, compile=True, custom_objects=self.load_model_custom_objects)
         syncronize_predict_model = L_Tmodel.get_layer("P")
         return L_Tmodel, syncronize_predict_model
 

@@ -310,11 +310,11 @@ def compare_mean_prepare_data(argv):
                                     ll_stock_result[idx][lv_idx].append(lv[0, 19, idx])
 
         if flag_need_handle_normal_lv:
-            pickle.dump(l_result, open(result_fnwp, 'w'))
+            pickle.dump(l_result, open(result_fnwp, 'wb'))
             print("result stored in {0}".format(result_fnwp))
         for idx, need_flag in enumerate(l_flag_need_handle_stock_lv):
             if need_flag:
-                pickle.dump(ll_stock_result[idx], open(l_stock_result_fnwp[idx],"w"))
+                pickle.dump(ll_stock_result[idx], open(l_stock_result_fnwp[idx],"wb"))
                 print("result stored in {0}".format(l_stock_result_fnwp[idx]))
     l_input_fnwp=[]
     l_output_fnwp=[]

@@ -213,3 +213,54 @@ Traceback (most recent call last):
     return AParray02[action04] if self.action_type == "OB" else AParray02[action04-2]
 IndexError: index 3 is out of bounds for axis 0 with size 2
 [INFO/Explore_process-4] process exiting with exitcode 1
+
+
+ File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/A3C_workers.py", line 263, in run
+    self.run_env_one_step(Ds["worker_loop_count"])
+  File "/home/rdchujf/remote_sw/A3C_workers.py", line 302, in run_env_one_step
+    s_, r, done, support_view_dic = i_env.step(a)
+  File "/home/rdchujf/remote_sw/env.py", line 64, in step_OS
+    return self.step_common(action_str,flag_force_sell)
+  File "/home/rdchujf/remote_sw/env.py", line 81, in step_common
+    support_view_dic["date"])
+  File "/home/rdchujf/remote_sw/env_ar.py", line 108, in buy
+    i_ginform=self._get_stock_ginform(stock)
+  File "/home/rdchujf/remote_sw/env_ar.py", line 48, in _get_stock_ginform
+    self.stock_ginfom= ginfo_one_stock(stock)
+  File "/home/rdchujf/remote_sw/data_common.py", line 353, in __init__
+    self.df_hfq=API_HFQ_from_file().get_df_HFQ(self.stock)
+  File "/home/rdchujf/remote_sw/data_common.py", line 295, in get_df_HFQ
+    fnwp=self._HFQ_fnwp(stock)
+  File "/home/rdchujf/remote_sw/data_common.py", line 290, in _HFQ_fnwp
+    fnwp=os.path.join(self.hfq_src_base_dir,stock.upper()+".csv")
+
+
+b'SH600444' <class 'numpy.bytes_'>
+
+
+2020-03-28 14:17:57.170128: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x564e5fa28140 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2020-03-28 14:17:57.170153: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): TITAN Xp, Compute Capability 6.1
+2020-03-28 14:17:57,612 - Train_Brain - INFO - finish worker init weight update and start worker work
+2020-03-28 14:17:57,709 - Explore_worker_0 - INFO - initial weight update from /home/rdchujf/n_workspace/RL/try37/model/weight_0328_1417_T0.h5py
+2020-03-28 14:17:58.190104: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcublas.so.10
+2020-03-28 14:17:58.454098: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcudnn.so.7
+2020-03-28 14:17:59.605199: W tensorflow/stream_executor/gpu/redzone_allocator.cc:312] Not found: ./bin/ptxas not found
+Relying on driver to perform ptx compilation. This message will be only logged once.
+2020-03-28 14:18:18.849974: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcublas.so.10
+2020-03-28 14:18:19.118407: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcudnn.so.7
+2020-03-28 14:18:20.353082: W tensorflow/stream_executor/gpu/redzone_allocator.cc:312] Not found: ./bin/ptxas not found
+Relying on driver to perform ptx compilation. This message will be only logged once.
+[INFO/Train_Process-3] process shutting down
+Process Train_Process-3:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/A3C_brain.py", line 66, in run
+    optimized_flag=self.train_brain(i_brain, Ds)
+  File "/home/rdchujf/remote_sw/A3C_brain.py", line 170, in train_brain
+    i_brain.mc.rv.saver()
+  File "/home/rdchujf/remote_sw/recorder.py", line 155, in saver
+    pickle.dump(compressed_inputs, f)
+TypeError: write() argument must be str, not bytes

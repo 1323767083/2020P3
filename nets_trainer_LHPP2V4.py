@@ -1,12 +1,4 @@
-from keras.layers import Reshape, Input, Lambda,Flatten,Subtract, dot,TimeDistributed
-from keras.layers.advanced_activations import *
-from keras.models import Model, model_from_json, load_model
-from keras.optimizers import Adam, SGD, Adagrad, Adadelta
-from keras.layers import Concatenate, concatenate
-from keras.activations import softmax
 import numpy as np
-import tensorflow as tf
-from tensorflow.python.ops import bitwise_ops
 from nets_agent import *
 from recorder import *
 from nets_trainer_base import *
@@ -25,8 +17,8 @@ class Q_base_trainer(base_trainer):
         assert lc.system_type == "LHPP2V4"
         self.gammaN = lc.Brain_gamma ** lc.TDn
         self.comile_metrics=[]
-        self.load_jason_custom_objects={"softmax": softmax,"tf":tf, "concatenate":concatenate,"lc":lc}
-        self.load_model_custom_objects={"join_loss": self.join_loss, "tf":tf,"concatenate":concatenate,"lc":lc}
+        self.load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
+        self.load_model_custom_objects={"join_loss": self.join_loss, "tf":tf,"concatenate":keras.backend.concatenate,"lc":lc}
 
     def extract_y(self, y):
         SQstate      =          y[:, : 1]   #SQstate is selected SQstate=Qstate*input_a
@@ -48,19 +40,19 @@ class LHPP2V4_Q_trainer1(Q_base_trainer):
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
-        input_lv = Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
-        input_sv = Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
-        input_a = Input(shape=(lc.train_action_num,), dtype='float32', name='input_action')
-        input_mask = Input(shape=(1,), dtype='float32', name='input_mask')
+        input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
+        input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
+        input_a = keras.Input(shape=(lc.train_action_num,), dtype='float32', name='input_action')
+        input_mask = keras.Input(shape=(1,), dtype='float32', name='input_mask')
 
         Qstate = Pmodel([input_lv, input_sv])
         Optimizer = self.select_optimizer(lc.Brain_optimizer, lc.Brain_leanring_rate)
 
 
-        SQstate=Lambda(lambda x: tf.reduce_sum(x[0]*x[1], axis=-1,keep_dims=True), name="Selected_Qstate")([Qstate,input_a])
-        con_out = Concatenate(axis=1, name="train_output")([SQstate, input_mask])
+        SQstate=keras.layers.Lambda(lambda x: tf.reduce_sum(x[0]*x[1], axis=-1,keep_dims=True), name="Selected_Qstate")([Qstate,input_a])
+        con_out = keras.layers.Concatenate(axis=1, name="train_output")([SQstate, input_mask])
 
-        Tmodel = Model(inputs=[input_lv, input_sv, input_a, input_mask], outputs=[con_out], name=name)
+        Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_mask], outputs=[con_out], name=name)
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss)
         return Tmodel, Pmodel
 

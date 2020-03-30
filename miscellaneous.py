@@ -7,7 +7,7 @@ def getselected_item_name(l_items, colum_per_row=3,flag_sort=True):
     if flag_sort:
         l_items.sort()
     num_column_last_row=len(l_items)%colum_per_row
-    num_row = len(l_items) / colum_per_row
+    num_row = len(l_items) // colum_per_row
     row_per_column=[]
     for idx in range(colum_per_row):
         if idx<num_column_last_row:
@@ -84,12 +84,16 @@ def start_tensorboard(port, logdir):
     import tensorflow as tf
     import logger_comm as lcom
     lcom.setup_tf_logger("tensorboad")
-    sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=0)
-    sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=0)
+    #sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=0)
+    #sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=0)
+
+    sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=1)
+    sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=1)
+
 
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tb = program.TensorBoard()
-    tb.configure(argv=[None, '--port',str(port) ,'--logdir', logdir])
+    tb.configure(argv=[None, '--port',str(port) ,'--logdir', logdir, '--host','0.0.0.0'])   #--host 0.0.0.0 make can use 192.168.199.100 access
     url = tb.launch()
     print("******************************",url)
     while True:
@@ -223,3 +227,31 @@ def check_correct(stock):
             return True
     print("{0} no error found".format(stock))
     return False
+
+'''
+lc.Brian_core = float("nan")  # "GPU_0"
+lc.Brian_gpu_percent = float("nan")  # 0.8
+lc.l_work_core = [""]  # ["GPU_0", "GPU_0", "GPU_0"]
+lc.l_percent_gpu_core_for_work = [float("nan")]  # [0.2, 0.2, 0.2]
+lc.l_eval_core = [""]  # ["GPU_1", "GPU_1"]
+lc.l_percent_gpu_core_for_eva = [float("nan")]  # [0.2, 0.2]
+'''
+
+def get_GPU_index(GPU_name_str):
+    return int(GPU_name_str[-1])
+
+def get_VGPU_lists(lc):
+    ll_VGPU_config=[[],[]]
+    ll_VGPU_process=[[],[]]
+
+    ll_VGPU_config[int(lc.Brian_core[-1])].append(lc.Brian_gpu_percent)
+    ll_VGPU_process[int(lc.Brian_core[-1])].append("Brain")
+    for idx,work_core,percent_gpu in enumerate(zip(lc.l_work_core,lc.l_percent_gpu_core_for_work)):
+        ll_VGPU_config[int(work_core[-1])].append(percent_gpu)
+        ll_VGPU_process[int(work_core[-1])].append("worker_{0}".format(idx))
+    for idx,eval_core,percent_gpu in enumerate(zip(lc.l_eval_core,lc.l_percent_gpu_core_for_eva)):
+        ll_VGPU_config[int(eval_core[-1])].append(percent_gpu)
+        ll_VGPU_process[int(eval_core[-1])].append("eval_{0}".format(idx))
+
+
+

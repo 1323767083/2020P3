@@ -25,12 +25,15 @@ class Train_Process(Process):
         self.l_i_bs=[buffer_series() for _ in range (lc.num_workers)]
     def run(self):
         import tensorflow as tf
+        from nets import Train_Brain, init_gc,init_virtual_GPU
         lcom.setup_tf_logger(self.process_name)
-        tf.set_random_seed(2)
-        from nets import Train_Brain, init_gc
+        tf.random.set_seed(2)
         init_gc(lc) #init_gc(lgc)
         setproctitle.setproctitle("{0}_{1}".format(lc.RL_system_name,self.process_name))
-        with tf.device("/cpu:0" if lc.Brian_gpu_percent==0.0 else "/GPU:0"):
+        #with tf.device("/cpu:0" if lc.Brian_gpu_percent==0.0 else "/GPU:0"):
+        assert lc.Brian_gpu_percent != 0.0, "Only support GPU"
+        virtual_GPU = init_virtual_GPU(11*1024 * lc.Brian_gpu_percent)
+        with tf.device(virtual_GPU):
             self.logger.info("{0} {1} started".format(self.process_name, self.process_idx))
             if lc.load_AIO_fnwp != "" and lc.load_config_fnwp != "" and lc.load_weight_fnwp != "":
                 l_load_fnwp = [lc.load_AIO_fnwp, lc.load_config_fnwp, lc.load_weight_fnwp]
@@ -68,8 +71,8 @@ class Train_Process(Process):
     def save_AIO_model_weight_config(self, i_brain, train_count):
         ct = dt.datetime.now()
         surfix = "_{0:02d}{1:02d}_{2:02d}{3:02d}_T{4}".format(ct.month, ct.day, ct.hour, ct.minute, train_count)
-        AIO_fnwp    = os.path.join(lc.brain_model_dir,"{0}{1}.h5py".format(lc.actor_model_AIO_fn_seed, surfix))
-        weight_fnwp = os.path.join(lc.brain_model_dir, "{0}{1}.h5py".format(lc.actor_weight_fn_seed, surfix))
+        AIO_fnwp    = os.path.join(lc.brain_model_dir,"{0}{1}.h5".format(lc.actor_model_AIO_fn_seed, surfix))
+        weight_fnwp = os.path.join(lc.brain_model_dir, "{0}{1}.h5".format(lc.actor_weight_fn_seed, surfix))
         config_fnwp = os.path.join(lc.brain_model_dir, "{0}.json".format(lc.actor_config_fn_seed))
         i_brain.save_model([AIO_fnwp, config_fnwp,weight_fnwp ])
         return weight_fnwp
@@ -77,7 +80,7 @@ class Train_Process(Process):
     def find_model_surfix(self, eval_loop_count):
         l_model_fn = [fn for fn in os.listdir(lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
         if len(l_model_fn) == 2:
-            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5py'
+            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
             match = re.search(regex, l_model_fn[0])
             return match.group(1)
         else:

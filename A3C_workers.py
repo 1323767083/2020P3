@@ -230,13 +230,16 @@ class Explore_process(client_base):
     def run(self):
         import tensorflow as tf
         lcom.setup_tf_logger(self.process_name)
-        tf.set_random_seed(2)
-        from nets import Explore_Brain, init_gc
+        tf.random.set_seed(2)
+        from nets import Explore_Brain, init_gc,init_virtual_GPU
         init_gc(lc)    #init_gc(lgc)
         setproctitle.setproctitle("{0}_{1}".format(lc.RL_system_name, self.process_name))
         random.seed(2)
         np.random.seed(2)
-        with tf.device("/cpu:0" if lc.l_work_core[self.process_idx] == 0.0 else "/GPU:0"):
+        assert lc.l_percent_gpu_core_for_work[self.process_idx]!=0.0, "only work on GPU"
+        virtual_GPU = init_virtual_GPU(11*1024 * lc.l_percent_gpu_core_for_work[self.process_idx])
+        with tf.device(virtual_GPU):
+        #with tf.device("/cpu:0" if lc.l_work_core[self.process_idx] == 0.0 else "/GPU:0"):
             self.logger.info("{0} start".format(self.process_name))
             self.i_wb= locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_work[self.process_idx],
                                                 method_name_of_choose_action=lc.method_name_of_choose_action_for_train)
@@ -373,7 +376,7 @@ class Eval_process(client_base):
         flag_screen_show=lc.l_flag_eval_log_screen[process_idx]
         self.logger= lcom.setup_logger(process_name,flag_file_log=flag_file_log, flag_screen_show=flag_screen_show)
         self.E_one_round_finished = Event()
-        self.current_eval_count = lc.start_eval_count / lc.num_train_to_save_model + 1
+        self.current_eval_count = lc.start_eval_count // lc.num_train_to_save_model + 1
         self.eval_loop_count = self.current_eval_count * lc.num_train_to_save_model
 
         self.init_data_eval()
@@ -388,14 +391,20 @@ class Eval_process(client_base):
     def run(self):
         import tensorflow as tf
         lcom.setup_tf_logger(self.process_name)
-        tf.set_random_seed(2)
-        from nets import Explore_Brain, init_gc
+        tf.random.set_seed(2)
+        from nets import Explore_Brain, init_gc,init_virtual_GPU
         init_gc(lc)  #init_gc(lgc)
         setproctitle.setproctitle("{0}_{1}".format(lc.RL_system_name, self.process_name))
         self.logger.info("start at eval loop count {0}".format(self.eval_loop_count))
-        with tf.device("/cpu:0" if lc.l_eval_core[int(self.process_name[-1])] == 0.0 else "/GPU:0"):
+        assert lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])]!=0.0, "Only Support GPU"
+        virtual_GPU = init_virtual_GPU(11*1024 * lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])])
+        with tf.device(virtual_GPU):
+        #with tf.device("/cpu:0" if lc.l_eval_core[int(self.process_name[-1])] == 0.0 else "/GPU:0"):
             self.i_eb = locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
                                                        method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
+            #self.i_eb = Eval_Brain(GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
+            #                                           method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
+
             while not self.E_stop.is_set():
                 self.eval_name_pipe_cmd("Waiting for evaluation")
                 model_weight_fnwp = self.eval_init_round()
@@ -470,7 +479,7 @@ class Eval_process(client_base):
     def find_model_surfix(self, eval_loop_count):
         l_model_fn = [fn for fn in os.listdir(lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
         if len(l_model_fn) == 2:
-            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5py'
+            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
             match = re.search(regex, l_model_fn[0])
             return match.group(1)
         else:
@@ -480,7 +489,7 @@ class Eval_process(client_base):
         found_model_surfix=self.find_model_surfix(self.eval_loop_count)
         if found_model_surfix is None:
             return ""
-        weight_fn = "{0}{1}.h5py".format(lc.actor_weight_fn_seed, found_model_surfix)
+        weight_fn = "{0}{1}.h5".format(lc.actor_weight_fn_seed, found_model_surfix)
         weight_fnwp=os.path.join(lc.brain_model_dir,weight_fn)
         self.i_are_ssdi.start_round(self.eval_loop_count)
         self.data.eval_reset_data()

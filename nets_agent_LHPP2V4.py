@@ -21,8 +21,8 @@ class LHPP2V4:
         }
 
     def build_predict_model(self, name):
-        input_lv = Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
-        input_sv = Input(shape=nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
+        input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
+        input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
         i_SV = SV_component()
         i_LV_SV = LV_SV_joint_component()
 
@@ -31,7 +31,7 @@ class LHPP2V4:
 
         assert not lc.flag_sv_joint_state_stop_gradient, "{0} only support not lc.flag_sv_joint_state_stop_gradient".format(self.__class__.__name__)
         l_agent_output = getattr(self, self.DC["method_ap_sv"])(lv_sv_state, name)
-        predict_model = Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
+        predict_model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
         return predict_model
 
     def get_ap_av_HP(self, input_state, name):
@@ -39,7 +39,7 @@ class LHPP2V4:
         state = cc.construct_denses(nc.dense_l, input_state,            name=label + "_commonD")
 
         Pre_Q = cc.construct_denses(nc.dense_prob[:-1], state,          name=label + "_Pre_Q")
-        Qs = Dense(nc.dense_prob[-1], activation='linear',             name=label + "Qs")(Pre_Q)
+        Qs = keras.layers.Dense(nc.dense_prob[-1], activation='linear',             name=label + "Qs")(Pre_Q)
         return Qs
 
 

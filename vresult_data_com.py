@@ -53,11 +53,11 @@ def get_addon_setting(system_name,process_name):
     src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
     Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
 
-    LETs = [int(re.findall(r'\w+T(\d+).h5py', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
+    LETs = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
             if fn.startswith("train_model_AIO_")]
     LETs.sort()
     LETs.pop(-1)
-    LEvalT = [idx * lgc.num_train_to_save_model for idx in range(LETs[-1] / lgc.num_train_to_save_model + 1)]
+    LEvalT = [idx * lgc.num_train_to_save_model for idx in range(LETs[-1] // lgc.num_train_to_save_model + 1)]
     LEvalT.pop(0)
 
     decision = input("current EvalT from {0} to {1} specify end Eval(Y/N)?".format(LEvalT[0],LEvalT[-1]))
