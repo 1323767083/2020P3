@@ -2,6 +2,8 @@ from nets_agent_LHPP2V3 import *
 from nets_agent_LHPP2V2 import *
 from nets_agent_LHPP2V4 import *
 from nets_agent_LHPP2V5 import *
+from nets_agent_LHPP2V6 import *
+from nets_agent_LHPP2V61 import *
 class net_conf:
     """
     @DynamicAttrs
@@ -61,3 +63,5 @@ def init_agent_config(input_lc):
     init_nets_agent_LHPP2V3(lc, nc, LNM_LV_SV_joint, LNM_P, LNM_V)
     init_nets_agent_LHPP2V4(lc, nc, LNM_LV_SV_joint)
     init_nets_agent_LHPP2V5(lc, nc, LNM_LV_SV_joint, LNM_P, LNM_V)
+    init_nets_agent_LHPP2V6(lc, nc, LNM_LV_SV_joint, LNM_P, LNM_V)
+    init_nets_agent_LHPP2V61(lc, nc, LNM_LV_SV_joint, LNM_P, LNM_V)

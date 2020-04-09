@@ -1,6 +1,6 @@
 import random,os
 import pandas as pd
-from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5
+from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6
 from data_common import API_SH_sl
 class lconfig:
     def __init__(self):

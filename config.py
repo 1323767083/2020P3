@@ -653,6 +653,51 @@ class gconfig(gconfig_data):
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
 
+        elif self.system_type in ["LHPP2V6","LHPP2V1"]:
+            # 0.Train Phase
+            assert self.P2_current_phase == "Train_Buy"
+
+            # 1.Simulator get data
+            assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
+            assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
+
+            # 2.Simulator
+            assert self.CLN_simulator == "Simulator_LHPP2V6"
+            assert not self.flag_multi_buy
+            assert self.LHP != 0
+            assert self.env_flag_random_start_in_episode_for_eval == True
+
+            # 3.TD_buffer
+            assert self.CLN_TDmemory == "TD_memory_LHPP2V6" # same as TD_memory_LHPP2V3
+
+            # 4.nets
+            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V6"
+            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V6"
+
+            # 5.net_agent
+            #assert "LHPP2V3" in self.CLN_agent   # this is to include support for V3 V32 and V33
+            assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
+            assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
+            assert self.agent_method_apsv in ["HP", "HP_SP"]
+
+            self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False,True] \
+                if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
+
+            # 6.net_trainer  # this is to include support for V3 V32 and V33
+            assert self.system_type in self.CLN_trainer
+
+            # 7.action
+            self.train_action_type = "B4"
+            self.train_num_action = 4   # in V6 train_num_action only used in recorder
+            assert self.net_config["dense_prob"][-1] == 2
+            actionOBOS(self.train_action_type).sanity_check_action_config(self)
+
+            # 8.specific param
+            for item_title in ["BB_NBD","max_record_taken","punish_r_base"]:
+                assert item_title in list(self.Dict_specifc_param.keys())
+                setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
+            setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
+
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

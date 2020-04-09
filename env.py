@@ -304,3 +304,7 @@ class Simulator_LHPP2V5(Simulator_LHPP2V3):
             state, reward,Done_flag,support_view_dic = Simulator_LHPP2V3.step_OB(self,action)
         return state, reward,Done_flag,support_view_dic
 
+
+class Simulator_LHPP2V6(Simulator_LHPP2V5):
+    def __init__(self, data_name, stock,called_by):
+        Simulator_LHPP2V5.__init__(self, data_name, stock,called_by)

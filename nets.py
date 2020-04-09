@@ -209,7 +209,7 @@ class Explore_Brain(Brain):
     def V2_OS_load_model(self, ob_system_name, Ob_model_tc):
         OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
         model_config_fnwp=os.path.join(OB_model_dir, "config.json")
-        regex = r'weight_\w+T{0}.h5py'.format(Ob_model_tc)
+        regex = r'weight_\w+T{0}.h5'.format(Ob_model_tc)
         lfn=[fn for fn in os.listdir(OB_model_dir) if re.findall(regex, fn)]
         assert len(lfn)==1, "{0} model with train count {1} not found".format(ob_system_name,Ob_model_tc)
         weight_fnwp=os.path.join(OB_model_dir, lfn[0])
@@ -351,6 +351,38 @@ class Explore_Brain(Brain):
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
                 l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_sv.append(sell_sv[0])
+            else: # not have holding
+                #action = np.random.choice([0, 1], p=buy_prob)
+                action = self.i_action.I_nets_choose_action(buy_prob)
+                l_a.append(action)
+                l_ap.append(buy_prob)
+                l_sv.append(buy_sv[0])
+        return l_a, l_ap,l_sv
+
+
+    def choose_action_LHPP2V6(self,state):
+        assert lc.P2_current_phase == "Train_Buy"
+        assert not lc.flag_multi_buy
+        lv, sv, av = state
+        buy_probs, buy_SVs = self.predict([lv, sv])
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = self.V2_OS_load_model(lc.P2_sell_system_name, lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        sel_probs, sell_SVs = self.V2_OS_predict(state,self.OS_agent)
+        l_a = []
+        l_ap = []
+        l_sv = []
+        for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
+            assert len(buy_prob)==4
+            assert len(sell_prob) == 2
+            flag_holding=self.LHPP2V2_check_holding(av_item)
+            if flag_holding:
+                #action = np.random.choice([2, 3], p=sell_prob)
+                action = self.i_OS_action.I_nets_choose_action(sell_prob)
+                l_a.append(action)
+                #l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_ap.append(np.zeros(len(buy_prob)))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 #action = np.random.choice([0, 1], p=buy_prob)
