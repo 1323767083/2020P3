@@ -84,7 +84,7 @@ class ana_reward_data(are_esi_reader):
         #    "price": {"buy_price": "first", "sell_price": "last"},
         #    "action": {"valid_trans_kpi": "mean"}})
         dfr = df.groupby(["trans_id"]).agg(
-            trans_start=pd.NamedAgg(column="trans_start", aggfunc="sum"),
+            trans_start=pd.NamedAgg(column="trans_start", aggfunc="first"),
             trans_end=pd.NamedAgg(column="trans_end", aggfunc="last"),
             reward=pd.NamedAgg(column="reward", aggfunc="sum"),
             duration=pd.NamedAgg(column="duration", aggfunc="sum"),
@@ -101,10 +101,17 @@ class ana_reward_data(are_esi_reader):
         if len(dfrr)==0:
             return False, "", "no_valid_transaction"
         dfrr=pd.DataFrame(dfrr)
+        dfrr.loc[:, "buy_count"] = 1
+        dfrr.loc[:, "flag_trans_valid"] = True
+        dfrr.loc[:, "stock"] = stock
+        dfrr.loc[:, "EvalT"] = evalT
+        '''
+        dfrr=pd.DataFrame(dfrr)
         dfrr["buy_count"]=1
         dfrr["flag_trans_valid"] = True
         dfrr["stock"] = stock
         dfrr["EvalT"] = evalT
+        '''
         Dic_effective = {"effective_buy": len(dfr), "effective_sell": len(dfrr), "effective_trans": len(dfrr)}
         return True, dfrr, Dic_effective
 
@@ -285,15 +292,15 @@ class ana_reward_data(are_esi_reader):
         flag_opt, df, _ = self._get_are_summary_1stock_1ET(stock, evalT)
         if not flag_opt:
             return img_density,img_reward
-
         for _, row in df.iterrows():
             period= self.td[(self.td>=str(row.trans_start)) &(self.td<=str(row.trans_end))]
             for day in period:
                 date_i = int(day)
-                date_year = date_i / 10000
-                date_month = (date_i / 100) % 100
+                date_year = date_i // 10000
+                date_month = (date_i // 100) % 100
                 date_day = date_i % 100
-                np_row = (date_year - start_year_i) * 4 + (date_month - 1) / 3
+                print (date_year,date_month,date_day)
+                np_row = (date_year - start_year_i) * 4 + (date_month - 1) // 3
                 np_column = (date_month - 1) % 3 * 31 + (date_day - 1)
                 img_density[np_row, np_column] += unit
                 img_reward[np_row, np_column]  += row["reward"]
@@ -672,9 +679,7 @@ class ana_reward(ana_reward_plot):
         SYM = self.LYM[self.Cidx_LYM]
         if not self.check_data_ready("df_bs"): assert False
         if not self.check_data_ready("df_price"): assert False
-
         self.plot_price_buy_sell(allaxes[1], SYM, self.df_bs, self.df_price)
-
         ax=allaxes[2]
         self.img_reward_date(fig, ax, self.np_trans_density,int(self.i_ana_data.data_start_s[:4]),
                                                             int(self.i_ana_data.data_end_s[:4]),Dimgc)

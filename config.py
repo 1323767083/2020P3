@@ -653,7 +653,7 @@ class gconfig(gconfig_data):
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
 
-        elif self.system_type in ["LHPP2V6","LHPP2V1"]:
+        elif self.system_type in ["LHPP2V6","LHPP2V61"]:
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
 
