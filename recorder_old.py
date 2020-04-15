@@ -68,7 +68,7 @@ class record_variable:
 
     def loader(self, fn):
         fnwp=os.path.join(self.dirwp, fn)
-        with open(fnwp) as f:  # Python 3: open(..., 'rb')
+        with open(fnwp, 'rb') as f:  # Python 3: open(..., 'rb')
             return pickle.load(f)
 
 
@@ -206,7 +206,7 @@ class record_sim_stock_data:
         fnwp=os.path.join(self.dir_base, stock, "{0}.pkl".format(date))
         if not os.path.exists(fnwp):
             return None
-        [lv,sv],support_view=pickle.load(open(fnwp,"r"))
+        [lv,sv],support_view=pickle.load(open(fnwp,"rb"))
         return lv, sv, support_view
 
 
@@ -229,7 +229,7 @@ class record_variable2_reader:
         #fn = "SC{0}_CC{1}.pkl".format(sc,cc)
         #fnwp = os.path.join(self.dirwp, fn)
         fnwp=self._get_fnwp(sc, cc)
-        raw_data=pickle.load(open(fnwp,"r"))
+        raw_data=pickle.load(open(fnwp,"rb"))
         raw_states, raw_loss, raw_sccc=raw_data
         return raw_states, raw_loss, raw_sccc
 
@@ -238,7 +238,7 @@ class record_variable2_reader:
         #fn = "SC{0}_CC{1}.pkl".format(sc,cc)
         #fnwp = os.path.join(self.dirwp, fn)
         fnwp = self._get_fnwp(sc, cc)
-        raw_data=pickle.load(open(fnwp,"r"))
+        raw_data=pickle.load(open(fnwp,"rb"))
         raw_states, raw_loss, raw_sccc=raw_data
         assert raw_sccc["current_train_count"]==cc
         assert raw_sccc["saved_train_count"] == sc
@@ -300,7 +300,7 @@ class record_variable2_reader:
         #fn = "SC{0}_CC{1}.pkl".format(sc,cc)
         #fnwp = os.path.join(self.dirwp, fn)
         fnwp = self._get_fnwp(sc, cc)
-        raw_data=pickle.load(open(fnwp,"r"))
+        raw_data=pickle.load(open(fnwp,"rb"))
         compressed_RD_trainer, raw_loss, raw_sccc=raw_data
         return compressed_RD_trainer,raw_loss, raw_sccc
 
@@ -308,7 +308,7 @@ class record_variable2_reader:
         assert False, "legacy debug purpose, not support in class record_variable2_reader"
         fn = "SC{0}_CC{1}_raw.pkl".format(sc,cc)
         fnwp = os.path.join(self.dirwp, fn)
-        raw_data=pickle.load(open(fnwp,"r"))
+        raw_data=pickle.load(open(fnwp,"rb"))
         RD_trainer, RD_brain, RD_process =raw_data
         return RD_trainer, RD_brain, RD_process
 
@@ -417,7 +417,7 @@ class record_analysis:
         if len(dfr)!=1:
             return None
         elif len(dfr)==1:
-            buffer_items=pickle.load(open(os.path.join(sc.base_dir_RL_system, self.system_name, self.dir_buffer, dfr.iloc[0].fn), "r"))
+            buffer_items=pickle.load(open(os.path.join(sc.base_dir_RL_system, self.system_name, self.dir_buffer, dfr.iloc[0].fn), "rb"))
             for item in buffer_items:
                 if item[5][0,0]["stock"]==stock and item[5][0,0]["date"]==date:
                     state, action, reward, state_, last_flag, support_view = item

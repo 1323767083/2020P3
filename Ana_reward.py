@@ -164,7 +164,7 @@ def Ana_reward(argv):
     print "here"
     if not os.path.exists(i.dump_record_fnwp):
         i.run()
-    a = pickle.load(open(i.dump_record_fnwp, "r"))
+    a = pickle.load(open(i.dump_record_fnwp, "rb"))
     b = [item[0, 0] for item in a[4]]
     plt.plot(b)
     plt.show()
@@ -184,14 +184,14 @@ if __name__ == '__main__':
 import pickle
 import matplotlib.pyplot as plt
 fnwp="/home/rdchujf/n_workspace/RL/htryc/record_tb/SH600177_tb.pickle"
-a=pickle.load(open(fnwp,"r"))
+a=pickle.load(open(fnwp,"rb"))
 b=[item[0,0] for item in a[4]]
 d=[item[0,0]["R_before_add_to_memory"] for item in a[9] if item[0,0]["date"]<"20170101"]
 e=[item[0,0]["R_after_add_to_memory"] for item in a[9]]
 
 
 fnwp="/home/rdchujf/n_workspace/RL/htryc/record_tb/SH600008_tb.pickle"
-a=pickle.load(open(fnwp,"r"))
+a=pickle.load(open(fnwp,"rb"))
 b=[item[0,0] for item in a[4]]
 plt.plot(b)
 '''

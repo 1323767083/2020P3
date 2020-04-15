@@ -36,7 +36,7 @@ class vtrainer_tk(tk.Frame):
         self.L_DModel=[{"Tmodel":None, "Pmodel": None, "train_count":None,"ib":visual_trainer_brain()}  for _ in range(2)]
         self.L_ln, _ = self.L_DModel[0]["ib"].get_trainable_layer_list_from_config_file(self.system_name)
         brain_model_dir=os.path.join(sc.base_dir_RL_system,self.system_name,"model")
-        self.L_tcs=[re.findall(r'\w+T(\d+).h5py',fn)[0] for fn in os.listdir(brain_model_dir) if fn.startswith("train_model_AIO_")]
+        self.L_tcs=[re.findall(r'\w+T(\d+).h5',fn)[0] for fn in os.listdir(brain_model_dir) if fn.startswith("train_model_AIO_")]
         self.L_tcs.sort()
         self.L_control=[]
         self.L_table_control=[]
@@ -557,7 +557,7 @@ class train_data_surf:
         else:
             base_point = 0 if selected_half == "first half" else 125
         factor =0 if len(self.show_records) % 50 == 0 else 1
-        num_table_to_show=len(self.show_records)/50 + factor
+        num_table_to_show=len(self.show_records)//50 + factor
         allaxes = self.fig.get_axes()
         for axe in allaxes:
             axe.remove()

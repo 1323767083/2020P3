@@ -329,7 +329,7 @@ def compare_mean_prepare_data(argv):
             l_input_fnwp.append(stock_result_fnwp)
             l_output_fnwp.append(stock_mean_std_result_fnwp)
     for inpout_file, output_file in zip(l_input_fnwp,l_output_fnwp):
-        l_result=pickle.load(open(inpout_file, 'r'))
+        l_result=pickle.load(open(inpout_file, 'rb'))
         l_mean_std=[]
         for idx in range(17):
             temp=np.array(l_result[idx])

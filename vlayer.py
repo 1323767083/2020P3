@@ -75,7 +75,7 @@ class get_layer_wb:
         temp_store_fn=os.path.join(self.dir_analysis,"pre_layers_weight", "weights_{0}_{1}_{2}.pickle".
                                    format(layer_name, self.LEvalT[0],self.LEvalT[-1] ) )
         if os.path.exists(temp_store_fn):
-            l_W=pickle.load(open(temp_store_fn, "r"))
+            l_W=pickle.load(open(temp_store_fn, "rb"))
             assert len(l_W)==len(self.LEvalT)
             return l_W
         l_W=[]

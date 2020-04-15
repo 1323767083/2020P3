@@ -70,7 +70,7 @@ class record_variable:
 
     def loader(self, fn):
         fnwp=os.path.join(self.dirwp, fn)
-        with open(fnwp) as f:  # Python 3: open(..., 'rb')
+        with open(fnwp, 'rb') as f:  # Python 3: open(..., 'rb')
             return pickle.load(f)
 
 
@@ -156,7 +156,7 @@ class record_variable2(record_variable):
             self.F_need_record = False
 
     def read_SC_CC_compressed_data(self, sc, cc):
-        raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"r"))
+        raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"rb"))
         return raw_states, raw_loss, raw_sccc
 
 
@@ -221,7 +221,7 @@ class record_variable2(record_variable):
 
     def read_SC_CC_data_loss_sccc(self, sc, cc):
         fnwp = self._get_fnwp(sc, cc)
-        raw_data=pickle.load(open(fnwp,"r"))
+        raw_data=pickle.load(open(fnwp,"rb"))
         compressed_RD_trainer, raw_loss, raw_sccc=raw_data
         return compressed_RD_trainer,raw_loss, raw_sccc
 
@@ -280,7 +280,7 @@ class record_sim_stock_data:
         fnwp=os.path.join(self.dir_base, stock, "{0}.pkl".format(date))
         if not os.path.exists(fnwp):
             return None
-        [lv,sv],support_view=pickle.load(open(fnwp,"r"))
+        [lv,sv],support_view=pickle.load(open(fnwp,"rb"))
         return lv, sv, support_view
 
 
@@ -387,7 +387,7 @@ class record_data_verify:
         if len(dfr)!=1:
             return None
         elif len(dfr)==1:
-            buffer_items=pickle.load(open(os.path.join(sc.base_dir_RL_system, self.system_name, self.dir_buffer, dfr.iloc[0].fn), "r"))
+            buffer_items=pickle.load(open(os.path.join(sc.base_dir_RL_system, self.system_name, self.dir_buffer, dfr.iloc[0].fn), "rb"))
             for item in buffer_items:
                 if item[5][0,0]["stock"]==stock and item[5][0,0]["date"]==date:
                     state, action, reward, state_, last_flag, support_view = item

@@ -2,6 +2,7 @@ import re
 from nets_trainer import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import FormatStrFormatter
+import tensorflow as tf
 def comm_init_lgc(gc):
     global lgc
     lgc=gc
@@ -22,16 +23,16 @@ class fake_buffer:
 class visual_trainer_brain:
     def __init__(self):
         with tf.device("/GPU:0"):
-            tf.reset_default_graph()
-            self.default_graph = tf.get_default_graph()
-            config = tf.ConfigProto(
-                log_device_placement=False
-            )
-            config.gpu_options.allow_growth = True
-            config.gpu_options.per_process_gpu_memory_fraction = 0.3
-            self.session = tf.Session(config=config, graph=self.default_graph)
-            K.set_session(self.session)
-            K.set_learning_phase(1)  # add by john for error solved by
+            #tf.reset_default_graph()
+            #self.default_graph = tf.get_default_graph()
+            #config = tf.ConfigProto(
+            #    log_device_placement=False
+            #)
+            #config.gpu_options.allow_growth = True
+            #config.gpu_options.per_process_gpu_memory_fraction = 0.3
+            #self.session = tf.Session(config=config, graph=self.default_graph)
+            #K.set_session(self.session)
+            #K.set_learning_phase(1)  # add by john for error solved by
             self.tb=fake_buffer()
             self.mc = globals()[lgc.CLN_trainer]()
 
@@ -45,36 +46,27 @@ class visual_trainer_brain:
     def load_model(self, model_AIO_fnwp, config_fnwp):
         with tf.device("/GPU:0"):
             fnwps=[model_AIO_fnwp, config_fnwp, ""]
-            with self.default_graph.as_default():
-                with self.session.as_default():
-                    return self.mc.load_train_model(fnwps)
+            return self.mc.load_train_model(fnwps)
 
     def optimize(self, Tmodel, Pmodel,inputs):
         with tf.device("/GPU:0"):
             self.tb.add(inputs)
-            with self.default_graph.as_default():
-                with self.session.as_default():
-                    num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, Pmodel, Tmodel)
-                    return num_record_to_train, loss_this_round
+            num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, Pmodel, Tmodel)
+            return num_record_to_train, loss_this_round
 
     def get_layer_wb(self, model, layer_name):
-        with tf.device("/GPU:0"):
-            with self.default_graph.as_default():
-                with self.session.as_default():
-                    return model.get_layer(name=layer_name).get_weights()
+        return model.get_layer(name=layer_name).get_weights()
 
 
     def get_trainable_layer_list(self, model):
         with tf.device("/GPU:0"):
-            with self.default_graph.as_default():
-                with self.session.as_default():
-                    l_layer_name = []
-                    l_layer_output_shape = []
-                    for layer in model.layers:
-                        if self._check_layer_type(layer.name)!="Non_param_layer":
-                            l_layer_name.append(layer.name)
-                            l_layer_output_shape.append(layer.output_shape)
-                    return l_layer_name, l_layer_output_shape
+            l_layer_name = []
+            l_layer_output_shape = []
+            for layer in model.layers:
+                if self._check_layer_type(layer.name)!="Non_param_layer":
+                    l_layer_name.append(layer.name)
+                    l_layer_output_shape.append(layer.output_shape)
+            return l_layer_name, l_layer_output_shape
 
     def _check_layer_type(self,layer_name):
         if len(re.findall(r'TD\w+_conv', layer_name)) == 1:
@@ -90,10 +82,10 @@ class visual_trainer_brain:
 
     def get_trainable_layer_list_from_config_file(self, system_name):
         model_config_fnwp = os.path.join(lgc.brain_model_dir, "config.json")
-        load_jason_custom_objects = {"softmax": softmax, "tf": tf, "concatenate": concatenate,"lc":lgc}
+        load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate,"lc":lgc}
         with open(model_config_fnwp, 'r') as json_file:
             loaded_model_json = json_file.read()
-        Pmodel = model_from_json(loaded_model_json, custom_objects=load_jason_custom_objects)
+        Pmodel = keras.models.model_from_json(loaded_model_json, custom_objects=load_jason_custom_objects)
         l_layer_name = []
         l_layer_output_shape = []
         for layer in Pmodel.layers:
