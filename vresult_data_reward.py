@@ -299,7 +299,6 @@ class ana_reward_data(are_esi_reader):
                 date_year = date_i // 10000
                 date_month = (date_i // 100) % 100
                 date_day = date_i % 100
-                print (date_year,date_month,date_day)
                 np_row = (date_year - start_year_i) * 4 + (date_month - 1) // 3
                 np_column = (date_month - 1) % 3 * 31 + (date_day - 1)
                 img_density[np_row, np_column] += unit

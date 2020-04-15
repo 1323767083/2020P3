@@ -36,6 +36,7 @@ class actionOBOS:
             else:
                 return 4
 
+
     #used in TD_buffer,  from TD_buffer to train
     def I_TD_buffer(self,actionarray):
         if self.action_type in ["OB", "OS"]:
@@ -107,10 +108,10 @@ class actionOBOS:
         old_ap = self._get_prob_from_AParray(ap, actual_action)
         if self.action_type in ["OB", "OS"]:
             assert a_onehot.shape==(1,4)
-            assert type(old_ap) is float
+            assert type(old_ap) is np.float32 or type(old_ap) is int,support_view_dic
         elif self.action_type == "B3":
             assert a_onehot.shape == (1, 5)
-            assert type(old_ap) is float
+            assert type(old_ap) is np.float32 or type(old_ap) is int, support_view_dic
         elif self.action_type == "B4":
             assert a_onehot.shape == (1, 5)
             assert type(old_ap) is list

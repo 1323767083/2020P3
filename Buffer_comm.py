@@ -281,10 +281,6 @@ class TD_memory_LHPP2V3:
         self.gamma = Brain_gamma
         self.output_buffer = output_buffer
         self.punish_r = -1.0/(lgc.Brain_gamma ** (lgc.LHP-1))
-        #self.punish_r = -1
-        #self.punish_r = lgc.specific_param.punish_r_base * lgc.train_reward_scaler_factor / (lgc.Brain_gamma ** (lgc.LHP-1))
-        #self.punish_r = lgc.specific_param.punish_r_base * lgc.train_reward_scaler_factor/(lgc.Brain_gamma**lgc.LHP)
-        #self.punish_r = lgc.specific_param.punish_r_base * lgc.train_reward_scaler_factor
         self.i_actionOBOS = actionOBOS(lgc.train_action_type)
     def get_sample(self, memory, n):
         s, a, _, _, done, support_view_dic = memory[0]
@@ -361,6 +357,105 @@ class TD_memory_LHPP2V6(TD_memory_LHPP2V5):
     def __init__(self, Brain_gamma, Brain_FDn, output_buffer):
         TD_memory_LHPP2V5.__init__(self, Brain_gamma, Brain_FDn, output_buffer)
 
+
+class TD_memory_LHPP2V7:
+    def __init__(self, Brain_gamma, Brain_FDn, output_buffer):
+        assert Brain_FDn == 1, "{0} only support FDn ==1".format(self.__class__.__name__)
+        self.memory = []  # used for n_step return
+        self.FDn = Brain_FDn
+        self.gamma = Brain_gamma
+        self.output_buffer = output_buffer
+        self.punish_r = -1.0/(lgc.Brain_gamma ** (lgc.LHP-1))
+        self.i_actionOBOS = actionOBOS(lgc.train_action_type)
+    def get_sample(self, memory, n):
+        s, a, _, _, done, support_view_dic = memory[0]
+        _, _, _, s_, _, _support_view_dic = memory[n - 1]
+        return s, a, None, s_, done, support_view_dic,_support_view_dic
+
+    def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
+
+        self.memory.append([si, aa04, r, si_, done, support_view_dic])
+        if done:
+            _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
+            if Lsupport_view_dic["flag_force_sell"]:
+                assert Lsupport_view_dic["action_taken"] == "Sell"
+                #assert aa04[0, 2] ==1, "{0} {1}".format(Lsupport_view_dic,aa04)
+
+                self.memory[-1][2] = self.punish_r
+            elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
+                "action_taken"] == "Sell" and Lsupport_view_dic["holding"] == 0:
+                pass
+            else:
+                del self.memory[:]
+                return
+
+            success_buy_idx, AccR=self.get_after_buy_accumulate_R_buy()
+
+            #self.memory[success_buy_idx][2] =  1 if AccR >=1 else -1 if AccR <=-1 else AccR
+            #del self.memory[success_buy_idx+1:]  # delete from first after buy need to delete
+            assert self.memory[success_buy_idx+1][0][2][0][1]==1, "holding status second element of av should be 1 {0}".format(self.memory[success_buy_idx+1][0][2])
+            self.memory[success_buy_idx+1][2] = 1 if AccR >= 1 else -1 if AccR <= -1 else AccR
+            del self.memory[success_buy_idx + 2:]  # delete from second after buy need to delete
+            if len(self.memory)>lgc.specific_param.max_record_taken and lgc.specific_param.max_record_taken!=-1:
+                del self.memory[:-lgc.specific_param.max_record_taken]
+            while len(self.memory) > 0:
+                n = len(self.memory)
+                SdisS_=self.FDn if n >= self.FDn else n
+                s, aa04, _, s_, train_done, support_view_dic, _support_view_dic = self.get_sample(self.memory, SdisS_)
+                adj_r = self.get_accumulate_R(SdisS_)
+                np_adj_r = np.array([[adj_r]])
+                adjust_a=self.i_actionOBOS.I_TD_buffer(aa04)
+                #adjust_a = aa04[:, :2]
+                #adjust_s = [s[0], s[1], s[2][:, :lgc.specific_param.OS_AV_shape[0]]]
+                #adjust_s_ = [s_[0], s_[1], s_[2][:, :lgc.specific_param.OS_AV_shape[0]]]
+                adjust_s = s
+                adjust_s_ = s_
+                support_view_dic["_support_view_dic"] = dict(_support_view_dic)
+                support_view_dic["SdisS_"]=SdisS_
+                np_support_view = np.array([[support_view_dic]])
+                self.output_buffer.append([adjust_s, adjust_a, np_adj_r, adjust_s_, train_done, np_support_view])
+                self.memory.pop(0)
+
+    def get_after_buy_accumulate_R_buy_old(self):
+        AccR=0
+        success_buy_idx=0
+        flag_got_buy=False
+        for idx in list(reversed(list(range(len(self.memory))))):
+            on_sv_dic = self.memory[idx][5]
+            # make the sell reward all on buy in OB train
+            AccR = self.memory[idx][2] + AccR * self.gamma
+            if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
+                success_buy_idx=idx
+                assert self.memory[idx][1][0, 0]==1, "{0} {1}".format(on_sv_dic, self.memory[idx][1])
+                break
+        return success_buy_idx, AccR
+
+    def get_after_buy_accumulate_R_buy_new(self):
+        AccR=0
+        success_buy_idx=0
+        flag_got_buy=False
+        flag_last=True
+        for idx in list(reversed(list(range(len(self.memory))))):
+            on_sv_dic = self.memory[idx][5]
+
+            if flag_last:
+                AccR = self.memory[idx][2]  # sell result
+                flag_last=False
+            else:
+                assert self.memory[idx][2]==0 # all are no action
+            if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
+                success_buy_idx=idx
+                assert self.memory[idx][1][0, 0]==1, "{0} {1}".format(on_sv_dic, self.memory[idx][1])
+                break
+        return success_buy_idx, AccR
+
+    get_after_buy_accumulate_R_buy=get_after_buy_accumulate_R_buy_new
+
+    def get_accumulate_R(self, Num_record):
+        AccR=0
+        for idx in list(reversed(list(range(Num_record)))):
+            AccR=self.memory[idx][2]+AccR*self.gamma
+        return AccR
 
 '''
 #TD_memory_LHPP2V5 is same as TD_memory_LHPP2V3

@@ -6,6 +6,7 @@ from nets_trainer_LHPP2V4 import *
 from nets_trainer_LHPP2V5 import *
 from nets_trainer_LHPP2V6 import *
 from nets_trainer_LHPP2V61 import *
+from nets_trainer_LHPP2V7 import *
 class nets_conf:
     def __init__(self):
         # net config
@@ -28,4 +29,5 @@ def init_trainer_config(input_lc):
     init_nets_trainer_LHPP2V5(lc, nc)
     init_nets_trainer_LHPP2V6(lc, nc)
     init_nets_trainer_LHPP2V61(lc, nc)
+    init_nets_trainer_LHPP2V7(lc, nc)
 

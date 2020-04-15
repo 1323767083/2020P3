@@ -9,7 +9,7 @@ from recorder import record_send_to_server
 #from visual_result import summary_are_1ET
 from vresult_data_reward import ana_reward_data_A3C_worker_interface
 from Buffer_comm import buffer_series,buffer_to_train
-from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6
+from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6,Simulator_LHPP2V7
 '''modify move_get actula to action common '''
 from action_comm import actionOBOS
 
@@ -240,8 +240,9 @@ class Explore_process(client_base):
         virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_work[self.process_idx])
         with tf.device(virtual_GPU):
             self.logger.info("{0} start".format(self.process_name))
-            self.i_wb= locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_work[self.process_idx],
-                                                method_name_of_choose_action=lc.method_name_of_choose_action_for_train)
+            #self.i_wb= locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_work[self.process_idx],
+            #                                    method_name_of_choose_action=lc.method_name_of_choose_action_for_train)
+            self.i_wb= locals()[lc.CLN_brain_explore]()
             self.logger.info(" wait for initial weight ")
             Ds={}
             Ds["worker_loop_count"]=-1
@@ -398,8 +399,9 @@ class Eval_process(client_base):
         assert lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])]!=0.0, "Only Support GPU"
         virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])])
         with tf.device(virtual_GPU):
-            self.i_eb = locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
-                                                       method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
+            #self.i_eb = locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
+            #                                           method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
+            self.i_eb = locals()[lc.CLN_brain_explore]()
             while not self.E_stop.is_set():
                 self.eval_name_pipe_cmd("Waiting for evaluation")
                 model_weight_fnwp = self.eval_init_round()

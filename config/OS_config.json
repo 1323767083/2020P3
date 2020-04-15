@@ -27,8 +27,6 @@
         "2": "sell",
         "3": "no_action"
     },
-    "method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
-    "method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
     "=======Class_eval_train=======": "=======================",
     "train_reward_type": "scaler_clip",
     "train_reward_scaler_factor":20,

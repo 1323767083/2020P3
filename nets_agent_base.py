@@ -1,4 +1,8 @@
 import tensorflow.keras as keras
+import tensorflow as tf
+import numpy as np
+import os,re
+import config as sc
 def init_nets_agent_base(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
     lc,nc = ilc, inc
@@ -36,21 +40,6 @@ class common_component:
             name_prefix = name + "_Dense{0}".format(idx) if name is not None else None
             a = keras.layers.Dense(dense_number, activation='relu', name=name_prefix)(input_tensor if idx==0 else a)
         return a
-    '''
-    def construct_CuDNNLSTMs(self,lstm_units_list, input_tensor, name=None):
-        a = None
-        if len(lstm_units_list) == 1:
-            name_prefix = name + "_CuDNNLSTM{0}".format(0) if name is not None else None
-            a = keras.layers.LSTM(lstm_units_list[0], name=name_prefix)(input_tensor)
-        else:
-            for idx, lstm_units in enumerate(lstm_units_list):
-                name_prefix = name + "_CuDNNLSTM{0}".format(idx) if name is not None else None
-                if idx == len(lstm_units_list) - 1:
-                    a = keras.layers.LSTM(lstm_units, name=name_prefix)(a)
-                else:
-                    a = keras.layers.LSTM(lstm_units, return_sequences=True,name=name_prefix)(input_tensor if idx == 0 else a)
-        return a
-    '''
     def Cov_1D_module(self, kernel, filters,max_pool, input_tensor, name=None):
         if name is not None:
             conv_name,max_pool_name, relu_name= name + '_conv',name + '_pool',name + '_relu'
@@ -173,3 +162,31 @@ class LV_SV_joint_component:
         immediate_cnn_lv = self._CNN_LV_SVed(LV_SVed, name)
         lv_sv_joint_state = keras.layers.Concatenate(axis=1, name=name + LNM_LV_SV_joint)([immediate_rnn_lv, immediate_cnn_lv])
         return lv_sv_joint_state
+
+class V2OS_4_OB_agent:
+    def __init__(self,ob_system_name, Ob_model_tc):
+        self._load_model(ob_system_name, Ob_model_tc)
+
+    def _load_model(self, ob_system_name, Ob_model_tc):
+        OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
+        model_config_fnwp=os.path.join(OB_model_dir, "config.json")
+        regex = r'weight_\w+T{0}.h5'.format(Ob_model_tc)
+        lfn=[fn for fn in os.listdir(OB_model_dir) if re.findall(regex, fn)]
+        assert len(lfn)==1, "{0} model with train count {1} not found".format(ob_system_name,Ob_model_tc)
+        weight_fnwp=os.path.join(OB_model_dir, lfn[0])
+        load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
+        model = keras.models.model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
+        model.load_weights(weight_fnwp)
+        print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
+        self.OS_model=model
+        #return model
+
+    def predict(self, state):
+        lv, sv, av = state
+        #p, v = model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': LHPP2V2_get_AV(av)})
+        return p,v
+
+LHPP2V2_check_holding = lambda av_item: False if av_item[0] == 1 else True
+LHPP2V2_get_AV=lambda n_av:np.concatenate([n_av[:,:lc.LHP+1]])
+LHPP2V7_get_AV=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)

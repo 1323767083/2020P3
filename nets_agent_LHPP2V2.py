@@ -1,5 +1,5 @@
-import tensorflow as tf
 from nets_agent_base import *
+from action_comm import actionOBOS
 
 def init_nets_agent_LHPP2V2(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
@@ -9,13 +9,16 @@ def init_nets_agent_LHPP2V2(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     LNM_P = iLNM_P
     LNM_V = iLNM_V
     cc=common_component()
-class LHPP2V2:
+class LHPP2V2_Agent:
     def __init__(self):
+        keras.backend.set_learning_phase(0)  # add by john for error solved by
         self.DC = {
             "method_SV_state": "{0}_get_SV_state".format(lc.agent_method_sv),  # "RNN_get_SV_state",
             "method_LV_SV_joint_state": "{0}_get_LV_SV_joint_state".format(lc.agent_method_joint_lvsv),
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
+        self.i_action = actionOBOS(lc.train_action_type)
+        self.check_holding_fun=LHPP2V2_check_holding
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -36,8 +39,13 @@ class LHPP2V2:
             input_method_ap_sv = [lv_sv_state, lv_sv_state_stop_gradient, input_av]
 
         l_agent_output = getattr(self, self.DC["method_ap_sv"])(input_method_ap_sv, name)
-        predict_model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
-        return predict_model
+        #predict_model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
+        #return predict_model
+        self.OS_model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
+        return self.OS_model
+
+    def load_weight(self, weight_fnwp):
+        self.OS_model.load_weights(weight_fnwp)
 
     #HP means status include holding period
     def get_ap_av_HP(self, inputs, name):
@@ -102,3 +110,32 @@ class LHPP2V2:
         Pre_sv = cc.construct_denses(nc.dense_advent[:-1], sv_state,name=label + "_Pre_sv")
         sv = keras.layers.Dense(nc.dense_advent[-1], activation='linear',        name=LNM_V)(Pre_sv)
         return ap, sv
+
+    def predict(self, state):
+        assert lc.P2_current_phase=="Train_Sell"
+        lv, sv, av = state
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
+        return p,v
+
+    def choose_action(self, state):
+        assert lc.P2_current_phase == "Train_Sell"
+        assert not lc.flag_multi_buy
+        lv, sv, av = state
+        actions_probs, SVs = self.predict(state)
+        l_a = []
+        l_ap = []
+        l_sv = []
+        for sell_prob, SV, av_item in zip(actions_probs, SVs, av):
+            assert len(sell_prob) == 2, sell_prob
+            flag_holding=self.check_holding_fun(av_item)
+            if flag_holding:
+                #action = np.random.choice([2, 3], p=action_probs)
+                action =self.i_action.I_nets_choose_action(sell_prob)
+                l_a.append(action)
+                l_ap.append(sell_prob.ravel())
+            else:  # not have holding
+                action = 0
+                l_a.append(action)
+                l_ap.append(sell_prob.ravel())
+            l_sv.append(SV[0])
+        return l_a, l_ap, l_sv

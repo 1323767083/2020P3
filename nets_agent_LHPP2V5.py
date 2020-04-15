@@ -1,6 +1,7 @@
 from nets_agent_base import *
 import tensorflow as tf
-
+from action_comm import actionOBOS
+import numpy as np
 def init_nets_agent_LHPP2V5(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
     lc,nc = ilc, inc
@@ -10,13 +11,17 @@ def init_nets_agent_LHPP2V5(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     LNM_V = iLNM_V
     cc = common_component()
 #LHPP2V5 is same as LHPP2V3
-class LHPP2V5:
+class LHPP2V5_Agent:
     def __init__(self):
+        keras.backend.set_learning_phase(0)  # add by john for error solved by
         self.DC = {
             "method_SV_state": "{0}_get_SV_state".format(lc.agent_method_sv),  # "RNN_get_SV_state",
             "method_LV_SV_joint_state": "{0}_get_LV_SV_joint_state".format(lc.agent_method_joint_lvsv),
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
+        self.i_action = actionOBOS(lc.train_action_type)
+        self.check_holding_fun=LHPP2V2_check_holding
+
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -37,8 +42,11 @@ class LHPP2V5:
 
         l_agent_output = getattr(self, self.DC["method_ap_sv"])(input_method_ap_sv, name)
 
-        predict_model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
-        return predict_model
+        self.OB_model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
+        return self.OB_model
+
+    def load_weight(self, weight_fnwp):
+        self.OB_model.load_weights(weight_fnwp)
 
     #HP means status include holding period
     def get_ap_av_HP(self, input_state, name):
@@ -74,3 +82,41 @@ class LHPP2V5:
         return ap, sv
 
 
+    def predict(self,state):
+        assert lc.P2_current_phase == "Train_Buy"
+        lv, sv = state
+        if not hasattr(self, "OB_model"):
+            assert False, "should build or load model before"
+        p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv})
+        return p, v
+
+    def choose_action(self,state):
+        assert lc.P2_current_phase == "Train_Buy"
+        assert not lc.flag_multi_buy
+        lv, sv, av = state
+        buy_probs, buy_SVs = self.predict([lv, sv])
+        if not hasattr(self, "OS_agent"):
+            #self.OS_agent = self.V2_OS_load_model(lc.P2_sell_system_name, lc.P2_sell_model_tc)
+            self.OS_agent = V2OS_4_OB_agent(lc.P2_sell_system_name, lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        l_a = []
+        l_ap = []
+        l_sv = []
+        for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
+            assert len(buy_prob)==3
+            assert len(sell_prob) == 2
+            flag_holding=self.check_holding_fun(av_item)
+            if flag_holding:
+                #action = np.random.choice([2, 3], p=sell_prob)
+                action = self.i_OS_action.I_nets_choose_action(sell_prob)
+                l_a.append(action)
+                l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_sv.append(sell_sv[0])
+            else: # not have holding
+                #action = np.random.choice([0, 1], p=buy_prob)
+                action = self.i_action.I_nets_choose_action(buy_prob)
+                l_a.append(action)
+                l_ap.append(buy_prob)
+                l_sv.append(buy_sv[0])
+        return l_a, l_ap,l_sv

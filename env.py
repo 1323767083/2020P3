@@ -199,97 +199,6 @@ class Simulator_LHPP2V3(Simulator_LHPP2V2):
         return state, reward,Done_flag,support_view_dic
 
 
-
-
-    '''
-    def step_OB_fun(self, called_by):
-        def step_OB_base(action):
-            flag_force_sell = False
-            flag_wait_to_buy_finished = False
-            if not self.LHP_CH_flag:
-                if lc.specific_param.BB_NBD!=-1:
-                    if self.BB_NBDC>=lc.specific_param.BB_NBD:
-                        if called_by=="explore":
-                            action_str = "buy"
-                        else:
-                            assert called_by=="eval"
-                            action_str = lc.action_type_dict[action]
-                            flag_wait_to_buy_finished= True
-                    else:
-                        action_str = lc.action_type_dict[action]
-                        self.BB_NBDC+=1
-                else:
-                    action_str = lc.action_type_dict[action]
-                    self.BB_NBDC += 1
-            else: #elif self.LHP_CH_flag and self.LHP_CHP>=lc.LHP-1:
-                if self.LHP_CHP>=lc.LHP-1:
-                    action_str="sell"
-                    flag_force_sell = True
-                else:
-                    action_str=lc.action_type_dict[action]
-            state, reward,Done_flag,support_view_dic= self.step_common(action_str,flag_force_sell)
-            if support_view_dic["action_return_message"] == "Success" and support_view_dic["action_taken"] == "Buy":
-                self.BB_NBDC=0
-            else:
-                if flag_wait_to_buy_finished and called_by == "eval":
-                    Done_flag =True
-            return state, reward,Done_flag,support_view_dic
-        return step_OB_base
-    '''
-    '''
-    def step_OB_train(self, action):
-        flag_force_sell = False
-        if not self.LHP_CH_flag:
-            if lc.specific_param.BB_NBD!=0:
-                if self.BB_NBDC>=lc.specific_param.BB_NBD and lc.specific_param.BB_NBD!=-1:
-                    action_str = "buy"
-                else:
-                    action_str = lc.action_type_dict[action]
-                    self.BB_NBDC+=1
-            else:
-                action_str = lc.action_type_dict[action]
-                self.BB_NBDC += 1
-        else: #elif self.LHP_CH_flag and self.LHP_CHP>=lc.LHP-1:
-            if self.LHP_CHP>=lc.LHP-1:
-                action_str="sell"
-                flag_force_sell = True
-            else:
-                action_str=lc.action_type_dict[action]
-        state, reward,Done_flag,support_view_dic= self.step_common(action_str,flag_force_sell)
-        if support_view_dic["action_return_message"] == "Success" and support_view_dic["action_taken"] == "Buy":
-            self.BB_NBDC=0
-        return state, reward,Done_flag,support_view_dic
-
-    def step_OB_eval(self, action):
-        flag_force_sell = False
-        flag_wait_to_buy_finished = False
-        if not self.LHP_CH_flag:
-            if lc.specific_param.BB_NBD!=0:
-                if self.BB_NBDC>=lc.specific_param.BB_NBD and lc.specific_param.BB_NBD!=-1:
-                    action_str = lc.action_type_dict[action]
-                    flag_wait_to_buy_finished= True
-                else:
-                    action_str = lc.action_type_dict[action]
-                    self.BB_NBDC+=1
-            else:
-                action_str = lc.action_type_dict[action]
-                self.BB_NBDC += 1
-        else:
-            if self.LHP_CHP>=lc.LHP-1:
-                action_str="sell"
-                flag_force_sell = True
-            else:
-                action_str=lc.action_type_dict[action]
-        state, reward,Done_flag,support_view_dic= self.step_common(action_str,flag_force_sell)
-        if support_view_dic["action_return_message"] == "Success" and support_view_dic["action_taken"] == "Buy":
-            self.BB_NBDC=0
-        elif flag_wait_to_buy_finished:
-            Done_flag =True
-        else:
-            pass
-        return state, reward,Done_flag,support_view_dic
-    '''
-
 class Simulator_LHPP2V5(Simulator_LHPP2V3):
     def __init__(self, data_name, stock,called_by):
         Simulator_LHPP2V3.__init__(self, data_name, stock,called_by)
@@ -308,3 +217,29 @@ class Simulator_LHPP2V5(Simulator_LHPP2V3):
 class Simulator_LHPP2V6(Simulator_LHPP2V5):
     def __init__(self, data_name, stock,called_by):
         Simulator_LHPP2V5.__init__(self, data_name, stock,called_by)
+
+
+class Simulator_LHPP2V7(Simulator_LHPP2V6):
+    def __init__(self, data_name, stock,called_by):
+        Simulator_LHPP2V6.__init__(self, data_name, stock,called_by)
+
+    def reset(self):
+        self.flag_start_trans = False
+        state, support_view_dic=Simulator_LHPP2V6.reset(self)
+        state[2][0][lc.LHP+1]=1 if self.flag_start_trans else 0  # update one in the av to show start trans or not
+        return state, support_view_dic
+
+    def step_OB(self, action):
+        state, reward,Done_flag,support_view_dic=Simulator_LHPP2V6.step_OB(self,action)
+        if  not self.flag_start_trans:
+            self.flag_start_trans = True if support_view_dic["action_taken"]!="No_trans" else False
+        state[2][0][lc.LHP + 1] = 1 if self.flag_start_trans else 0 # update one in the av to show start trans or not
+        return state, reward,Done_flag,support_view_dic
+
+    def _fabricate_av_to_stat(self, state):  # add one in the av to show start trans or not
+        assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
+        lhd=[0 for _ in range(lc.LHP+2)]
+        lhd[self.LHP_CHP]=1
+        state.append(np.array(lhd).reshape(1, -1))
+        return state
+

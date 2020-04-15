@@ -1,13 +1,13 @@
 from nets_trainer_base import *
 
-def init_nets_trainer_LHPP2V61(lc_in,nc_in):
+def init_nets_trainer_LHPP2V7(lc_in,nc_in):
     global lc, nc
     lc=lc_in
     nc=nc_in
     init_nets_trainer_base(lc_in, nc_in)
 
 #LHPP2V5_PPO_trainer is same as LHPP2V3_PPO_trainer except  get_accumulate_r
-class LHPP2V61_PPO_trainer(base_trainer):
+class LHPP2V7_PPO_trainer(base_trainer):
     def __init__(self):
         base_trainer.__init__(self)
         self.comile_metrics=[self.M_policy_loss, self.M_value_loss,self.M_entropy_loss,self.M_state_value_TNT,
@@ -26,6 +26,7 @@ class LHPP2V61_PPO_trainer(base_trainer):
         Pmodel = self.build_predict_model("P")
         lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='l_view')
         sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='s_view')
+        av = keras.Input(shape=(2,), dtype='float32', name='av_view')
         a_TNT = keras.Input(shape=(2,), dtype='float32', name='a_TNT')
         oldAP_TNT = keras.Input(shape=(1,), dtype='float32', name='oldAP_TNT')
         a_BNB = keras.Input(shape=(2,), dtype='float32', name='a_BNB')
@@ -35,7 +36,7 @@ class LHPP2V61_PPO_trainer(base_trainer):
         adj_r_BNB = keras.Input(shape=(1,), dtype='float32', name='reward_BNB')
 
         #[pTNT,pBNB], v = Pmodel([lv, sv])
-        prob4, v2 = Pmodel([lv, sv])
+        prob4, v2 = Pmodel([lv, sv,av])
         pTNT=keras.layers.Lambda(lambda x: x[:,:2], name=name+"prob_TNT")(prob4)
         pBNB = keras.layers.Lambda(lambda x: x[:, 2:], name=name+"prob_BNB")(prob4)
         vTNT=keras.layers.Lambda(lambda x: x[:,:1], name=name+"v_TNT")(v2)
@@ -46,7 +47,7 @@ class LHPP2V61_PPO_trainer(base_trainer):
 
         Optimizer = self.select_optimizer(lc.Brain_optimizer, lc.Brain_leanring_rate)
         con_out = keras.layers.Concatenate(axis=1, name="train_output")([pTNT,pBNB, a_TNT, a_BNB, vTNT,vBNB, adventTNT,adventBNB ,oldAP_TNT,oldAP_BNB,mask_TNT])
-        Tmodel = keras.Model(inputs=[lv, sv, a_TNT, a_BNB, adj_r_TNT,adj_r_BNB, oldAP_TNT,oldAP_BNB,mask_TNT],outputs=[con_out], name=name)
+        Tmodel = keras.Model(inputs=[lv, sv, av,a_TNT, a_BNB, adj_r_TNT,adj_r_BNB, oldAP_TNT,oldAP_BNB,mask_TNT],outputs=[con_out], name=name)
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
         return Tmodel, Pmodel
 
@@ -58,14 +59,15 @@ class LHPP2V61_PPO_trainer(base_trainer):
         n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
 
         fake_y = np.ones((lc.batch_size, 1))
-        n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
+        #n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
         #assert not any(n_old_ap==-1.0)," -1 add in a3c_worker should be removed at TD_buffer" # sanity check -1 which added in A3C_worker have been removed in TD_buffer
         #float can not use ==
 
 
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == lc.batch_size
-        _, sv__ = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv})
+        _, sv__ = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv,"P_input_av": LHPP2V7_get_AV(n_s__av)})
+
         sv__TNT = sv__[:, :1]
         sv__BNB = sv__[:, 1:]
 
@@ -78,41 +80,40 @@ class LHPP2V61_PPO_trainer(base_trainer):
         l_oldAP_BNB = []
         l_adjr_BNB = []
 
-        for item_r, item_a,item_sv__TNT,item_sv__BNB , support_view_dic in zip(n_r, n_a,sv__TNT,sv__BNB, l_support_view):
-            if  item_a[0]==1: #buy
-                #l_adjr_TNT.append(item_r[0])
-                l_adjr_TNT.append(item_r[0])
-                l_adjr_BNB.append(item_r[0])
-                l_mask.append(1)
+        for idx, n_s_av_item in enumerate(LHPP2V7_get_AV(n_s_av)):
+            if all(n_s_av_item==[1,1]): # terminate state after buy
+                l_adjr_TNT.append(n_r[idx][0])
+                l_adjr_BNB.append(n_r[idx][0])
                 l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([1,0])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[1]==1: # no action
-                l_adjr_TNT.append(item_r[0]+ lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__BNB[0])
-                l_adjr_BNB.append(item_r[0])
-
-
-                assert item_r[0]==0.0
-                l_mask.append(1)
-                l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,1])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[2]==1: # no_trans
-                l_adjr_TNT.append(item_r[0] + lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__TNT[0])
-                l_adjr_BNB.append(-1)  # This will be marsked
+                l_oldAP_TNT.append(l_support_view[idx][0, 0]["old_ap"][0])
+                l_a_BNB.append([0,0])  #masked
                 l_mask.append(0)
-                l_a_TNT.append([0,1])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,0])  # will be marsked
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
+                l_oldAP_BNB.append(l_support_view[idx][0, 0]["old_ap"][1])
+            elif all(n_s_av_item==[0,1]):  # no_action or buy
+                l_adjr_TNT.append(n_r[idx][0]+ lc.Brain_gamma**l_support_view[idx][0, 0]["SdisS_"] * sv__TNT[idx][0])
+                l_adjr_BNB.append(n_r[idx][0]+ lc.Brain_gamma**l_support_view[idx][0, 0]["SdisS_"] * sv__BNB[idx][0])
+                assert n_r[idx][0]==0.0
+
+                l_a_TNT.append([1,0])
+                l_oldAP_TNT.append(l_support_view[idx][0, 0]["old_ap"][0])
+                #l_a_BNB.append([0,1])
+                l_a_BNB.append(a[idx][:2])  # here should keep the buy or no action # not masked
+                l_mask.append(1)
+                l_oldAP_BNB.append(l_support_view[idx][0, 0]["old_ap"][1])
+
+            elif all(n_s_av_item==[0,0]): #no_trans trans not start
+                l_adjr_TNT.append(n_r[idx][0] + lc.Brain_gamma ** l_support_view[idx][0, 0]["SdisS_"] * sv__TNT[idx][0])
+                l_adjr_BNB.append(-1)  # This will be marsked
+
+                l_a_TNT.append([0, 1])
+                l_oldAP_TNT.append(l_support_view[idx][0, 0]["old_ap"][0])
+                l_a_BNB.append([0, 0])  # marsked
+                l_mask.append(0)
+                l_oldAP_BNB.append(l_support_view[idx][0, 0]["old_ap"][1])
             else:
-                assert False, "{0} get_accumulate_r un expect get combination action_return_message and action_taken in this way {1} "\
-                    .format(self.__class__.__name__,support_view_dic)
-        #rg=np.expand_dims(np.array(l_adjr),-1)
+                assert False, "{0} get_accumulate_r un expect get combination action_return_message and action_taken in this way {1} " \
+                    .format(self.__class__.__name__, l_support_view[idx])
+
         n_mask_TNT = np.expand_dims(np.array(l_mask), -1)
 
         n_a_TNT = np.array(l_a_TNT)
@@ -124,6 +125,7 @@ class LHPP2V61_PPO_trainer(base_trainer):
 
         loss_this_round = Tmodel.train_on_batch({'l_view':n_s_lv,
                                                  's_view':n_s_sv,
+                                                 'av_view':LHPP2V7_get_AV(n_s_av),
                                                  'a_TNT':n_a_TNT,
                                                  'oldAP_TNT':n_oldAP_TNT,
                                                  'a_BNB':n_a_BNB,
@@ -136,54 +138,6 @@ class LHPP2V61_PPO_trainer(base_trainer):
             self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
             self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
         return num_record_to_train,loss_this_round
-
-    '''
-    def prepare_inputs(self,inputs):
-        n_r, n_a, sv, l_support_view_dic = inputs
-        l_adjr=[]
-        l_mask=[]
-        l_a_TNT = []
-        l_oldAP_TNT = []
-        l_a_BNB = []
-        l_oldAP_BNB = []
-
-        for item_r, item_a,item_train_sv, support_view_dic in zip(n_r, n_a,sv, l_support_view_dic):
-            if  item_a[0]==1: #buy
-                l_adjr.append(item_r[0])
-                l_mask.append(1)
-                l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([1,0])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[1]==1: # no action
-                l_adjr.append(0.0)
-                l_mask.append(1)
-                l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,1])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[2]==1: # no_trans
-                l_adjr.append(item_r[0] + lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])  # this is because the bigger r is the smaller prob of No_trans
-                l_mask.append(0)
-                l_a_TNT.append([0,1])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,0])  # will be marsked
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-            else:
-                assert False, "{0} get_accumulate_r un expect get combination action_return_message and action_taken in this way {1} "\
-                    .format(self.__class__.__name__,support_view_dic)
-        rg=np.expand_dims(np.array(l_adjr),-1)
-        rm = np.expand_dims(np.array(l_mask), -1)
-
-        n_a_TNT = np.array(l_a_TNT)
-        n_oldAP_TNT = np.expand_dims(np.array(l_oldAP_TNT), -1)
-        n_a_BNB = np.array(l_a_BNB)
-        n_oldAP_BNB = np.expand_dims(np.array(l_oldAP_BNB), -1)
-
-        return rg,rm,n_a_TNT,n_oldAP_TNT,n_a_BNB,n_oldAP_BNB
-    '''
 
     def extract_y(self, y):
         anum = 2 #lc.train_num_action
@@ -268,93 +222,3 @@ class LHPP2V61_PPO_trainer(base_trainer):
         return tf.reduce_mean(adventBNB)
 
 
-class LHPP2V62_PPO_trainer(LHPP2V61_PPO_trainer):
-    def __init__(self):
-        LHPP2V61_PPO_trainer.__init__(self)
-
-    def optimize_com(self, i_train_buffer, Pmodel, Tmodel):
-        flag_data_available, stack_states, raw_states=self._vstack_states(i_train_buffer)
-        if not flag_data_available:
-            return 0, None
-        s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
-        n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
-
-        fake_y = np.ones((lc.batch_size, 1))
-        #n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
-        #assert not any(n_old_ap==-1.0)," -1 add in a3c_worker should be removed at TD_buffer" # sanity check -1 which added in A3C_worker have been removed in TD_buffer
-        #float can not use ==
-
-
-        num_record_to_train = len(n_s_lv)
-        assert num_record_to_train == lc.batch_size
-        _, sv__ = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv})
-        sv__TNT = sv__[:, :1]
-        sv__BNB = sv__[:, 1:]
-
-        #l_adjr=[]
-        l_mask=[]
-        l_a_TNT = []
-        l_oldAP_TNT = []
-        l_adjr_TNT = []
-        l_a_BNB = []
-        l_oldAP_BNB = []
-        l_adjr_BNB = []
-
-        for item_r, item_a,item_sv__TNT,item_sv__BNB , support_view_dic in zip(n_r, n_a,sv__TNT,sv__BNB, l_support_view):
-            if  item_a[0]==1: #buy
-                #l_adjr_TNT.append(item_r[0])
-                l_adjr_TNT.append(item_r[0]+ lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__BNB[0])
-                l_adjr_BNB.append(item_r[0])
-                l_mask.append(1)
-                l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([1,0])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[1]==1: # no action
-                l_adjr_TNT.append(item_r[0]+ lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__BNB[0])
-                l_adjr_BNB.append(item_r[0]+ lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__BNB[0])
-
-
-                assert item_r[0]==0.0
-                l_mask.append(1)
-                l_a_TNT.append([1,0])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,1])
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-
-            elif item_a[2]==1: # no_trans
-                l_adjr_TNT.append(item_r[0] + lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__TNT[0])
-                l_adjr_BNB.append(-1)  # This will be marsked
-                l_mask.append(0)
-                l_a_TNT.append([0,1])
-                l_oldAP_TNT.append(support_view_dic[0, 0]["old_ap"][0])
-                l_a_BNB.append([0,0])  # will be marsked
-                l_oldAP_BNB.append(support_view_dic[0, 0]["old_ap"][1])
-            else:
-                assert False, "{0} get_accumulate_r un expect get combination action_return_message and action_taken in this way {1} "\
-                    .format(self.__class__.__name__,support_view_dic)
-        #rg=np.expand_dims(np.array(l_adjr),-1)
-        n_mask_TNT = np.expand_dims(np.array(l_mask), -1)
-
-        n_a_TNT = np.array(l_a_TNT)
-        n_oldAP_TNT = np.expand_dims(np.array(l_oldAP_TNT), -1)
-        n_a_BNB = np.array(l_a_BNB)
-        n_oldAP_BNB = np.expand_dims(np.array(l_oldAP_BNB), -1)
-        n_adjr_TNT = np.expand_dims(np.array(l_adjr_TNT), -1)
-        n_adjr_BNB = np.expand_dims(np.array(l_adjr_BNB), -1)
-
-        loss_this_round = Tmodel.train_on_batch({'l_view':n_s_lv,
-                                                 's_view':n_s_sv,
-                                                 'a_TNT':n_a_TNT,
-                                                 'oldAP_TNT':n_oldAP_TNT,
-                                                 'a_BNB':n_a_BNB,
-                                                 'oldAP_BNB':n_oldAP_BNB,
-                                                 'mask_TNT':n_mask_TNT,
-                                                 'reward_TNT':n_adjr_TNT,
-                                                 'reward_BNB':n_adjr_BNB},
-                                                 fake_y)
-        if lc.flag_record_state:
-            self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
-            self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
-        return num_record_to_train,loss_this_round

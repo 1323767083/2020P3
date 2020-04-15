@@ -16,8 +16,7 @@ def init_nets_trainer_base(lc_in,nc_in):
 class base_trainer:
     def __init__(self):
         self.gammaN = lc.Brain_gamma ** lc.TDn
-        #self.i_policy_agent = General_agent(class_name_policy_agent)
-        self.i_policy_agent = globals()[lc.system_type]()
+        self.i_policy_agent = globals()[lc.system_type+"_Agent"]()
         self.build_predict_model=self.i_policy_agent.build_predict_model
         if lc.flag_record_state:
             self.rv = globals()[lc.CLN_record_variable](lc)

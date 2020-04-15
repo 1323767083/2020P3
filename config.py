@@ -69,8 +69,8 @@ conf= \
         "agent_method_apsv": "HP",
         "=======action related=======": "=======================",
         "action_type_dict": {"0": "buy", "1": "no_action", "2": "sell", "3": "no_action"},
-        "method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
-        "method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
+        #"method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
+        #"method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
         "=======Class_eval_train=======": "=======================",
         "train_reward_type": "scaler_clip",
         "train_reward_scaler_factor":1,
@@ -333,8 +333,8 @@ class gconfig_data:
         # action realted
         self.action_type_dict = float("nan") #{0: "buy", 1: "sell", 2: "no_action"}
         # self.num_action=3
-        self.method_name_of_choose_action_for_train = float("nan") #""
-        self.method_name_of_choose_action_for_eval = float("nan") #""
+        #self.method_name_of_choose_action_for_train = float("nan") #""
+        #self.method_name_of_choose_action_for_eval = float("nan") #""
         # debug
         # self.flag_recorder=True
         # "flag_recorder": True,
@@ -477,9 +477,10 @@ class gconfig(gconfig_data):
             # 3.TD_buffer
             #assert self.CLN_TDmemory == "TD_memory_2S_nc"
             assert self.CLN_TDmemory == "TD_memory_LHPP2V2"  #after action_dimention changed from 4 to 2, buy action need to remove from record to train
+
             # 4.nets
-            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V2"
-            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V2"
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V2"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V2"
 
             # 5.net_agent
             #assert "_LHPP2V2_" in self.CLN_agent
@@ -528,8 +529,8 @@ class gconfig(gconfig_data):
             assert self.CLN_TDmemory == "TD_memory_LHPP2V3"
 
             # 4.nets
-            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V3"
-            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V3"
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V3"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V3"
 
             # 5.net_agent
             #assert "LHPP2V3" in self.CLN_agent   # this is to include support for V3 V32 and V33
@@ -577,8 +578,8 @@ class gconfig(gconfig_data):
             assert self.CLN_TDmemory=="TD_memory_LHPP2V3"
 
             # 4.nets
-            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V4"
-            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V4"
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V4"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V4"
 
             # 5.net_agent
             assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
@@ -624,8 +625,8 @@ class gconfig(gconfig_data):
             assert self.CLN_TDmemory == "TD_memory_LHPP2V5" # same as TD_memory_LHPP2V3
 
             # 4.nets
-            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V5"
-            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V5"
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V5"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V5"
 
             # 5.net_agent
             #assert "LHPP2V3" in self.CLN_agent   # this is to include support for V3 V32 and V33
@@ -653,7 +654,14 @@ class gconfig(gconfig_data):
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
 
-        elif self.system_type in ["LHPP2V6","LHPP2V61"]:
+        elif self.system_type in ["LHPP2V6","LHPP2V61","LHPP2V62"]:
+            #v6 to seperate AP_TNT and AP_BNB
+            #V6.1 to seperate v_TNT and v_BNB  r_TNT and r_BNB
+            #V6.2
+            #all l_adjr_TNT.append(item_r[0] + lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__TNT[0])
+            #l_adjr_BNB  buy is item_r[0] and no action is item_r[0] + lc.Brain_gamma**support_view_dic[0, 0]["SdisS_"] * item_sv__BNB[0]
+
+
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
 
@@ -671,8 +679,8 @@ class gconfig(gconfig_data):
             assert self.CLN_TDmemory == "TD_memory_LHPP2V6" # same as TD_memory_LHPP2V3
 
             # 4.nets
-            assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V6"
-            assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V6"
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V6"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V6"
 
             # 5.net_agent
             #assert "LHPP2V3" in self.CLN_agent   # this is to include support for V3 V32 and V33
@@ -690,6 +698,7 @@ class gconfig(gconfig_data):
             self.train_action_type = "B4"
             self.train_num_action = 4   # in V6 train_num_action only used in recorder
             assert self.net_config["dense_prob"][-1] == 2
+            assert self.net_config["dense_advent"][-1] == 1
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
 
             # 8.specific param
@@ -697,6 +706,59 @@ class gconfig(gconfig_data):
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
+
+        elif self.system_type in ["LHPP2V7"]:
+            #V7 introduce av as model input
+            #av 0:LHP+1 should holding  LHP+1 show start trans or not
+            #TD_buffer not stop at buy but one after buy
+            #AV has shape (1,0) one state after buy [1]  other wise [0],
+            #choose action, while have holding flag, not allow no_trans, this not impact the training, but data prepare
+
+            # 0.Train Phase
+            assert self.P2_current_phase == "Train_Buy"
+
+            # 1.Simulator get data
+            assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
+            assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
+
+            # 2.Simulator
+            assert self.CLN_simulator == "Simulator_LHPP2V7"
+            assert not self.flag_multi_buy
+            assert self.LHP != 0
+            assert self.env_flag_random_start_in_episode_for_eval == True
+
+            # 3.TD_buffer
+            assert self.CLN_TDmemory == "TD_memory_LHPP2V7" # same as TD_memory_LHPP2V3
+
+            # 4.nets
+            #assert self.method_name_of_choose_action_for_train == "choose_action_LHPP2V6"
+            #assert self.method_name_of_choose_action_for_eval == "choose_action_LHPP2V6"
+
+            # 5.net_agent
+            #assert "LHPP2V3" in self.CLN_agent   # this is to include support for V3 V32 and V33
+            assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
+            assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
+            assert self.agent_method_apsv in ["HP", "HP_SP"]
+
+            self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False,True] \
+                if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
+
+            # 6.net_trainer  # this is to include support for V3 V32 and V33
+            assert self.system_type in self.CLN_trainer
+
+            # 7.action
+            self.train_action_type = "B4"
+            self.train_num_action = 4   # in V6 train_num_action only used in recorder
+            assert self.net_config["dense_prob"][-1] == 2
+            assert self.net_config["dense_advent"][-1] == 1
+            actionOBOS(self.train_action_type).sanity_check_action_config(self)
+
+            # 8.specific param
+            for item_title in ["BB_NBD","max_record_taken","punish_r_base"]:
+                assert item_title in list(self.Dict_specifc_param.keys())
+                setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
+            setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
+
 
         else:
             assert False, "not support type: {0}".format(self.system_type)
