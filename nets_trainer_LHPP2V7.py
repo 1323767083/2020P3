@@ -97,7 +97,9 @@ class LHPP2V7_PPO_trainer(base_trainer):
                 l_a_TNT.append([1,0])
                 l_oldAP_TNT.append(l_support_view[idx][0, 0]["old_ap"][0])
                 #l_a_BNB.append([0,1])
-                l_a_BNB.append(a[idx][:2])  # here should keep the buy or no action # not masked
+                #print (a[idx], type(a[idx]))
+                #assert False
+                l_a_BNB.append(a[idx][0][:2].tolist())  # here should keep the buy or no action # not masked
                 l_mask.append(1)
                 l_oldAP_BNB.append(l_support_view[idx][0, 0]["old_ap"][1])
 
