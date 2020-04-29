@@ -1,5 +1,5 @@
 from data_common import hfq_toolbox,ginfo_one_stock
-def ent_ar_init(lgc):
+def env_ar_init(lgc):
     global lc
     lc=lgc
     global flag_accout_store_transaction_record

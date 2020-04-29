@@ -54,6 +54,7 @@ class base_trainer:
         flag_got, s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = i_train_buffer.train_get(lc.batch_size)
         if not flag_got:
             return False, [],[]
+
         n_s_lv = np.vstack(s_lv)
         n_s_sv = np.vstack(s_sv)
         n_s_av = np.vstack(s_av)

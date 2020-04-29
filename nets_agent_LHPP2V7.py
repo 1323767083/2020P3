@@ -118,7 +118,7 @@ class LHPP2V7_Agent:
         lv, sv,av = state
         if not hasattr(self, "OB_model"):
             assert False, "should build or load model before"
-        p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv,"P_input_av":LHPP2V7_get_AV(av)})
+        p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv,"P_input_av":Train_Buy_get_AV_2(av)})
         return p, v
 
     def choose_action(self,state):
@@ -144,13 +144,13 @@ class LHPP2V7_Agent:
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
                 #l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
-                l_ap.append(np.zeros(len(buy_prob)))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_ap.append(np.zeros(len(buy_prob),dtype=np.float32))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 #action = np.random.choice([0, 1], p=buy_prob)
                 action = self.i_action.I_nets_choose_action(buy_prob)
-                if action == 4 and av_item[1]==1:  # when start _tran status still get no_trans
-                    action=1  #set to buy not_action
+                #if action == 4 and av_item[1]==1:  # when start _tran status still get no_trans
+                #    action=1  #set to buy not_action
                 l_a.append(action)
                 l_ap.append(buy_prob)
                 l_sv.append(buy_sv[0])

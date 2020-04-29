@@ -111,7 +111,7 @@ class LHPP2V5_Agent:
                 #action = np.random.choice([2, 3], p=sell_prob)
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
-                l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_ap.append(np.zeros(len(sell_prob)+1,dtype=np.float32))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 #action = np.random.choice([0, 1], p=buy_prob)

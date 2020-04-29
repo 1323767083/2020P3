@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import os,re
 import config as sc
+from av_state import Phase_State_V8,Phase_State_V3
 def init_nets_agent_base(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
     lc,nc = ilc, inc
@@ -166,6 +167,11 @@ class LV_SV_joint_component:
 class V2OS_4_OB_agent:
     def __init__(self,ob_system_name, Ob_model_tc):
         self._load_model(ob_system_name, Ob_model_tc)
+        if  hasattr(lc.specific_param,"CLN_AV"):
+            self.get_OS_AV =globals()[lc.specific_param.CLN_AV]().get_OS_av
+        else:
+            self.get_OS_AV = LHPP2V2_get_AV
+
 
     def _load_model(self, ob_system_name, Ob_model_tc):
         OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
@@ -184,9 +190,10 @@ class V2OS_4_OB_agent:
     def predict(self, state):
         lv, sv, av = state
         #p, v = model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
-        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': LHPP2V2_get_AV(av)})
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_AV(av)})
         return p,v
 
 LHPP2V2_check_holding = lambda av_item: False if av_item[0] == 1 else True
 LHPP2V2_get_AV=lambda n_av:np.concatenate([n_av[:,:lc.LHP+1]])
-LHPP2V7_get_AV=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)
+#LHPP2V7_get_AV=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)
+Train_Buy_get_AV_2=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)

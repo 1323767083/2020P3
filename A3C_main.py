@@ -6,7 +6,7 @@ import logger_comm  as lcom
 import pipe_comm as pcom
 import Stocklist_comm as scom
 import Buffer_comm as bcom
-
+import av_state as av_state
 import env as env
 import logging
 import setproctitle
@@ -51,7 +51,7 @@ class main(Process):
         self.lgc=lgc
         init_A3C_brain(lgc)
         init_A3C_worker(lgc)
-        for pack in [env,pcom,lcom,scom,bcom]:
+        for pack in [env,pcom,lcom,scom,bcom,av_state]:
             pack.init_gc(lgc)
 
         logging.getLogger().setLevel(logging.INFO)

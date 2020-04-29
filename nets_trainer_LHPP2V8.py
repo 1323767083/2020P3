@@ -1,13 +1,13 @@
 from nets_trainer_base import *
 
-def init_nets_trainer_LHPP2V3(lc_in,nc_in):
+def init_nets_trainer_LHPP2V8(lc_in,nc_in):
     global lc, nc
     lc=lc_in
     nc=nc_in
     init_nets_trainer_base(lc_in, nc_in)
 
-
-class LHPP2V3_PPO_trainer(base_trainer):
+#LHPP2V5_PPO_trainer is same as LHPP2V3_PPO_trainer except  get_accumulate_r
+class LHPP2V8_PPO_trainer(base_trainer):
     def __init__(self):
         base_trainer.__init__(self)
         self.comile_metrics=[self.M_policy_loss, self.M_value_loss,self.M_entropy_loss,self.M_state_value,self.M_advent,
@@ -19,12 +19,13 @@ class LHPP2V3_PPO_trainer(base_trainer):
                                         "M_entropy":self.M_entropy_loss,"M_state_value":self.M_state_value,
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
-
+        #self.get_OB_AV = Train_Buy_get_AV_2
         if  hasattr(lc.specific_param,"CLN_AV"):
             i_cav=globals()[lc.specific_param.CLN_AV]()
             self.get_OB_AV = i_cav.get_OB_av
         else:
             self.get_OB_AV = Train_Buy_get_AV_2
+
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
@@ -58,7 +59,7 @@ class LHPP2V3_PPO_trainer(base_trainer):
 
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == lc.batch_size
-        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, "P_input_av": self.get_OB_AV(n_s__av)})
+        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv,"P_input_av": self.get_OB_AV(n_s__av)})
 
 
         rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
@@ -96,7 +97,7 @@ class LHPP2V3_PPO_trainer(base_trainer):
     def join_loss_policy_part(self,y_true,y_pred):
         prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
-        loss_policy_origin = lc.LOSS_POLICY * keras.backend.minimum (prob_ratio * tf.stop_gradient(advent),
+        loss_policy_origin = lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - lc.LOSS_clip, clip_value_max=1 + lc.LOSS_clip) * tf.stop_gradient(advent))
 
         loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-1, clip_value_max=1)
@@ -112,7 +113,7 @@ class LHPP2V3_PPO_trainer(base_trainer):
         if lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
             loss_value = lc.LOSS_V * tf.square(advent)
         else:
-            loss_value = lc.LOSS_V * keras.backend.minimum (tf.square(advent),lc.LOSS_sqr_threadhold)
+            loss_value = lc.LOSS_V * keras.backend.minimum(tf.square(advent), lc.LOSS_sqr_threadhold)
         return tf.reduce_mean(loss_value)
 
 
@@ -143,7 +144,6 @@ class LHPP2V3_PPO_trainer(base_trainer):
     def M_advent_low(self,y_true, y_pred):
         _, _, _, advent, _= self.extract_y(y_pred)
         advent10=tfp.stats.percentile(advent, 10., interpolation='lower')
-
         return advent10
 
     def M_advent_high(self,y_true, y_pred):

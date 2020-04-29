@@ -9,7 +9,7 @@ from recorder import record_send_to_server
 #from visual_result import summary_are_1ET
 from vresult_data_reward import ana_reward_data_A3C_worker_interface
 from Buffer_comm import buffer_series,buffer_to_train
-from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6,Simulator_LHPP2V7
+from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6,Simulator_LHPP2V7,Simulator_LHPP2V8
 '''modify move_get actula to action common '''
 from action_comm import actionOBOS
 

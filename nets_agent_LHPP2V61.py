@@ -75,8 +75,6 @@ class LHPP2V61_Agent:
         sv = keras.layers.Concatenate(axis=-1, name=name + LNM_V)([sv_TNT, sv_BNB])
         return ap, sv
 
-
-
     #SP means seperate ap sv 's lv_sv_jiong_state
     def get_ap_av_HP_SP(self, inputs, name):
         ap_input_state, sv_input_state = inputs
@@ -134,7 +132,7 @@ class LHPP2V61_Agent:
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
                 #l_ap.append(np.zeros(len(sell_prob)+1))  # this is add zero and this record will be removed by TD_buffer before send to server for train
-                l_ap.append(np.zeros(len(buy_prob)))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_ap.append(np.zeros(len(buy_prob),dtype=np.float32))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 #action = np.random.choice([0, 1], p=buy_prob)
