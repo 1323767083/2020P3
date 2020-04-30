@@ -132,6 +132,16 @@ class ana_reward_data(are_esi_reader):
                 with open(stock_statistic_fnwp, 'rb') as f:
                     l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum = pickle.load(f)
 
+                #debug purpose
+                print ("duration is 1")
+                dfd=df
+                for _ , row in dfd[dfd["duration"]==1].iterrows():
+                    print (row["trans_id"],row["EvalT"])
+                print ("duration is 6")
+                dfd=df
+                for _ , row in dfd[dfd["duration"]==6].iterrows():
+                    print (row["trans_id"],row["EvalT"])
+                #debug purpose
                 return True, df,Summery_effective_count,[l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum]
             except Exception:
                 print("{0} empty file".format(ET_summary_fnwp))

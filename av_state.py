@@ -30,7 +30,8 @@ class Phase_State_V3:
 
     def check_need_force_state(self, action):
         if self.called_by=="explore":
-            if self.CuPs_idx[self.CuP]>=self.CuPs_limits[self.CuP]:
+            #if self.CuPs_idx[self.CuP]>=self.CuPs_limits[self.CuP]:
+            if self.CuPs_idx[self.CuP] >= self.CuPs_limits[self.CuP]-1:
                 adj_action=self.CuPs_explore_force_actions[self.CuP][0]
                 return adj_action
         return action
@@ -45,10 +46,11 @@ class Phase_State_V3:
         assert len(l_next_PS)==1
         self.CuP=l_next_PS[0]
         if self.CuP!=self.P_END:
-            if self.CuPs_idx[self.CuP] == self.CuPs_limits[self.CuP]:
+            self.CuPs_idx[self.CuP] += 1
+            if self.CuPs_idx[self.CuP] >= self.CuPs_limits[self.CuP]:
                 Done_flag = True
             else:
-                self.CuPs_idx[self.CuP]+=1
+                #self.CuPs_idx[self.CuP]+=1
                 Done_flag=support_view_dic["last_day_flag"]
         else:
             assert actual_action == 2
@@ -113,7 +115,7 @@ class Phase_State_V8:
 
     def check_need_force_state(self, action):
         if self.called_by=="explore":
-            if self.CuPs_idx[self.CuP]>=self.CuPs_limits[self.CuP]:
+            if self.CuPs_idx[self.CuP]>=self.CuPs_limits[self.CuP]-1:
                 adj_action=self.CuPs_explore_force_actions[self.CuP][0]
                 return adj_action
         return action
@@ -128,10 +130,10 @@ class Phase_State_V8:
         assert len(l_next_PS)==1
         self.CuP=l_next_PS[0]
         if self.CuP!=self.P_END:
-            if self.CuPs_idx[self.CuP] == self.CuPs_limits[self.CuP]:
+            self.CuPs_idx[self.CuP] += 1
+            if self.CuPs_idx[self.CuP] >= self.CuPs_limits[self.CuP]:
                 Done_flag = True
             else:
-                self.CuPs_idx[self.CuP]+=1
                 Done_flag=support_view_dic["last_day_flag"]
         else:
             assert actual_action == 2

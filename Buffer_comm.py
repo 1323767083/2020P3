@@ -377,10 +377,10 @@ class TD_memory_LHPP2V7:
         self.memory.append([si, aa04, r, si_, done, support_view_dic])
         if done:
             _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
+
             if Lsupport_view_dic["flag_force_sell"]:
                 assert Lsupport_view_dic["action_taken"] == "Sell"
                 #assert aa04[0, 2] ==1, "{0} {1}".format(Lsupport_view_dic,aa04)
-
                 self.memory[-1][2] = self.punish_r
             elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
                 "action_taken"] == "Sell" and Lsupport_view_dic["holding"] == 0:
@@ -478,22 +478,26 @@ class TD_memory_LHPP2V8:
         self.memory.append([si, aa04, r, si_, done, support_view_dic])
         if done:
             _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
-            if Lsupport_view_dic["flag_force_sell"]:
-                assert Lsupport_view_dic["action_taken"] == "Sell"
-                #assert aa04[0, 2] ==1, "{0} {1}".format(Lsupport_view_dic,aa04)
 
+            if Lsupport_view_dic["flag_force_sell"] and Lsupport_view_dic["action_return_message"] != "Success" and Lsupport_view_dic["action_taken"] == "Sell":
                 self.memory[-1][2] = self.punish_r
-                #print("here0")
-            elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-                "action_taken"] == "Sell" and Lsupport_view_dic["holding"] == 0:
-                #print("here1")
+            elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic["action_taken"] == "Sell":
                 pass
             else:
-                #print("here2")
-                #for mi in self.memory:
-                #    print (mi[5],mi[0][2])
                 del self.memory[:]
                 return
+
+            #if Lsupport_view_dic["flag_force_sell"]:
+            #    assert Lsupport_view_dic["action_taken"] == "Sell"
+            #    self.memory[-1][2] = self.punish_r
+            #elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
+            #    "action_taken"] == "Sell" and Lsupport_view_dic["holding"] == 0:
+            #    pass
+            #else:
+                #for mi in self.memory:
+                #    print (mi[5],mi[0][2])
+            #    del self.memory[:]
+            #    return
 
             success_buy_idx, AccR=self.get_after_buy_accumulate_R_buy()
 

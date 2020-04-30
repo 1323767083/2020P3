@@ -74,10 +74,10 @@ class LHPP2V3_PPO_trainer(base_trainer):
     def get_accumulate_r(self,inputs):
         n_r, n_a,train_sv, n_s_av,l_support_view = inputs
         l_adjr=[]
-        for item_a,item_r, item_train_sv, support_view_dic in zip(n_a,n_r, train_sv, l_support_view):
+        for item_a,item_r, item_train_sv, support_view_dic, av_item in zip(n_a,n_r, train_sv, l_support_view,n_s_av):
             if item_a[0]==1:  # buy
                 l_adjr.append(item_r[0])
-            elif item_a[1]==1 or  item_a[2]==1: # no_action no_trans
+            elif item_a[1]==1: # no_action
                 l_adjr.append(item_r[0] + lc.Brain_gamma ** support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])
             else:
                 assert False, "action {0} support_view {1}".format(item_a, support_view_dic)

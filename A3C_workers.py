@@ -173,6 +173,9 @@ class transaction_id:
         self.flag_holding = flag_new_holding
         return self.current_trans_id
 
+    def reset_flag_holding(self): # to solve the new eval continue with the last trans_id
+        self.flag_holding = False
+
 class client_base(Process):
     def __init__(self, process_name, process_idx, lstock,L_output, D_share, E_stop, E_update_weight, E_worker_work):
         Process.__init__(self)
@@ -463,6 +466,7 @@ class Eval_process(client_base):
         if support_view_dic["flag_all_period_explored"]:
             self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
             self.data.l_idx_valid_flag[idx] = False
+            self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
         else:
             if self.data.l_i_episode_init_flag[idx]:
                 self.data.l_i_episode_init_flag[idx] = False
