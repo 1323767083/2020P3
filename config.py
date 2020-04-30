@@ -567,7 +567,7 @@ class gconfig(gconfig_data):
             assert self.specific_param.LNB+self.LHP<=self.specific_param.max_record_taken
             assert self.specific_param.CLN_AV=="Phase_State_V3"
             setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
-            setattr(self.specific_param, "OB_AV_shape", (self.specific_param.LNB + 1 + 1,))
+            setattr(self.specific_param, "OB_AV_shape", (self.specific_param.LNB + 1,))
             setattr(self.specific_param, "raw_AV_shape",(self.specific_param.LNB + 1 + self.LHP + 1,))
 
 
