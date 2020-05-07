@@ -80,8 +80,6 @@ class Phase_State_V3:
 
     def get_OB_av(self,av):
         assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
-        #av_OB=np.concatenate([av[:,:1],av[:,lc.LHP + 1:]], axis=-1)
-        #return av_OB
         return av[:, lc.LHP + 1:]
 
     def check_holding_item(self,av_item):

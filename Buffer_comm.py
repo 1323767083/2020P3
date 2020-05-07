@@ -479,7 +479,12 @@ class TD_memory_LHPP2V8:
         if done:
             _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
 
-            if Lsupport_view_dic["flag_force_sell"] and Lsupport_view_dic["action_return_message"] != "Success" and Lsupport_view_dic["action_taken"] == "Sell":
+            #if Lsupport_view_dic["flag_force_sell"] and Lsupport_view_dic["action_return_message"] != "Success" and Lsupport_view_dic["action_taken"] == "Sell":
+            #    self.memory[-1][2] = self.punish_r
+            if Lsupport_view_dic["flag_force_sell"] and Lsupport_view_dic["action_return_message"] != "Success":
+                del self.memory[:]
+                return
+            elif Lsupport_view_dic["flag_force_sell"] and Lsupport_view_dic["action_return_message"] == "Success":
                 self.memory[-1][2] = self.punish_r
             elif Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic["action_taken"] == "Sell":
                 pass

@@ -259,25 +259,31 @@ class env_reward_basic:
         self.No_action =0.0
         self.Tinpai=0.0
         self.scale_factor=scaler_factor
-        if reward_type =="scaler":
-            self.Success_sell=self.scaler_Success_sell
-        elif reward_type =="scaler_clip":
-            self.Success_sell = self.scaler_clip_Success_sell
-        elif reward_type =="double_scaler_clip":
-            self.Success_sell = self.double_scaler_clip_Success_sell
+        supported_reward_type=["scaler","scaler_clip","double_scaler_clip","unbalanced_scaler_clip"]
+        if reward_type in supported_reward_type:
+            self.Success_sell = getattr(self, reward_type)
         else:
-            assert False, "reward_type Only support scaler, scaler_clip"
-    def scaler_Success_sell(self,profit):
+            assert False, supported_reward_type
+    def scaler(self,profit):
         return profit*self.scale_factor
 
-    def scaler_clip_Success_sell(self,profit):
+    def scaler_clip(self,profit):
         raw_profit=profit * self.scale_factor
         return 1 if raw_profit>1 else -1 if raw_profit< -1 else raw_profit
         #return profit*self.scale_factor
 
-    def double_scaler_clip_Success_sell(self,profit):
+    def double_scaler_clip(self,profit):
         raw_profit=profit * self.scale_factor*2
         return 1 if raw_profit>1 else -1 if raw_profit< -1 else raw_profit
+
+    def unbalanced_scaler_clip(self,profit):
+        if profit >0:
+            return 1
+        elif profit ==0 :
+            return 0
+        else:
+            raw_profit = profit * self.scale_factor
+            return  -1 if raw_profit <= -1 else raw_profit
 
 
     def hist_scale(self):

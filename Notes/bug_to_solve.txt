@@ -264,3 +264,110 @@ Traceback (most recent call last):
   File "/home/rdchujf/remote_sw/recorder.py", line 155, in saver
     pickle.dump(compressed_inputs, f)
 TypeError: write() argument must be str, not bytes
+
+
+{'stock': 'SH600522', 'date': '20150507', 'period_idx': 1, 'idx_in_period': 367, 'action_taken': 'No_trans', 'action_return_message': 'No_trans', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33638722} [[1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0]]
+{'stock': 'SH600522', 'date': '20150508', 'period_idx': 1, 'idx_in_period': 368, 'action_taken': 'No_trans', 'action_return_message': 'No_trans', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33587795} [[1 0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0]]
+{'stock': 'SH600522', 'date': '20150511', 'period_idx': 1, 'idx_in_period': 369, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.32945138} [[1 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0]]
+{'stock': 'SH600522', 'date': '20150512', 'period_idx': 1, 'idx_in_period': 370, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3287863} [[1 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0]]
+{'stock': 'SH600522', 'date': '20150513', 'period_idx': 1, 'idx_in_period': 371, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33273503} [[1 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0]]
+{'stock': 'SH600522', 'date': '20150514', 'period_idx': 1, 'idx_in_period': 372, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33023885} [[1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0]]
+{'stock': 'SH600522', 'date': '20150515', 'period_idx': 1, 'idx_in_period': 373, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33308825} [[1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0]]
+{'stock': 'SH600522', 'date': '20150518', 'period_idx': 1, 'idx_in_period': 374, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3304548} [[1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1]]
+here0
+here1
+here0
+here1
+here1
+here2
+{'stock': 'SH600649', 'date': '20150506', 'period_idx': 2, 'idx_in_period': 277, 'action_taken': 'No_trans', 'action_return_message': 'No_trans', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.33759} [[1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0]]
+{'stock': 'SH600649', 'date': '20150507', 'period_idx': 2, 'idx_in_period': 278, 'action_taken': 'No_action', 'action_return_message': 'No_action', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3283721} [[1 0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0]]
+{'stock': 'SH600649', 'date': '20150508', 'period_idx': 2, 'idx_in_period': 279, 'action_taken': 'No_action', 'action_return_message': 'No_action', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.32913718} [[1 0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0]]
+{'stock': 'SH600649', 'date': '20150511', 'period_idx': 2, 'idx_in_period': 280, 'action_taken': 'No_action', 'action_return_message': 'No_action', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3259915} [[1 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0]]
+{'stock': 'SH600649', 'date': '20150512', 'period_idx': 2, 'idx_in_period': 281, 'action_taken': 'No_action', 'action_return_message': 'No_action', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.337071} [[1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0]]
+{'stock': 'SH600649', 'date': '20150513', 'period_idx': 2, 'idx_in_period': 282, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3313109} [[1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0]]
+{'stock': 'SH600649', 'date': '20150514', 'period_idx': 2, 'idx_in_period': 283, 'action_taken': 'Buy', 'action_return_message': 'Tinpai', 'holding': 0, 'flag_force_sell': False, 'old_ap': 0.3274088} [[1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 1]]
+
+
+
+duration is 6
+SH601186_T13 250
+SH600029_T25 250
+SH600608_T31 250
+SH603001_T1 250
+SH600373_T11 250
+SH600373_T34 250
+SH600373_T9 250
+SH600320_T15 250
+SH600320_T24 250
+SH600711_T39 250
+SH600235_T30 250
+SH600192_T19 250
+SH600628_T11 250
+SH600821_T15 250
+SH601233_T8 250
+SH600376_T26 250
+SH600376_T31 250
+SH600485_T24 250
+SH601890_T27 250
+SH601890_T35 250
+SH600676_T6 250
+SH600602_T10 250
+SH600602_T19 250
+SH600486_T1 250
+SH600486_T26 250
+SH600486_T3 250
+SH600486_T32 250
+SH600486_T6 250
+SH600261_T29 250
+SH600261_T35 250
+SH600261_T8 250
+SH600729_T17 250
+SH600729_T3 250
+SH601166_T24 250
+SH601166_T5 250
+SH601166_T7 250
+SH601519_T14 250
+SH600664_T28 250
+SH600664_T30 250
+SH600897_T20 250
+SH600897_T24 250
+SH600897_T31 250
+SH601928_T30 250
+SH601928_T9 250
+SH600416_T25 250
+SH600221_T40 250
+SH600478_T21 250
+SH601717_T1 250
+SH601717_T15 250
+SH601717_T6 250
+SH600367_T5 250
+SH600331_T16 250
+SH600331_T31 250
+SH600331_T5 250
+SH601390_T1 250
+SH601390_T3 250
+SH601390_T32 250
+SH600211_T26 250
+SH600822_T28 250
+SH600594_T20 250
+SH600594_T34 250
+SH600219_T18 250
+SH600057_T28 250
+SH600136_T2 250
+SH600291_T26 250
+SH600456_T32 250
+SH600990_T13 250
+SH600990_T17 250
+SH600610_T11 250
+SH600610_T13 250
+SH600829_T31 250
+SH601006_T18 250
+SH600226_T17 250
+SH600226_T24 250
+SH600108_T35 250
+SH600816_T29 250
+SH600083_T24 250
+SH600612_T14 250
+SH600612_T26 250
+SH600612_T3 250
