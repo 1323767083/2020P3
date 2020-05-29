@@ -137,7 +137,6 @@ class LHPP2V3_Agent:
                 l_sv.append(buy_sv[0])
         return l_a, l_ap,l_sv
 
-
 LHPP2V32_Agent=LHPP2V3_Agent
 LHPP2V33_Agent=LHPP2V3_Agent
 

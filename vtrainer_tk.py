@@ -7,6 +7,7 @@ from tkinter import ttk
 from nets import Explore_Brain, init_gc
 from vtrainer_comm import *
 from vcomm import *
+import av_state
 def init_global(system_name):
     global lgc
     param_fnwp = os.path.join(sc.base_dir_RL_system, system_name, "config.json")
@@ -16,7 +17,7 @@ def init_global(system_name):
     lgc.read_from_json(param_fnwp)
     init_gc(lgc)
     comm_init_lgc(lgc)
-
+    av_state.init_gc(lgc)
 class vtrainer_tk(tk.Frame):
     def __init__(self, parent, param):
         tk.Frame.__init__(self, parent)

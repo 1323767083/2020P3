@@ -6,10 +6,11 @@ import pipe_comm as pcom
 import logger_comm  as lcom
 import config as sc
 from recorder import record_send_to_server
-#from visual_result import summary_are_1ET
+
 from vresult_data_reward import ana_reward_data_A3C_worker_interface
 from Buffer_comm import buffer_series,buffer_to_train
-from env import Simulator_LHPP2V2,Simulator_LHPP2V3,Simulator_LHPP2V5,Simulator_LHPP2V6,Simulator_LHPP2V7,Simulator_LHPP2V8
+
+from env import Simulator_intergrated
 '''modify move_get actula to action common '''
 from action_comm import actionOBOS
 
@@ -111,9 +112,9 @@ class are_ssdi_handler:
         log_a_r_e_fn_fnwp=os.path.join(self.process_working_dir,data.stock_list[idx],log_a_r_e_fn )
         log_e_s_d_i_fnwp=os.path.join(self.process_working_dir,data.stock_list[idx],log_e_s_d_i_fn )
         df_log = pd.DataFrame(data.l_log_a_r_e[idx],columns=self.log_are_column)
-        df_log.to_csv(log_a_r_e_fn_fnwp, index=False, float_format='%.2f')
+        df_log.to_csv(log_a_r_e_fn_fnwp, index=False, float_format='%.4f')
         df_map = pd.DataFrame(data.l_log_stock_episode[idx],columns=self.log_esdi_column)
-        df_map.to_csv(log_e_s_d_i_fnwp, index=False, float_format='%.2f')
+        df_map.to_csv(log_e_s_d_i_fnwp, index=False, float_format='%.4f')
         del data.l_log_a_r_e[idx][:]
         del data.l_log_stock_episode[idx][:]
         return
@@ -455,7 +456,8 @@ class Eval_process(client_base):
                 self.data.l_r[idx].append(r)
                 trans_id = self.l_i_tran_id[idx].get_transaction_id(
                     flag_new_holding=True if support_view_dic["holding"] > 0 else False)
-                self.i_are_ssdi.in_round(self.data, idx, a, ap, r, support_view_dic, trans_id)
+                actual_action = self.i_ac.I_A3C_worker_eval(support_view_dic)
+                self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id)
 
         stacted_state = self.stack_l_state(self.data.l_s)
         self.data.l_a, self.data.l_ap,self.data.l_sv = self.i_eb.choose_action(stacted_state)

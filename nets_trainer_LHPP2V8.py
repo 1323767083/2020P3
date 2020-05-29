@@ -19,7 +19,7 @@ class LHPP2V8_PPO_trainer(base_trainer):
                                         "M_entropy":self.M_entropy_loss,"M_state_value":self.M_state_value,
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
-        #self.get_OB_AV = Train_Buy_get_AV_2
+        self.ac_reward_fun=getattr(self,lc.specific_param.accumulate_reward_method)
         if  hasattr(lc.specific_param,"CLN_AV"):
             i_cav=globals()[lc.specific_param.CLN_AV]()
             self.get_OB_AV = i_cav.get_OB_av
@@ -62,7 +62,7 @@ class LHPP2V8_PPO_trainer(base_trainer):
         _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv,"P_input_av": self.get_OB_AV(n_s__av)})
 
 
-        rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
+        rg=self.ac_reward_fun([n_r, n_a,train_sv, n_s_av,l_support_view])
         loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.get_OB_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)

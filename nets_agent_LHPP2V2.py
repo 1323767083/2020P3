@@ -18,7 +18,15 @@ class LHPP2V2_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        self.check_holding_fun=LHPP2V2_check_holding
+        if  hasattr(lc.specific_param,"CLN_AV"):
+            i_cav=globals()[lc.specific_param.CLN_AV]()
+            self.check_holding_fun = i_cav.check_holding_item
+            self.get_OS_av=i_cav.get_OS_av
+        else:
+            assert False
+            self.check_holding_fun = LHPP2V2_check_holding
+
+
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -114,7 +122,7 @@ class LHPP2V2_Agent:
     def predict(self, state):
         assert lc.P2_current_phase=="Train_Sell"
         lv, sv, av = state
-        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_av(av)})
         return p,v
 
     def choose_action(self, state):

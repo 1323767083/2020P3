@@ -133,11 +133,11 @@ class ana_reward_data(are_esi_reader):
                     l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum = pickle.load(f)
 
                 #debug purpose
-                print ("duration is 1")
+                print ("duration is 1 day")
                 dfd=df
                 for _ , row in dfd[dfd["duration"]==1].iterrows():
                     print (row["trans_id"],row["EvalT"])
-                print ("duration is 6")
+                print ("duration is 6 day")
                 dfd=df
                 for _ , row in dfd[dfd["duration"]==6].iterrows():
                     print (row["trans_id"],row["EvalT"])
@@ -418,8 +418,11 @@ class ana_reward_plot:
 
     def hist_reward(self, ax, EvalT,hist_param):
         if len(hist_param)==0:
-            #min_, max_, show_step=globals()[self.i_ana_data.lgc.CLN_env_reward_eval]().hist_scale()
-            min_, max_, show_step = env_reward_basic(self.i_ana_data.lgc.eval_reward_scaler_factor,self.i_ana_data.lgc.eval_reward_type).hist_scale()
+            #min_, max_, show_step = env_reward_basic(self.i_ana_data.lgc.eval_reward_scaler_factor,self.i_ana_data.lgc.eval_reward_type,self.i_ana_data.lgc).hist_scale()
+            min_, max_, show_step  = env_reward_basic(self.i_ana_data.lgc.eval_scale_factor,
+                                                      self.i_ana_data.lgc.eval_shift_factor,
+                                                      self.i_ana_data.lgc.eval_flag_clip,
+                                                      self.i_ana_data.lgc.eval_flag_punish_no_action).hist_scale()
         else:
             max_, min_, show_step=hist_param
             print(max_, min_, show_step)

@@ -69,9 +69,6 @@ class LHPP2V2_trainer_base(base_trainer):
         return tfp.stats.percentile(advent, 90., interpolation='higher')
 
     #accumulate_reward method
-    def OS_accumulate_reward(self,n_r,v,l_support_view):
-        return np.array([item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v   for item_r, item_v, item_support_view in zip(n_r, v, l_support_view)])
-
     def OS_ForceSell_accumulate_reward(self,n_r,v,l_support_view):
         l_adjR=[]
         for item_r, item_v, item_support_view in zip(n_r, v, l_support_view):
@@ -88,21 +85,6 @@ class LHPP2V2_trainer_base(base_trainer):
                     l_adjR.append(item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
         return np.array(l_adjR)
 
-    def OS_s_0_reward(self,n_r,v,l_support_view):
-        l_adjR=[]
-        for item_r, item_v, item_support_view in zip(n_r, v, l_support_view):
-            if item_support_view[0, 0]["flag_force_sell"]:
-                if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
-                    l_adjR.append(item_r)
-                else:
-                    l_adjR.append(0)
-                    assert False, "These records should be already removed from TD_memory_LHPP2V2"
-            else:
-                if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
-                    l_adjR.append(item_r)
-                else:
-                    l_adjR.append(item_r)
-        return np.array(l_adjR)
 
 
 class LHPP2V2_PG_trainer(LHPP2V2_trainer_base):
@@ -186,6 +168,13 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
                                           "M_entropy": self.M_entropy_loss, "M_state_value": self.M_state_value,
                                           "M_advent": self.M_advent, "M_advent_low": self.M_advent_low,
                                           "M_advent_high": self.M_advent_high, "lc": lc}
+        if  hasattr(lc.specific_param,"CLN_AV"):
+            i_cav=globals()[lc.specific_param.CLN_AV]()
+            self.get_OS_AV = i_cav.get_OS_av
+        else:
+            assert False
+
+
 
     def build_train_model(self, name="T"):
 
@@ -217,9 +206,9 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer"
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == lc.batch_size
-        _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': n_s__av})
+        _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_OS_AV(n_s__av)})
         rg = self.ac_reward_fun(n_r, v, l_support_view)
-        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,'input_account': n_s_av,
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,'input_account': self.get_OS_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
         if lc.flag_record_state:

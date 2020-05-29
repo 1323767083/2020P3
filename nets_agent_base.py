@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import os,re
 import config as sc
-from av_state import Phase_State_V8,Phase_State_V3
+from av_state import Phase_State_V8,Phase_State_V3__1,Phase_State_V3__2,Phase_State_V2
 def init_nets_agent_base(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
     lc,nc = ilc, inc

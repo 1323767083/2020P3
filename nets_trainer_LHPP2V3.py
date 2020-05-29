@@ -20,11 +20,13 @@ class LHPP2V3_PPO_trainer(base_trainer):
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
 
+        self.ac_reward_fun = getattr(self, lc.specific_param.accumulate_reward_method)
         if  hasattr(lc.specific_param,"CLN_AV"):
             i_cav=globals()[lc.specific_param.CLN_AV]()
             self.get_OB_AV = i_cav.get_OB_av
         else:
             self.get_OB_AV = Train_Buy_get_AV_2
+
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
@@ -61,7 +63,8 @@ class LHPP2V3_PPO_trainer(base_trainer):
         _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, "P_input_av": self.get_OB_AV(n_s__av)})
 
 
-        rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
+        #rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
+        rg=self.ac_reward_fun([n_r, n_a,train_sv, n_s_av,l_support_view])
         loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.get_OB_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
@@ -71,7 +74,7 @@ class LHPP2V3_PPO_trainer(base_trainer):
         return num_record_to_train,loss_this_round
 
 
-    def get_accumulate_r(self,inputs):
+    def get_accumulate_r_old(self,inputs):
         n_r, n_a,train_sv, n_s_av,l_support_view = inputs
         l_adjr=[]
         for item_a,item_r, item_train_sv, support_view_dic, av_item in zip(n_a,n_r, train_sv, l_support_view,n_s_av):
@@ -83,6 +86,20 @@ class LHPP2V3_PPO_trainer(base_trainer):
                 assert False, "action {0} support_view {1}".format(item_a, support_view_dic)
         rg=np.expand_dims(np.array(l_adjr),-1)
         return rg
+
+    def optimize_get_accumulate_r(self,inputs):
+        n_r, n_a,train_sv, n_s_av,l_support_view = inputs
+        l_adjr=[]
+        for item_a,item_r, item_train_sv, support_view_dic, av_item in zip(n_a,n_r, train_sv, l_support_view,n_s_av):
+            if item_a[0]==1:  # buy
+                l_adjr.append(item_r[0])
+            elif item_a[1]==1: # no_action
+                l_adjr.append(item_r[0] + lc.Brain_gamma ** support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])
+            else:
+                assert False, "action {0} support_view {1}".format(item_a, support_view_dic)
+        rg=np.expand_dims(np.array(l_adjr),-1)
+        return rg
+
 
     def extract_y(self, y):
         prob =          y[:, : lc.train_num_action]
