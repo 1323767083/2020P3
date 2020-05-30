@@ -20,11 +20,12 @@ class LHPP2V3_PPO_trainer(base_trainer):
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
 
-        self.ac_reward_fun = getattr(self, lc.specific_param.accumulate_reward_method)
-        if  hasattr(lc.specific_param,"CLN_AV"):
-            i_cav=globals()[lc.specific_param.CLN_AV]()
+        self.ac_reward_fun = getattr(self, lc.Optimize_accumulate_reward_method)
+        if  hasattr(lc,"CLN_AV_state"):
+            i_cav=globals()[lc.CLN_AV_state]()
             self.get_OB_AV = i_cav.get_OB_av
         else:
+            assert False, "CLN_AV_state is mandatory param"
             self.get_OB_AV = Train_Buy_get_AV_2
 
 
@@ -32,7 +33,7 @@ class LHPP2V3_PPO_trainer(base_trainer):
         Pmodel = self.build_predict_model("P")
         lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
         sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
-        av = keras.Input(shape=lc.specific_param.OB_AV_shape, dtype='float32', name='input_av_view')
+        av = keras.Input(shape=lc.OB_AV_shape, dtype='float32', name='input_av_view')
         input_a = keras.Input(shape=(lc.train_num_action,), dtype='float32', name='input_action')
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
         input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')

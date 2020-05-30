@@ -20,12 +20,12 @@ class LHPP2V8_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        #if "CLN_AV" in lc.specific_param.keys():
-        if  hasattr(lc.specific_param,"CLN_AV"):
-            i_cav=globals()[lc.specific_param.CLN_AV]()
+        if  hasattr(lc,"CLN_AV_state"):
+            i_cav=globals()[lc.CLN_AV_state]()
             self.check_holding_fun = i_cav.check_holding_item
             self.get_OB_AV = i_cav.get_OB_av
         else:
+            assert False,"CLN_AV_state is mandatory param"
             self.check_holding_fun = LHPP2V2_check_holding
             self.get_OB_AV = Train_Buy_get_AV_2
 
@@ -33,7 +33,7 @@ class LHPP2V8_Agent:
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
         input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
         #input_av = keras.Input(shape=(1+lc.specific_param.LNT+1+ lc.specific_param.LNB+1,), dtype='float32', name="{0}_input_av".format(name))
-        input_av = keras.Input(shape=lc.specific_param.OB_AV_shape, dtype='float32',name="{0}_input_av".format(name))
+        input_av = keras.Input(shape=lc.OB_AV_shape, dtype='float32',name="{0}_input_av".format(name))
         i_SV = SV_component()
         i_LV_SV = LV_SV_joint_component()
 

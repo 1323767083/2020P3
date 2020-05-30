@@ -21,11 +21,12 @@ class LHPP2V3_Agent:
         }
         self.i_action = actionOBOS(lc.train_action_type)
         #self.check_holding_fun=LHPP2V2_check_holding
-        if  hasattr(lc.specific_param,"CLN_AV"):
-            i_cav=globals()[lc.specific_param.CLN_AV]()
+        if  hasattr(lc,"CLN_AV_state"):
+            i_cav=globals()[lc.CLN_AV_state]()
             self.check_holding_fun = i_cav.check_holding_item
             self.get_OB_AV = i_cav.get_OB_av
         else:
+            assert False, "CLN_AV_state is mandatory param"
             self.check_holding_fun = LHPP2V2_check_holding
             self.get_OB_AV = Train_Buy_get_AV_2
 
@@ -33,7 +34,7 @@ class LHPP2V3_Agent:
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
         input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
-        input_av = keras.Input(shape=lc.specific_param.OB_AV_shape, dtype='float32', name="{0}_input_av".format(name))
+        input_av = keras.Input(shape=lc.OB_AV_shape, dtype='float32', name="{0}_input_av".format(name))
         i_SV = SV_component()
         i_LV_SV = LV_SV_joint_component()
 

@@ -24,8 +24,7 @@ class Simulator_intergrated:            #Simulator_LHPP2V8:
         assert not lc.flag_multi_buy
         self.called_by = called_by
         self.data_name = data_name
-        #self.i_PSS=globals()[lc.specific_param.CLN_AV](called_by)
-        self.i_PSS = globals()[lc.specific_param.CLN_AV]()
+        self.i_PSS = globals()[lc.CLN_AV_state]()
         self.i_account = Caccount()
         if self.called_by == "explore":
             assert lc.CLN_env_get_data_train == "env_get_data_LHP_train"

@@ -193,8 +193,8 @@ class TD_memory_integrated:
         self.gamma = Brain_gamma
         self.output_buffer = output_buffer
         self.i_actionOBOS=actionOBOS(lgc.train_action_type)
-        self.get_verified_record =getattr(self,lgc.specific_param.get_verified_record)
-        self.get_after_buy_accumulate_R=getattr(self,lgc.specific_param.get_after_buy_accumulate_R)
+        self.get_verified_record =getattr(self,lgc.TD_get_verified_record)
+        self.get_after_buy_accumulate_R=getattr(self,lgc.TD_get_after_buy_accumulate_R)
 
 
     def get_sample(self, memory, n):

@@ -90,7 +90,7 @@ class LHPP2V2_trainer_base(base_trainer):
 class LHPP2V2_PG_trainer(LHPP2V2_trainer_base):
     def __init__(self):
         LHPP2V2_trainer_base.__init__(self)
-        self.ac_reward_fun=getattr(self,lc.specific_param.accumulate_reward_method)
+        self.ac_reward_fun=getattr(self,lc.Optimize_accumulate_reward_method)
         self.comile_metrics=[self.M_policy_loss, self.M_value_loss,self.M_entropy_loss,self.M_state_value,self.M_advent,
                              self.M_advent_low,self.M_advent_high]
 
@@ -107,7 +107,7 @@ class LHPP2V2_PG_trainer(LHPP2V2_trainer_base):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
         input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
 
-        input_av = keras.Input(shape=lc.specific_param.OS_AV_shape, dtype='float32', name='input_account')
+        input_av = keras.Input(shape=lc.OS_AV_shape, dtype='float32', name='input_account')
         input_a = keras.Input(shape=(lc.train_num_action,), dtype='float32', name='input_action')
 
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
@@ -159,7 +159,7 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         LHPP2V2_trainer_base.__init__(self)
         assert lc.P2_current_phase == "Train_Sell"
         self.join_loss_policy_part=self.join_loss_policy_part_new
-        self.ac_reward_fun=getattr(self,lc.specific_param.accumulate_reward_method)
+        self.ac_reward_fun=getattr(self,lc.Optimize_accumulate_reward_method)
         self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent,
                                self.M_advent_low, self.M_advent_high]
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
@@ -168,8 +168,8 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
                                           "M_entropy": self.M_entropy_loss, "M_state_value": self.M_state_value,
                                           "M_advent": self.M_advent, "M_advent_low": self.M_advent_low,
                                           "M_advent_high": self.M_advent_high, "lc": lc}
-        if  hasattr(lc.specific_param,"CLN_AV"):
-            i_cav=globals()[lc.specific_param.CLN_AV]()
+        if  hasattr(lc,"CLN_AV_state"):
+            i_cav=globals()[lc.CLN_AV_state]()
             self.get_OS_AV = i_cav.get_OS_av
         else:
             assert False
@@ -181,7 +181,7 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         Pmodel = self.build_predict_model("P")
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
         input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
-        input_av = keras.Input(shape=lc.specific_param.OS_AV_shape, dtype='float32', name='input_account')
+        input_av = keras.Input(shape=lc.OS_AV_shape, dtype='float32', name='input_account')
         input_a = keras.Input(shape=(lc.train_num_action,), dtype='float32', name='input_action')
         input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')

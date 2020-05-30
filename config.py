@@ -58,6 +58,7 @@ conf= \
         "CLN_env_read_data": "R_T5_skipSwh_balance",
         "CLN_env_get_data_train": "env_get_data_LHP_train",
         "CLN_env_get_data_eval": "env_get_data_LHP_eval",
+        "CLN_AV_state":"Phase_State_V2",
         "CLN_GenStockList": "API_SH_sl",
         "=======system type related class": "=======================",
         "CLN_simulator": "Simulator_LHPP2V2",
@@ -71,6 +72,10 @@ conf= \
         "action_type_dict": {"0": "buy", "1": "no_action", "2": "sell", "3": "no_action"},
         #"method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
         #"method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
+        "=======Train_record_realted=======": "=======================",
+        "TD_get_verified_record": "",
+        "TD_get_after_buy_accumulate_R":"",
+        "Optimize_accumulate_reward_method": "",
         "=======Class_eval_train=======": "=======================",
         "train_scale_factor":20,
         "train_shift_factor":0.01,
@@ -231,9 +236,6 @@ conf= \
         "P2_sell_model_tc": "",
         "=======trial=======": "=======================",
         "Dict_specifc_param": {
-            #"mask_method": "OS_ForceSell_mask",
-            "accumulate_reward_method": "OS_ForceSell_accumulate_reward",
-            "mask_code": "PV"
         }
     }
 class gconfig_specific:
@@ -370,13 +372,20 @@ class gconfig_data:
         self.P2_current_phase = float("nan") #""
         self.P2_sell_system_name = float("nan") #""
         self.P2_sell_model_tc = float("nan") #-1
+        # reward related
+        self.TD_get_verified_record = ""
+        self.TD_get_after_buy_accumulate_R = ""
+        self.Optimize_accumulate_reward_method = ""
+        self.CLN_AV_state = ""
 
+        # value set by config
         self.Dict_specifc_param = {} #{}
         self.train_action_type = float("nan") #""  # "OB,"OS,"BS"
         self.train_num_action = float("nan") #
-        #self.flag_use_ref_num_action = float("nan") # ""  # True False
-        #self.ref_num_action = float("nan") #
 
+        self.OB_AV_shape=()
+        self.OS_AV_shape=()
+        self.raw_AV_shape=()
 
 class gconfig(gconfig_data):
     def __init__(self):
@@ -479,38 +488,33 @@ class gconfig(gconfig_data):
         else:
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
         l_specific_param_title=[]
-        if self.system_type == "LHPP2V2":    #V2 means reuse to multibuy part av to encode signle buy holding duration
+        # 1.Simulator get data
+        assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
+        assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
 
+        # 2.Simulator
+        assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"
+        assert not self.flag_multi_buy
+        assert self.LHP != 0
+        assert self.env_flag_random_start_in_episode_for_eval == True
+
+        # 3.TD_buffer
+        assert self.CLN_TDmemory == "TD_memory_integrated"
+
+        # 5.net_agent
+        assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
+        assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
+        assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
+
+        self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
+            if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
+
+        if self.system_type == "LHPP2V2":    #V2 means reuse to multibuy part av to encode signle buy holding duration
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Sell"
 
-            # 1.Simulator get data
-            assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
-            assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
-
-            # 2.Simulator
-            assert self.CLN_simulator == "Simulator_intergrated" #"Simulator_LHPP2V8"#"Simulator_LHPP2V2"
-            assert not self.flag_multi_buy
-            assert self.LHP != 0
-            assert self.env_flag_random_start_in_episode_for_eval == True
-            l_specific_param_title.append("CLN_AV")
-
-            # 3.TD_buffer
-            assert self.CLN_TDmemory == "TD_memory_integrated"
-            l_specific_param_title.append("get_verified_record")
-            l_specific_param_title.append("get_after_buy_accumulate_R")
-
-            # 5.net_agent
-            assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
-
-            self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False,True] \
-                if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-
             # 6.net_trainer
             assert "LHPP2V2_" in self.CLN_trainer
-            l_specific_param_title.append("accumulate_reward_method")
 
             # 7.action
             self.train_action_type = "OS"
@@ -522,42 +526,17 @@ class gconfig(gconfig_data):
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-            assert self.specific_param.CLN_AV=="Phase_State_V2"
-            setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
-            setattr(self.specific_param, "raw_AV_shape", (self.LHP + 1,))
+
+            assert self.CLN_AV_state == "Phase_State_V2"
+            self.OS_AV_shape = (self.LHP + 1,)
+            self.raw_AV_shape =(self.LHP + 1,)
 
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
-
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
 
-            # 1.Simulator get data
-            assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
-            assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
-
-            # 2.Simulator
-            assert self.CLN_simulator == "Simulator_intergrated"  #"Simulator_LHPP2V8" #"Simulator_LHPP2V3"
-            assert not self.flag_multi_buy
-            assert self.LHP != 0
-            assert self.env_flag_random_start_in_episode_for_eval == True
-            l_specific_param_title.append("CLN_AV")
-
-            # 3.TD_buffer
-            assert self.CLN_TDmemory == "TD_memory_integrated"
-            l_specific_param_title.append("get_verified_record")
-            l_specific_param_title.append("get_after_buy_accumulate_R")
-
-            # 5.net_agent
-            assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_apsv in ["HP", "HP_SP"]
-
-            self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False,True] \
-                if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-
             # 6.net_trainer  # this is to include support for V3 V32 and V33
             assert "LHPP2V3" in self.CLN_trainer
-            l_specific_param_title.append("accumulate_reward_method")
 
             # 7.action
             self.train_action_type = "OB"
@@ -566,52 +545,27 @@ class gconfig(gconfig_data):
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
 
             # 8.specific param
+            assert self.CLN_AV_state in ["Phase_State_V3__1","Phase_State_V3__2"]
+            l_specific_param_title.append("LNB")
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
 
-            assert self.specific_param.CLN_AV in ["Phase_State_V3__1","Phase_State_V3__2"]
-            for item_title in ["LNB"]:
-                assert item_title in list(self.Dict_specifc_param.keys())
-                setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-            if self.specific_param.CLN_AV =="Phase_State_V3__1":
-                setattr(self.specific_param, "OB_AV_shape", (self.specific_param.LNB + 1,))
+            if self.CLN_AV_state =="Phase_State_V3__1":
+                self.OB_AV_shape = (self.specific_param.LNB + 1,)
             else:
-                setattr(self.specific_param, "OB_AV_shape", (1,))
-            setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
-            setattr(self.specific_param, "raw_AV_shape",(self.specific_param.LNB + 1 + self.LHP + 1,))
+                self.OB_AV_shape = (1,)
+            self.OS_AV_shape =(self.LHP + 1,)
+            self.raw_AV_shape = (self.specific_param.LNB + 1 + self.LHP + 1,)
+
 
         elif self.system_type in ["LHPP2V8"]:
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
 
-            # 1.Simulator get data
-            assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
-            assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
-
-            # 2.Simulator
-            assert self.CLN_simulator == "Simulator_intergrated"#"Simulator_LHPP2V8"
-            assert not self.flag_multi_buy
-            assert self.LHP != 0
-            assert self.env_flag_random_start_in_episode_for_eval == True
-            l_specific_param_title.append("CLN_AV")
-
-            # 3.TD_buffer
-            assert self.CLN_TDmemory == "TD_memory_integrated"#"TD_memory_LHPP2V8" # same as TD_memory_LHPP2V3
-            l_specific_param_title.append("get_verified_record")
-            l_specific_param_title.append("get_after_buy_accumulate_R")
-
-            # 5.net_agent
-            assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
-            assert self.agent_method_apsv in ["HP", "HP_SP"]
-
-            self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False,True] \
-                if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-
             # 6.net_trainer  # this is to include support for V3 V32 and V33
             assert self.system_type in self.CLN_trainer
-            l_specific_param_title.append("accumulate_reward_method")
+            #l_specific_param_title.append("accumulate_reward_method")
 
             # 7.action
             self.train_action_type = "B32"
@@ -621,18 +575,16 @@ class gconfig(gconfig_data):
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
 
             # 8.specific param
+            assert self.CLN_AV_state == "Phase_State_V8"
+            l_specific_param_title.append("LNB")
+            l_specific_param_title.append("LNT")
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-            assert self.specific_param.CLN_AV=="Phase_State_V8"
-            for item_title in ["LNB","LNT"]:
-                assert item_title in list(self.Dict_specifc_param.keys())
-                setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
 
-            setattr(self.specific_param, "OS_AV_shape", (self.LHP + 1,))
-            setattr(self.specific_param, "OB_AV_shape", (self.specific_param.LNT+1+self.specific_param.LNB+1+1,))
-            setattr(self.specific_param, "raw_AV_shape",
-                    (self.specific_param.LNT + 1 + self.specific_param.LNB + 1 + self.LHP + 1,))
+            self.OS_AV_shape = (self.LHP + 1,)
+            self.OB_AV_shape = (self.specific_param.LNT+1+self.specific_param.LNB+1+1,)
+            self.raw_AV_shape = (self.specific_param.LNT + 1 + self.specific_param.LNB + 1 + self.LHP + 1,)
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

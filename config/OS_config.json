@@ -122,7 +122,7 @@
     "P2_sell_model_tc": "",
     "=======trial=======": "=======================",
     "Dict_specifc_param": {
-        "accumulate_reward_method": "OS_ForceSell_accumulate_reward"
+        #"accumulate_reward_method": "OS_ForceSell_accumulate_reward"
     },
     "=======Net=======": "=======================",
     "net_config": {

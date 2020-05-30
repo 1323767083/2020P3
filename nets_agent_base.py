@@ -167,9 +167,10 @@ class LV_SV_joint_component:
 class V2OS_4_OB_agent:
     def __init__(self,ob_system_name, Ob_model_tc):
         self._load_model(ob_system_name, Ob_model_tc)
-        if  hasattr(lc.specific_param,"CLN_AV"):
-            self.get_OS_AV =globals()[lc.specific_param.CLN_AV]().get_OS_av
+        if  hasattr(lc,"CLN_AV_state"):
+            self.get_OS_AV =globals()[lc.CLN_AV_state]().get_OS_av
         else:
+            assert False,"CLN_AV_state is mandatory param"
             self.get_OS_AV = LHPP2V2_get_AV
 
 

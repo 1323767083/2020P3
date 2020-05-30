@@ -21,7 +21,7 @@ class Phase_State_template:
         self.APSDic = {
         }
         self.CuPs_limits = []
-        assert lc.specific_param.raw_AV_shape==(1,)
+        assert lc.raw_AV_shape==(1,)
 
     def reset(self):
         self.CuP=self.P_init
@@ -76,12 +76,12 @@ class Phase_State_V2(Phase_State_template):
             3: [[self.P_HP, self.P_HP]]
         }
         self.CuPs_limits = [lc.LHP]
-        assert lc.specific_param.raw_AV_shape == (lc.LHP + 1,)
+        assert lc.raw_AV_shape == (lc.LHP + 1,)
 
     def fabricate_av_and_update_support_view(self, state, support_view_dic, flag_force_sell):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
-        lav=[1 if idx ==idx_HP else 0 for idx in list(range(lc.specific_param.raw_AV_shape[0]))]
+        lav=[1 if idx ==idx_HP else 0 for idx in list(range(lc.raw_AV_shape[0]))]
         state.append(np.array(lav).reshape(1, -1))
         support_view_dic["holding"] = 1 if state[2][0][0] == 0 else 0
         support_view_dic["flag_force_sell"]=flag_force_sell
@@ -93,7 +93,7 @@ class Phase_State_V2(Phase_State_template):
 
 
     def get_OS_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         return av
 
     def get_OB_av(self,av):
@@ -103,8 +103,8 @@ class Phase_State_V2(Phase_State_template):
         return False if av_item[0] == 1 else True
 
     def sanity_check_av_shape(self):
-        assert lc.specific_param.OS_AV_shape== (lc.LHP + 1,)
-        assert lc.specific_param.raw_AV_shape == (lc.LHP + 1,)
+        assert lc.OS_AV_shape== (lc.LHP + 1,)
+        assert lc.raw_AV_shape == (lc.LHP + 1,)
 
 
 class Phase_State_V3__1(Phase_State_template):
@@ -126,13 +126,13 @@ class Phase_State_V3__1(Phase_State_template):
             3: [[self.P_HP, self.P_HP]]
         }
         self.CuPs_limits = [lc.specific_param.LNB, lc.LHP]
-        assert lc.specific_param.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
+        assert lc.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
 
     def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NB=self.CuPs_idx[self.P_NB] + lc.LHP + 1
-        lav=[1 if idx in [idx_HP,idx_NB] else 0 for idx in list(range(lc.specific_param.raw_AV_shape[0]))]
+        lav=[1 if idx in [idx_HP,idx_NB] else 0 for idx in list(range(lc.raw_AV_shape[0]))]
         #state.append(np.array(lav).reshape(1, -1))
         nav=np.array(lav).reshape(1, -1)
         if self.CuP in [self.P_HP,self.P_END]:
@@ -144,28 +144,28 @@ class Phase_State_V3__1(Phase_State_template):
         #                    self.CuPs_idx[self.P_HP] == self.CuPs_limits[self.P_HP] else False
 
     def get_OS_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         return av[:,:lc.LHP + 1]
 
     def get_OB_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         return av[:, lc.LHP + 1:]
 
     def check_holding_item(self,av_item):
         return False if av_item[0] == 1 else True
 
     def sanity_check_av_shape(self):
-        assert lc.specific_param.OS_AV_shape== (lc.LHP + 1,)
-        assert lc.specific_param.OB_AV_shape == (lc.specific_param.LNB + 1,)
-        assert lc.specific_param.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
+        assert lc.OS_AV_shape == (lc.LHP + 1,)
+        assert lc.OB_AV_shape == (lc.specific_param.LNB + 1,)
+        assert lc.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
 
 class Phase_State_V3__2(Phase_State_V3__1):
     def sanity_check_av_shape(self):
-        assert lc.specific_param.OS_AV_shape== (lc.LHP + 1,)
-        assert lc.specific_param.OB_AV_shape == (1,)
-        assert lc.specific_param.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
+        assert lc.OS_AV_shape== (lc.LHP + 1,)
+        assert lc.OB_AV_shape == (1,)
+        assert lc.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
     def get_OB_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         return av[:, :1]
 
 
@@ -191,14 +191,14 @@ class Phase_State_V8(Phase_State_template):
             4: [[self.P_NT, self.P_NT]]
         }
         self.CuPs_limits = [lc.specific_param.LNT, lc.specific_param.LNB, lc.LHP]
-        assert lc.specific_param.raw_AV_shape[0]==lc.specific_param.LNT+1+lc.specific_param.LNB+1+lc.LHP+1
+        assert lc.raw_AV_shape[0]==lc.specific_param.LNT+1+lc.specific_param.LNB+1+lc.LHP+1
 
     def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NT=self.CuPs_idx[self.P_NT] + lc.LHP + 1
         idx_NB=self.CuPs_idx[self.P_NB] + lc.LHP + 1 + lc.specific_param.LNT +1
-        lav=[1 if idx in [idx_HP,idx_NT,idx_NB] else 0 for idx in list(range(lc.specific_param.raw_AV_shape[0]))]
+        lav=[1 if idx in [idx_HP,idx_NT,idx_NB] else 0 for idx in list(range(lc.raw_AV_shape[0]))]
         #state.append(np.array(lav).reshape(1, -1))
         nav=np.array(lav).reshape(1, -1)
         if self.CuP==self.P_NB:
@@ -215,12 +215,12 @@ class Phase_State_V8(Phase_State_template):
         support_view_dic["flag_force_sell"] =flag_force_sell
 
     def get_OS_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         return av[:,:lc.LHP + 1]
 
 
     def get_OB_av(self,av):
-        assert av.shape[1]==lc.specific_param.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0]
         av_OB=np.concatenate([av[:,:1],av[:,lc.LHP + 1:]], axis=-1)
         return av_OB
 
@@ -228,8 +228,8 @@ class Phase_State_V8(Phase_State_template):
         return False if av_item[0] == 1 else True
 
     def sanity_check_av_shape(self):
-        assert lc.specific_param.OS_AV_shape== (lc.LHP + 1,)
-        assert lc.specific_param.OB_AV_shape == (lc.specific_param.LNT + 1 + lc.specific_param.LNB + 1 + 1,)
-        assert lc.specific_param.raw_AV_shape == (lc.specific_param.LNT + 1 + lc.specific_param.LNB + 1 + lc.LHP + 1,)
+        assert lc.OS_AV_shape== (lc.LHP + 1,)
+        assert lc.OB_AV_shape == (lc.specific_param.LNT + 1 + lc.specific_param.LNB + 1 + 1,)
+        assert lc.raw_AV_shape == (lc.specific_param.LNT + 1 + lc.specific_param.LNB + 1 + lc.LHP + 1,)
 
 
