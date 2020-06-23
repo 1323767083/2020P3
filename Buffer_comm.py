@@ -138,8 +138,6 @@ class brain_buffer_reuse:
 
 #worker with eval / worker with eval prepare data send to server
 class buffer_to_train:
-    #def __init__(self, num_stocks_in_one_group, FDn=1):
-    #def __init__(self, num_stocks_in_one_group, Brain_gamma, Brain_FDn, memory_buffer_class_name):
     def __init__(self, num_stocks_in_one_group):
         self.num_stocks_in_one_group = num_stocks_in_one_group
         self.Brain_FDn = lgc.TDn
