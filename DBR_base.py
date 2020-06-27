@@ -4,7 +4,7 @@ class DBR_base:
     SDir_IDB="I_DB"
     SDir_TPDB="TP_DB"
     Dir_Tmp="/home/rdchujf/tmp"
-    Dir_DB_Base = "/home/rdchujf/n_workspace/daa/RL_data"
+    Dir_DB_Base = "/home/rdchujf/n_workspace/data/RL_data"
     FN_Raw_Source = "Raw_Source.json"
 
     #raw lumpsum addon data param
