@@ -1,10 +1,10 @@
-from DB_base import DB_base
+from DBR_base import DBR_base
 import os,random
 import subprocess
 import pandas as pd
-class RawData(DB_base):
+class RawData(DBR_base):
     def __init__(self,Raw_lumpsum_End_DayI):
-        DB_base.__init__(self,Raw_lumpsum_End_DayI)
+        DBR_base.__init__(self,Raw_lumpsum_End_DayI)
 
     #********************Internal API**************************
     def _get_qz_df(self, fnwp):
