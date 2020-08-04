@@ -1,3 +1,13 @@
 Open jupyter on server
 conda activate p37
 jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser --notebook-dir="/home/rdchujf/n_workspace"
+
+
+view h5py
+vitables
+
+apt install libhdf5-dev
+
+conda install -c anaconda pyqt
+
+conda  install vitables

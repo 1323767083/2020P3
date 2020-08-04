@@ -1,4 +1,3 @@
-from sklearn import preprocessing
 from copy import deepcopy
 
 import os,h5py, sys
