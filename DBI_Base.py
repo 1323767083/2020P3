@@ -29,7 +29,8 @@ DBI data structure
    *sanitycheck time line base on last lumpsumdate from DBR_reader and files under Addonlog
 '''
 {
-   "Elements":["DateI","Price_VS_Mount","Sell_Dan","Buy_Dan","Norm_Average_Nprice_And_Mount_Whole_Day","Potential_Nprice_930","HFQ_Ratio","Exchange_Ratios"]
+   "Elements":["DateI","Price_VS_Mount","Sell_Dan","Buy_Dan","Norm_Average_Nprice_And_Mount_Whole_Day",
+               "Potential_Nprice_930","HFQ_Ratio","Exchange_Ratios"]
 }
 
 {
@@ -160,7 +161,6 @@ class DBI_init(DB_Base):
             Error_mess = "{0} {1} {2}".format(hfq_mess,DayI, hfq_mess)
             print(Error_mess)
             return False, Error_mess
-
         decompress_flag, decompress_mess=self.IRD.decompress_normal_addon_qz(DayI, addon_qz_compress_fnwp,os.path.dirname(addon_qz_decompress_fnwp))
         if not decompress_flag:
             Error_mess = "{0} {1}".format(decompress_mess,DayI)
@@ -174,6 +174,8 @@ class DBI_init(DB_Base):
                 return False, mess
             if DBIdf[DBIdf["date"] == str(DayI)].empty:
                 input=idx_rawdf[idx_rawdf["code"]==index_code].iloc[0].values
+                if input.size==0:
+                    return False, "No Data for {0} at {1} in addon Index file".format(index_code, DayI)
                 DBIdf.loc[len(DBIdf)]=input
                 DBIdf.sort_values(by="date",inplace=True)
                 DBIdf.to_csv(fnwp,index=False)
@@ -188,10 +190,8 @@ class DBI_init(DB_Base):
         Log_List = []
         for ll in [[HFQ_no_QZ_L,"In raw HFQ not in raw QZ"],[QZ_no_HFQ_L,"In raw Qz not in raw HFQ"]]:
             for code in ll[0]:
-                log_item = [code, False, ll[1]]
-                print(log_item)
-                Log_List.append(log_item)
-
+                Log_List.append([code, False, ll[1]])
+                print(Log_List[-1])
         for stock in HFQ_and_QZ_L:
             fnwp = self.get_DBI_hfq_fnwp(stock)
             if os.path.exists(fnwp):
@@ -204,6 +204,7 @@ class DBI_init(DB_Base):
                 DBIdf= pd.DataFrame(columns=self.title_hfq)
             if DBIdf[DBIdf["date"] == str(DayI)].empty:
                 input=hfq_rawdf[hfq_rawdf["code"]==stock].values.tolist()
+                assert  input.size!=0, "stock in raw addon HFQ and in raw QZ can not in this situation"
                 DBIdf.loc[len(DBIdf)]=input[0]
                 DBIdf.sort_values(by="date", inplace=True)
                 DBIdf.to_csv(fnwp, index=False)
@@ -241,21 +242,41 @@ class DBI_init(DB_Base):
             idx=lidx[0][-1]
         return idx, self.nptd[idx]
 
-    def get_stock_list_fnwp(self,StartI, EndI, list_type):
-        print (StartI, EndI, list_type)
-        dn=self.Dir_IDB
-        for sub_dir in ["Stock_List","{0:08d}_{1:08d}".format(StartI, EndI) ]:
-            dn=os.path.join(dn,sub_dir)
-            if not os.path.exists(dn): os.mkdir(dn)
-        if list_type=="Total":
-            return os.path.join(dn, "Total.csv")
-        elif "Train" in list_type or "Eval" in list_type:
-            return os.path.join(dn, "{0}.csv".format(list_type))
-        else:
-            assert False, "list_type Not Supported**** {0}".format(list_type)
+{
+    "TLStartI":20180101,
+    "TLEndI":20200531,
+    "TrainNums": [600],
+    "EvalNums":[150,150],
+    "IPO_threadhold":100,
+    "SL_Filter": "SH",
+    "DBTP_Generator":
+        [["Train", 0, 20180101, 20191231],
+        ["Eval", 0, 20180101, 20191231],
+        ["Eval", 1, 20200101, 20200531]]
+}
+class StockList(DBI_init):
+    def __init__(self, SLName):
+        DBI_init.__init__(self)
+        self.SLName=SLName
+        self.SL_wdn=os.path.join(self.Dir_DBI_SL,self.SLName)
+        assert os.path.exists(self.SL_wdn), self.SL_wdn
+        SL_Def_fnwp=os.path.join(self.SL_wdn,"SL_Definition.json")
+        self.SLDef = json.load(open(SL_Def_fnwp, "r"), object_pairs_hook=OrderedDict)
 
-    def get_total_stock_list(self,StartI, EndI, IPO_threadhold=100):
-        slfnwp=self.get_stock_list_fnwp(StartI, EndI,"Total")
+    def TL_fnwp(self):
+        return os.path.join(self.SL_wdn,"Total.csv")
+
+    def Sub_fnwp(self, tag, idx):
+        assert tag in ["Train", "Eval"]
+        return os.path.join(self.SL_wdn, "{0}_{1}.csv".format( tag, idx))
+
+
+    def get_total_stock_list(self):
+        StartI          =   self.SLDef["TLStartI"]
+        EndI            =   self.SLDef["TLEndI"]
+        IPO_threadhold  =   self.SLDef["IPO_threadhold"]
+
+        slfnwp=self.TL_fnwp()
         if os.path.exists(slfnwp):
             df = pd.read_csv(slfnwp, header=0, names=["stock"])
             return df["stock"].tolist()
@@ -282,8 +303,11 @@ class DBI_init(DB_Base):
         df.to_csv(slfnwp, index=False)
         return df["stock"].tolist()
 
-    def generate_Train_Eval_stock_list(self,StartI, EndI, l_Train_num, l_Eval_num, filter):
-        Total_list=self.get_total_stock_list( StartI, EndI)
+    def generate_Train_Eval_stock_list(self):
+        l_Train_num = self.SLDef["TrainNums"]
+        l_Eval_num  = self.SLDef["EvalNums"]
+        filter      = self.SLDef["SL_Filter"]
+        Total_list=self.get_total_stock_list()
         if filter not in ["SH", "SZ"]:
             return False, "Filter Not Support****{0}".format(filter)
         adj_Total_List=[stock for stock in Total_list if filter in stock]
@@ -294,15 +318,12 @@ class DBI_init(DB_Base):
         for l_num, tag in zip([l_Train_num,l_Eval_num],["Train", "Eval"]):
             for id,num in enumerate(l_num):
                 extract_list=adj_Total_List[:num]
-                fnwp=self.get_stock_list_fnwp(StartI, EndI,"{0}{1}".format(tag,id))
+                fnwp=self.Sub_fnwp(tag,id)
                 pd.DataFrame(extract_list,columns=["stock"]).to_csv(fnwp, index=False)
                 adj_Total_List=adj_Total_List[num:]
         return True, "Success"
 
-    def get_generated_Train_Eval_stock_list(self,StartI, EndI, list_type):
-        fnwp=self. get_stock_list_fnwp(StartI, EndI, list_type)
-        if not os.path.exists(fnwp): return False,"","Stock List Not Generated Yet****{0} ".format(fnwp)
-        return True, pd.read_csv(fnwp,header=0, names=["stock"])["stock"].tolist(), "Success"
+
 
 class DBI_Base(DBI_init):
     def __init__(self, DBI_name):

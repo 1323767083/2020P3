@@ -257,7 +257,8 @@ class DBI_Creater(DBI_Base):
         return True, df[df["date"] == str(DayI)].empty, "Success"
 
     def get_Tinpai_item(self, DBITypeD,DayI):
-        assert DBITypeD in ["NPrice", "Percent", "Volume", "Ratio", "DateI","NPrice_Not_Normal","Flag"]
+        assert DBITypeD in ["NPrice", "Percent", "Volume", "Ratio", "DateI","NPrice_Not_Normal","Tradable_Flag","NPrice_Not_Normal"],\
+            "{0} {1}".format( DBITypeD,DayI)
         if DBITypeD in ["NPrice", "Volume"]:
             return 0
         elif DBITypeD in ["Percent", "Ratio"]:
@@ -266,7 +267,7 @@ class DBI_Creater(DBI_Base):
             return 0
         elif DBITypeD in ["DateI"]:
             return DayI
-        elif DBITypeD in ["Flag"]:
+        elif DBITypeD in ["NPrice_Not_Normal"]:
             return False
 
     def get_oneday_tinpai(self,Stock, DayI):
@@ -309,17 +310,11 @@ class DBI_Creater(DBI_Base):
 
     def generate_DBI_day(self, Stock, DayI):
         if DayI>self.Raw_Normal_Lumpsum_EndDayI:
-            flag, mess = self.Update_DBI_addon_HFQ_Index(DayI)
-            print(mess)
-            if not flag:
-                return flag, mess
-            else:
-                if mess=="Success":
-                    pass
-                elif mess.split("****")[0]=="Already Update DBI":
-                    return True, "Success"  # no need to do it again
-                else:
-                    raise ValueError("Unexpected restun message {0} {1}".format(flag, mess))
+            logfnwp = self.get_DBI_Update_Log_HFQ_Index_fnwp(DayI)
+            if not os.path.exists(logfnwp):
+                Error_Mess="Need Update Index and HFQ and decompress QZ for {0} first".format(DayI)
+                print (Error_Mess)
+                return False, Error_Mess
         logfnwp = self.get_DBI_log_fnwp(Stock)
 
         DBI_HFQ_fnwp=self.get_DBI_hfq_fnwp(Stock)

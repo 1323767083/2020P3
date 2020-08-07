@@ -63,11 +63,12 @@ class DB_Base:
         self.Dir_IDB=os.path.join(self.Dir_DB_Base,self.SDir_IDB)
         self.Dir_DBI_index = os.path.join(self.Dir_IDB, "index")
         self.Dir_DBI_HFQ = os.path.join(self.Dir_IDB, "HFQ")
+        self.Dir_DBI_SL = os.path.join(self.Dir_IDB, "Stock_List")
         self.Dir_DBI_Update_Log_HFQ_Index=os.path.join(self.Dir_IDB, "Update_Log_HFQ_Index")
         self.Dir_TPDB=os.path.join(self.Dir_DB_Base,self.SDir_TPDB)
 
         for dir in [self.Dir_DB_Base,self.Dir_IDB,self.Dir_TPDB,
-                    self.Dir_DBI_index,self.Dir_DBI_HFQ,self.Dir_DBI_Update_Log_HFQ_Index,
+                    self.Dir_DBI_index,self.Dir_DBI_HFQ,self.Dir_DBI_Update_Log_HFQ_Index,self.Dir_DBI_SL,
                     self.Dir_raw_HFQ_base_addon,
                     self.Dir_raw_Index_base_addon,self.Dir_raw_HFQ_base_addon_decompressed,
                     self.Dir_raw_Index_base_addon_decompressed]:

@@ -1,5 +1,5 @@
 from DBTP_Base import DBTP_Base
-from DBI_Base import DBI_init
+from DBI_Base import DBI_init,StockList
 from sklearn.preprocessing import minmax_scale
 from data_common import hfq_toolbox
 import numpy as np
@@ -138,21 +138,15 @@ class DBTP_Creater(DBTP_Base):
             result_datas[FT_idx] = result_data_item
         return result_datas
 
-    def create_DBTP_data_From_DBI(self):
-        result_datas=self.create_DBTP_Raw_Data_From_DBI()
-        result_datas=self.Adjust_on_NPrice(result_datas)
-        result_datas = self.Adjust_on_Volume(result_datas)
-        return result_datas
-
-
-
     def get_DBTP_data(self, Stock, DayI):
         fnwp = self.get_DBTP_data_fnwp(Stock, DayI)
         if os.path.exists(fnwp):
             return pickle.load(open(fnwp,"rb"))
 
         print("DBTP generate {0} {1} from DBI".format(Stock, DayI))
-        result_datas=self.create_DBTP_data_From_DBI()
+        result_datas=self.create_DBTP_Raw_Data_From_DBI()
+        result_datas=self.Adjust_on_NPrice(result_datas)
+        result_datas = self.Adjust_on_Volume(result_datas)
         pickle.dump(result_datas, open(fnwp, "wb"))
         return result_datas
 
@@ -167,18 +161,16 @@ class DBTP_Creater(DBTP_Base):
         else:
             return False, "No trading day between {0} {1}".format(StartI, EndI)
         logfnwp = self.get_DBTP_data_log_fnwp(Stock)
-        flag_init=True #This flag is to handle first 19 day do not have enough recourd does not mean they can not have later DBTP dats
         for DayI in period:
             flag, mess=self.buff.Add(Stock,DayI)
             if not flag:
                 self.log_append_keep_new([[flag,DayI,mess]], logfnwp, ["Result", "Date", "Message"])
-                self.buff.Reset()   # dicontinues in self.memory , so should reset meomory
+                #self.buff.Reset()   #already called in Add dicontinues in self.memory , so should reset meomory
                 continue
             if not self.buff.Is_Ready():
-                if not flag_init:
+                if DayI>=StartI:
                     self.log_append_keep_new([[False, DayI, "Not Enough Record"]], logfnwp, ["Result", "Date", "Message"])
                 continue
-            flag_init=False
             assert self.buff.Is_Last_Day(DayI)
 
             self.get_DBTP_data(Stock, DayI)
@@ -188,22 +180,22 @@ class DBTP_Creater(DBTP_Base):
 
 
 class Process_Generate_DBTP(Process):
-    def __init__(self, DBTP_Name, Stocks, StartI, EndI, process_id ):
+    def __init__(self, DBTP_Name, SL_Name,Stocks, StartI, EndI, process_id ):
         Process.__init__(self)
         self.iDBTP_Creater=DBTP_Creater(DBTP_Name)
         self.Stocks=Stocks
         self.StartI= StartI
         self.EndI= EndI
-        dn=self.iDBTP_Creater.Dir_IDB
-        for sub_dir in ["Stock_List","{0:08d}_{1:08d}".format(StartI, EndI) ]:
-            dn=os.path.join(dn,sub_dir)
-            if not os.path.exists(dn): os.mkdir(dn)
-        logdn=os.path.join(self.iDBTP_Creater.Dir_IDB,"Stock_List","{0:08d}_{1:08d},CreateLog".format(StartI, EndI) )
-        if not os.path.exists(logdn): os.mkdir(logdn)
-        self.stdoutfnwp=os.path.join(logdn,"P{0}out.txt".format(process_id))
-        pd.DataFrame(self.Stocks,columns=["stock"]).to_csv(os.path.join(logdn,"stoklist{0}.csv".format(process_id)), index=False)
+        logdn=self.iDBTP_Creater.Dir_IDB
+        for sub_dir in ["Stock_List",SL_Name, "CreateLog"]:
+            logdn=os.path.join(logdn,sub_dir)
+            if not os.path.exists(logdn): os.mkdir(logdn)
+
+        self.stdoutfnwp=os.path.join(logdn,"Process{0}Output.txt".format(process_id))
+        pd.DataFrame(self.Stocks,columns=["stock"]).to_csv(os.path.join(logdn,"Process{0}SL.csv".format(process_id)), index=False)
 
     def run(self):
+        print ("Printout has been redirected to {0}".format(self.stdoutfnwp))
         from contextlib import redirect_stdout
         newstdout = open(self.stdoutfnwp, "a")
         with redirect_stdout(newstdout):
@@ -215,26 +207,26 @@ class Process_Generate_DBTP(Process):
                 flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
                 print ("End with {0}".format(mess))
                 newstdout.flush()
-
-def DBTP_main(DBTP_Name="TPVTest",StartI= 20180101, EndI = 20180131, NumP=4):
-    iSAPI=DBI_init()
-    SL=iSAPI.get_total_stock_list(StartI, EndI)
-    SL=SL[:20]
-    sub_len=len(SL)//NumP
-    sub_beneficial=len(SL)%NumP
-    PIs=[]
-    for i in list(range(NumP)):
-        len_to_get=sub_len+1 if i< sub_beneficial else sub_len
-        PI=Process_Generate_DBTP(DBTP_Name, SL[:len_to_get+1], StartI, EndI,i)
-        PI.start()
-        PIs.append(PI)
-        SL=SL[len_to_get+1:]
-    while True:
-        time.sleep(10)
-        if any([PI.is_alive() for PI in PIs]):
-            continue
-        else:
-            break
-    for PI in PIs:
-        PI.join()
+def DBTP_main(DBTP_Name,SL_Name, NumP=4):
+    iSL=StockList(SL_Name)
+    for tag, idx, StartI, EndI in iSL.SLDef["DBTP_Generator"]:
+        assert StartI<EndI and StartI//1000000==20 and EndI//1000000==20
+        fnwp=iSL.Sub_fnwp(tag, idx)
+        if not os.path.exists(fnwp):
+            print ("File Not exist {0}".format(fnwp))
+            return
+        sl=pd.read_csv(fnwp,header=0, names=["stock"])["stock"].tolist()
+        sub_len=len(sl)//NumP
+        sub_beneficial=len(sl)%NumP
+        PIs=[]
+        for i in list(range(NumP)):
+            len_to_get=sub_len+1 if i< sub_beneficial else sub_len
+            PI=Process_Generate_DBTP(DBTP_Name, SL_Name,sl[:len_to_get+1], StartI, EndI,i)
+            PI.start()
+            PIs.append(PI)
+            sl=sl[len_to_get+1:]
+        while  any([PI.is_alive() for PI in PIs]):
+            time.sleep(10)
+        for PI in PIs:
+            PI.join()
 
