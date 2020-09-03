@@ -60,11 +60,11 @@ def create_system(RL_systemn_dir):
     new_param_fnwp=os.path.join(RL_systemn_dir, new_system_name,"config.json")
     json.dump(param,open(new_param_fnwp,"w"),indent=4)
 
-    l_fn_tocopy=[fn for fn in os.listdir(source_system_dir) if fn.endswith(".csv")]
-    for fn in l_fn_tocopy:
-        sfnwp=os.path.join(source_system_dir, fn)
-        nfnwp=os.path.join(new_system_dir, fn)
-        shutil.copy(sfnwp, nfnwp)
+    #l_fn_tocopy=[fn for fn in os.listdir(source_system_dir) if fn.endswith(".csv")]
+    #for fn in l_fn_tocopy:
+    #    sfnwp=os.path.join(source_system_dir, fn)
+    #    nfnwp=os.path.join(new_system_dir, fn)
+    #    shutil.copy(sfnwp, nfnwp)
 
 def remove_system_sub_dirs(system_dir):
 
@@ -78,6 +78,47 @@ def remove_system_sub_dirs(system_dir):
             shutil.rmtree(directory_to_remove)
             print("remove ", directory_to_remove)
 
+def create_eval_system():
+    print("select the system to base from")
+
+    lfn=os.listdir(sc.base_dir_RL_system)
+    source_system_name=getselected_item_name(lfn)
+    source_system_dir=os.path.join(sc.base_dir_RL_system,source_system_name)
+    source_fnwp=os.path.join(source_system_dir,"config.json")
+    param = json.load(open(source_fnwp, "r"), object_pairs_hook=OrderedDict)
+    flag_not_found=True
+    new_system_dir=""
+    new_system_name=""
+    while flag_not_found:
+        new_system_name=input("Enter the new system name: ")
+        new_system_dir=os.path.join(sc.base_dir_RL_system,new_system_name)
+        if not os.path.exists(new_system_dir):
+            flag_not_found=False
+        else:
+            decision=input("{0} already exists, delete it? Yes/No".format(new_system_name))
+            if decision=="Yes":
+                shutil.rmtree(new_system_dir)
+                flag_not_found = False
+            else:
+                continue
+    os.mkdir(new_system_dir)
+    param["RL_system_name"]=new_system_name
+    new_data_name = input("Enter the new data name: ")
+    param["data_name"]=new_data_name
+
+    new_param_fnwp=os.path.join(sc.base_dir_RL_system, new_system_name,"config.json")
+    json.dump(param,open(new_param_fnwp,"w"),indent=4)
+
+    source_system_model_dir=os.path.join(source_system_dir,"model")
+    new_system_model_dir=os.path.join(new_system_dir,"model")
+    os.symlink(source_system_model_dir, new_system_model_dir)
+    #if not os.path.exists(new_system_model_dir): os.mkdir(new_system_model_dir)
+    #l_fn_tolink=os.listdir(source_system_model_dir)
+    #for fn in l_fn_tolink:
+    #    sfnwp=os.path.join(source_system_model_dir,fn)
+    #    dfnwp=os.path.join(new_system_model_dir,fn)
+    #    os.symlink(sfnwp, dfnwp)
+    return new_system_name
 
 def start_tensorboard(port, logdir):
     from tensorboard import program
@@ -99,6 +140,8 @@ def start_tensorboard(port, logdir):
     while True:
         time.sleep(6000)
 
+
+
     #"scp /home/rdchujf/n_workspace/T*.py 192.168.199.100:/home/rdchujf/n_workspace"
     #"scp -r user@your.server.example.com:/path/to/foo /home/user/Desktop/"
 
@@ -113,8 +156,19 @@ class copy_between_two_machine:
         myCmd = os.popen(command_to_run).read()
         return myCmd
 
+    def get_IP_input(self, Title):
+        IP_get="Fake"
+        while not (len(IP_get.split(""))==4 or len(IP_get)==0):
+            IP_get = input("Enter {0} IP address: ".format(Title))
+        return IP_get
 
-    def copy_between_two_machine(self,src_IP_address, des_IP_address):
+    #def copy_between_two_machine(self,src_IP_address, des_IP_address):
+    def copy_between_two_machine(self):
+        src_IP_address=self.get_IP_input("Source")
+        des_IP_address = self.get_IP_input("Destination")
+        #src_IP_address = input("Enter source IP address: ")
+
+
         l_sub_dir_to_copy=["analysis", "Eval_0","tensorboard","record_state"]
 
 
@@ -160,46 +214,6 @@ class copy_between_two_machine:
         command_to_run="scp  {0}/config.json {1}".format(src_address,des_address)
         self.run_command(command_to_run)
 
-def create_eval_system(new_data_name):  #new_data_name="T5_V2_"
-    print("select the system to base from")
-
-    lfn=os.listdir(sc.base_dir_RL_system)
-    source_system_name=getselected_item_name(lfn)
-    source_system_dir=os.path.join(sc.base_dir_RL_system,source_system_name)
-    source_fnwp=os.path.join(source_system_dir,"config.json")
-    param = json.load(open(source_fnwp, "r"), object_pairs_hook=OrderedDict)
-    flag_not_found=True
-    new_system_dir=""
-    new_system_name=""
-    while flag_not_found:
-        new_system_name=input("Enter the new system name: ")
-        new_system_dir=os.path.join(sc.base_dir_RL_system,new_system_name)
-        if not os.path.exists(new_system_dir):
-            flag_not_found=False
-        else:
-            decision=input("{0} already exists, delete it? Yes/No".format(new_system_name))
-            if decision=="Yes":
-                shutil.rmtree(new_system_dir)
-                flag_not_found = False
-            else:
-                continue
-    os.mkdir(new_system_dir)
-    param["RL_system_name"]=new_system_name
-    param["data_name"]=new_data_name
-
-    new_param_fnwp=os.path.join(sc.base_dir_RL_system, new_system_name,"config.json")
-    json.dump(param,open(new_param_fnwp,"w"),indent=4)
-
-    source_system_model_dir=os.path.join(source_system_dir,"model")
-    new_system_model_dir=os.path.join(new_system_dir,"model")
-    if not os.path.exists(new_system_model_dir): os.mkdir(new_system_model_dir)
-    l_fn_tolink=os.listdir(source_system_model_dir)
-    for fn in l_fn_tolink:
-        sfnwp=os.path.join(source_system_model_dir,fn)
-        dfnwp=os.path.join(new_system_model_dir,fn)
-        os.symlink(sfnwp, dfnwp)
-
-    return new_system_name
 
 
 def load_config_from_system(system_name):
@@ -211,7 +225,8 @@ def load_config_from_system(system_name):
     return lgc
 
 
-from data_T5 import FH_RL_data_1stock
+#from data_T5 import FH_RL_data_1stock
+'''
 def check_correct(stock):
     i=FH_RL_data_1stock("T5",stock)
     l_np_date_s, l_np_large_view, l_np_small_view, l_np_support_view=i.load_main_data()
@@ -227,7 +242,7 @@ def check_correct(stock):
             return True
     print("{0} no error found".format(stock))
     return False
-
+'''
 '''
 lc.Brian_core = float("nan")  # "GPU_0"
 lc.Brian_gpu_percent = float("nan")  # 0.8

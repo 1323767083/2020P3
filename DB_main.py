@@ -12,7 +12,7 @@ commmand_smaples=[
 ]
 def main(argv):
     if len(argv)==0:
-        print ("Comannd Format Sample")
+        print ("Command Format Sample")
         for comand_sample in commmand_smaples:
             print ("\t python DB_main.py ", comand_sample)
         return

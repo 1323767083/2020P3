@@ -130,8 +130,8 @@ def _Gen_Potential_Nprice_Base(inputs, time_interval_list):
 class Potential_Nprice_930(DBI_Generator_Base):
     ShapesM = [2]
     Input_Params = ["QZ_DF"]
-    TitilesD =["Tradable_Flag","Potential_NPrice_930"]
-    TypesD = ["Tradable_Flag","NPrice_Not_Normal"]
+    TitilesD =["Flag_Tradable","Potential_NPrice_930"]
+    TypesD = ["Flag_Tradable","NPrice_Not_Normal"]
     def Gen(self, inputs):
         result= _Gen_Potential_Nprice_Base(inputs, self.param_potential_price_time_interval_list)
         self.Result_Check_Shape(result)
@@ -140,8 +140,8 @@ class Potential_Nprice_930(DBI_Generator_Base):
 class Potential_Nprice_1300(DBI_Generator_Base):
     ShapesM = [2]
     Input_Params = ["QZ_DF"]
-    TitilesD =["Tradable_Flag","Potential_NPrice_1300"]
-    TypesD = ["Tradable_Flag","NPrice_Not_Normal"]
+    TitilesD =["Flag_Tradable","Potential_NPrice_1300"]
+    TypesD = ["Flag_Tradable","NPrice_Not_Normal"]
     def Gen(self, inputs):
         result= _Gen_Potential_Nprice_Base(inputs, self.param_potential_price_time_interval_list[4:])
         self.Result_Check_Shape(result)
@@ -257,7 +257,7 @@ class DBI_Creater(DBI_Base):
         return True, df[df["date"] == str(DayI)].empty, "Success"
 
     def get_Tinpai_item(self, DBITypeD,DayI):
-        assert DBITypeD in ["NPrice", "Percent", "Volume", "Ratio", "DateI","NPrice_Not_Normal","Tradable_Flag","NPrice_Not_Normal"],\
+        assert DBITypeD in ["NPrice", "Percent", "Volume", "Ratio", "DateI","NPrice_Not_Normal","Flag_Tradable","NPrice_Not_Normal"],\
             "{0} {1}".format( DBITypeD,DayI)
         if DBITypeD in ["NPrice", "Volume"]:
             return 0

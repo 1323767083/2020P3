@@ -3,10 +3,13 @@ import os,re,collections
 import pandas as pd
 import numpy as np
 import config as sc
-from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
+#from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
 
 def get_data_start_end(lgc, process_name):
     eval_process_idx = int(re.findall(r"Eval_(\d)", process_name)[0])
+    _, StartI, EndI=lgc.l_eval_SL_param[eval_process_idx]
+    return str(StartI), str(EndI)
+    '''
     eval_data_name = lgc.l_eval_data_name[eval_process_idx]
 
     if eval_data_name == "T5":
@@ -16,7 +19,7 @@ def get_data_start_end(lgc, process_name):
     else:
         raise ValueError("ARE_1stock1EvalT only support T5 or T5_V2_ in get_reward_on_date")
     return data_start_s, data_end_s
-
+    '''
 
 def get_addon_setting(system_name,process_name):
     def Month_list(Start_YM, End_YM):
@@ -59,7 +62,7 @@ def get_addon_setting(system_name,process_name):
     LETs.pop(-1)
     LEvalT = [idx * lgc.num_train_to_save_model for idx in range(LETs[-1] // lgc.num_train_to_save_model + 1)]
     LEvalT.pop(0)
-
+    #print (LEvalT,LETs)
     decision = input("current EvalT from {0} to {1} specify end Eval(Y/N)?".format(LEvalT[0],LEvalT[-1]))
     if decision == "Y":
         endEvalT=LEvalT[-1]+1

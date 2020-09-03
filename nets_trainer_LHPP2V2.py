@@ -205,7 +205,7 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
         assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer"
         num_record_to_train = len(n_s_lv)
-        assert num_record_to_train == lc.batch_size
+        assert num_record_to_train == lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,lc.batch_size,n_s_lv)
         _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_OS_AV(n_s__av)})
         rg = self.ac_reward_fun(n_r, v, l_support_view)
         loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,'input_account': self.get_OS_AV(n_s_av),

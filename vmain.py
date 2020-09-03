@@ -5,7 +5,7 @@ import tkinter as tk
 from miscellaneous import getselected_item_name
 import recorder
 LARGE_FONT = ("Verdana", 12)
-
+from DB_Base import DB_Base
 from vresult import vresult
 from vEreward import vEreward
 from vlayer import vlayer
@@ -41,7 +41,9 @@ def main(argv):
         param = {"system_name":system_name,"eval_process_name":eval_process_name,
                  "Lstock":Lstock,"LEvalT":LEvalT,"LYM": LYM, "lgc":lgc}
     elif view_class in lfun_2:
-        data_name = getselected_item_name(["T5","T5_V2_"], colum_per_row=1)
+        #data_name = getselected_item_name(["T5","T5_V2_"], colum_per_row=1)
+
+        data_name = getselected_item_name(os.listdir(DB_Base().Dir_TPDB), colum_per_row=1)
         param = {"data_name": data_name}
     else:
         assert view_class in lfun_3

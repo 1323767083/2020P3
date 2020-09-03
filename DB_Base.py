@@ -8,13 +8,14 @@ class DB_Base:
     Dir_DB_Base = "/home/rdchujf/n_workspace/data/RL_data"
 
     ##raw lumpsum addon data param
+    '''
     Dir_raw_legacy_1        =   "/home/rdchujf/Stk_qz"
     Dir_raw_legacy_2        =   "/home/rdchujf/Stk_qz_2"
-    Dir_raw_normal          = "/media/rdchujf/2G"
-    Dir_raw_normal_addon    ="/media/rdchujf/2G"
-
-    Dir_raw_normal_decompressed="/media/rdchujf/2G/decompress"
-    Dir_raw_normal_addon_decompressed = "/media/rdchujf/2G/decompress"
+    Dir_raw_normal          = "/media/rdchujf/DB_raw"
+    Dir_raw_normal_addon    ="/media/rdchujf/DB_raw"
+    
+    Dir_raw_normal_decompressed="/media/rdchujf/DB_raw/decompress"
+    Dir_raw_normal_addon_decompressed = "/media/rdchujf/DB_raw/decompress"
 
     Dir_raw_HFQ_base        =   "/home/rdchujf/Stk_qz_3_support/Stk_Day_FQ_WithHS"
     Dir_raw_HFQ_base_addon = "/home/rdchujf/Stk_qz_3_support/Stk_Day_FQ_WithHS_addon"
@@ -25,7 +26,25 @@ class DB_Base:
     Dir_raw_Index_base_addon = "/home/rdchujf/Stk_qz_3_support/Stk_Day_Idx_addon"
     #"/home/rdchujf/Stk_qz_3_support/Stk_Day_Idx_addon/YYYYMM/YYYYMMDD.rar
     Dir_raw_Index_base_addon_decompressed= "/home/rdchujf/Stk_qz_3_support/Stk_Day_Idx_addon_decompress"
+    '''
+    Dir_DB_Raw="/home/rdchujf/DB_raw"
 
+    Dir_raw_legacy_1 = os.path.join(Dir_DB_Raw, "Legacy")
+    Dir_raw_legacy_2 = os.path.join(Dir_DB_Raw, "Legacy")
+    Dir_raw_normal = os.path.join(Dir_DB_Raw, "Normal")
+    Dir_raw_normal_addon = os.path.join(Dir_DB_Raw, "Normal")
+
+    Dir_raw_normal_decompressed =  os.path.join(Dir_raw_normal, "decompress")
+    Dir_raw_normal_addon_decompressed = os.path.join(Dir_raw_normal, "decompress")
+
+    Dir_raw_HFQ_Index=os.path.join(Dir_DB_Raw,"HFQ_Index")
+    Dir_raw_HFQ_base = os.path.join(Dir_raw_HFQ_Index, "Stk_Day_FQ_WithHS")
+    Dir_raw_HFQ_base_addon = os.path.join(Dir_raw_HFQ_Index, "Stk_Day_FQ_WithHS_addon")
+    Dir_raw_HFQ_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_FQ_WithHS_addon_decompress")
+
+    Dir_raw_Index_base = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx")
+    Dir_raw_Index_base_addon = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx_addon")
+    Dir_raw_Index_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx_addon_decompress")
 
     #df structure
     title_qz = ["TranID", "Time", "Price", "Volume", "SaleOrderVolume", "BuyOrderVolume", "Type",
@@ -55,8 +74,16 @@ class DB_Base:
 
     def __init__(self,Raw_lumpsum_End_DayI=20200529):
         self.TD_StartI = 20100101
-        self.Raw_legacy_Lumpsum_StartDayI = 20130415
-        self.Raw_Legacy_Lumpsum_EndDayI = 20171229
+        HostName=os.uname()[1]
+        if HostName=='Y70':
+            self.Raw_legacy_Lumpsum_StartDayI = 20130415
+            self.Raw_Legacy_Lumpsum_EndDayI = 20171229
+        elif HostName=='homeserver':
+            #set self.Raw_legacy_Lumpsum_StartDayI > self.Raw_Legacy_Lumpsum_EndDayI skip legacy
+            self.Raw_legacy_Lumpsum_StartDayI = 20170101
+            self.Raw_Legacy_Lumpsum_EndDayI = 20171229
+        else:
+            assert False, "Not Support Host Name {0}".format(HostName)
         assert Raw_lumpsum_End_DayI>self.Raw_Legacy_Lumpsum_EndDayI
         self.Raw_Normal_Lumpsum_EndDayI = Raw_lumpsum_End_DayI#20200529
 

@@ -1,7 +1,9 @@
 Open jupyter on server
 conda activate p37
 jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser --notebook-dir="/home/rdchujf/n_workspace"
+jupyter notebook --ip 192.168.199.100 --port 6005 --no-browser --notebook-dir="/home/rdchujf/n_workspace"
 
+if need run lantern put the global url in the ignore list
 
 view h5py
 vitables

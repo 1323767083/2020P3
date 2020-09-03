@@ -1,7 +1,7 @@
 {
     "=======General=======": "=======================",
     "data_name": "TPVTest1",
-    "system_type": "LHPP2V2",
+    "system_type": "LHPP2V3",
     "SLName":"SLV1",
     "=======Class=========": "=======================",
     "CLN_brain_train": "Train_Brain",
@@ -10,7 +10,7 @@
     "CLN_env_account": "env_account",
     "CLN_env_get_data_train": "DBTP_Train_Reader",
     "CLN_env_get_data_eval": "DBTP_Eval_Reader",
-    "CLN_AV_state":"Phase_State_V2",
+    "CLN_AV_state":"Phase_State_V3__2",
     "CLN_GenStockList": "StockList",
     "=======system type related=": "=======================",
     "CLN_simulator": "Simulator_intergrated",
@@ -115,11 +115,12 @@
     "=======LHP=": "=======================",
     "LHP": 5,
     "=======P2=======": "=======================",
-    "P2_current_phase": "Train_Sell",
-    "P2_sell_system_name": "",
-    "P2_sell_model_tc": "",
+    "P2_current_phase": "Train_Buy",
+    "P2_sell_system_name": "SepTSell",
+    "P2_sell_model_tc": 75250,
     "=======trial=======": "=======================",
     "Dict_specifc_param": {
+        "LNB": 5
     },
     "=======Net=======": "=======================",
     "net_config": {

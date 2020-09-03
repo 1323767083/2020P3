@@ -3,33 +3,39 @@ from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tkinter as tk
 from tkinter import ttk
-from data_common import API_qz_data_source_related
+#from data_common import API_qz_data_source_related
 from vcomm import Checkbar,label_button_entry
 import nets
 import env
 import numpy as np
-import re,os
+import re,os,pickle
 import config as sc
-import Stocklist_comm as scom
-from data_T5 import R_T5,R_T5_scale,R_T5_balance,R_T5_skipSwh,R_T5_skipSwh_balance
-from data_common import API_trade_date
-
-class vstate(tk.Frame):
+from DBI_Base import DBI_init
+#import Stocklist_comm as scom
+#from data_T5 import R_T5,R_T5_scale,R_T5_balance,R_T5_skipSwh,R_T5_skipSwh_balance
+#from data_common import API_trade_date
+from DBTP_Reader import DBTP_Reader
+class vstate(tk.Frame,DBI_init):
     def __init__(self, container, param):
         tk.Frame.__init__(self, container)
+        DBI_init.__init__(self)
         self.data_name=param["data_name"]
 
 
-        start_s, end_s=API_qz_data_source_related().get_data_state_end_time_s(self.data_name,"SH")
-        td = API_trade_date().np_date_s
+        #start_s, end_s=API_qz_data_source_related().get_data_state_end_time_s(self.data_name,"SH")
+        start_s, end_s=self.Raw_legacy_Lumpsum_StartDayI,self.Raw_Normal_Lumpsum_EndDayI
+        #td = API_trade_date().np_date_s
+        td=self.nptd.astype(str)
         #self.td=td[td<="20170731"]
         self.td = td[(td >= start_s)&(td <= end_s)]
         stock  =   "SH600001"
+        date_s= "20180101"
+        '''
         if self.data_name=="T5":
             date_s="20170731"
         else:
             date_s =   "20180301"
-
+        '''
         self.fig = Figure(figsize=(5, 5), dpi=100)
         self.ins = visual_state_data(self.data_name,stock, date_s)
         self.config_dic ={"stock": "SH600000", "date_up": date_s, "date_down": date_s, "l_mask_choice": [0,0,0,0],"l_threadhold": [0,0,0,0],"l_scale_choice": [0,0,0,0]}
@@ -182,26 +188,30 @@ class vstate(tk.Frame):
                 entry.delete(0, tk.END)
                 entry.insert(0, self.td[idx])
 
-class visual_state_data:
+class visual_state_data(DBTP_Reader):
     #data_name="T5"
     def __init__(self,data_name,stock, date_s, fun_R_T5="R_T5"): #fun_R_T5 in ["R_T5","R_T5_scale","R_T5_balance"]
+        DBTP_Reader.__init__(self,data_name)
         self.data_name=data_name
         self.stock=stock
         self.date_s = date_s
         self.fun_R_T5=fun_R_T5
         #self.ins = R_T5(self.data_name, self.stock)
-        self.ins = globals()[fun_R_T5](self.data_name, self.stock)
+        #self.ins = globals()[fun_R_T5](self.data_name, self.stock)
+
 
     def _get_data(self, stock, date_s):
         if stock!=self.stock:
             self.stock=stock
             #self.ins = R_T5(self.data_name, self.stock)
-            self.ins = globals()[self.fun_R_T5](self.data_name, self.stock)
+            #self.ins = globals()[self.fun_R_T5](self.data_name, self.stock)
+        lv, sv, ref = pickle.load(open(self.get_DBTP_data_fnwp(self.stock, int(date_s)), "rb"))
+        support_view_dic = self.Fill_support_view_with_ref(ref, self.stock, int(date_s),False)
 
-        state, support_view = self.ins.read_one_day_data(date_s)
-        lv, sv = state
+        #state, support_view = self.ins.read_one_day_data(date_s)
+        #lv, sv = state
 
-        return lv, sv, support_view
+        return lv, sv, support_view_dic
 
     def _init_axes(self, fig, rows, cols):
         allaxes = fig.get_axes()
@@ -344,9 +354,13 @@ class visual_state_data:
                     return origin_title[len(remove_prefix):]
             return origin_title
         l_key = list(support_view.keys())
-        l_key.remove("stock")
-        l_key.remove("date")
-        l_key.remove("last_day_flag")
+        #l_key.remove("stock")
+        #l_key.remove("date")
+        #l_key.remove("last_day_flag")
+        l_key.remove("Stock")
+        l_key.remove("DateI")
+        l_key.remove("Flag_LastDay")
+
         title = "{0} {1}".format(support_view["stock"], support_view["date"])
         for key in l_key:
             if type(support_view[key]) is float:

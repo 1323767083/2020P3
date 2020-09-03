@@ -1,32 +1,36 @@
 {
     "=======General=======": "=======================",
-    "data_name": "T5",
+    "data_name": "TPVTest1",
     "system_type": "LHPP2V3",
+    "SLName":"SLV1",
     "=======Class=========": "=======================",
     "CLN_brain_train": "Train_Brain",
     "CLN_brain_explore": "Explore_Brain",
-    "CLN_brain_buffer": "brain_buffer_reuse",
     "CLN_buffer_to_train": "buffer_to_train",
     "CLN_env_account": "env_account",
-    "CLN_env_read_data": "R_T5_skipSwh_balance",
-    "CLN_env_get_data_train": "env_get_data_LHP_train",
-    "CLN_env_get_data_eval": "env_get_data_LHP_eval",
-    "CLN_GenStockList": "API_SH_sl",
+    "CLN_env_get_data_train": "DBTP_Train_Reader",
+    "CLN_env_get_data_eval": "DBTP_Eval_Reader",
+    "CLN_AV_state":"Phase_State_V3__2",
+    "CLN_GenStockList": "StockList",
     "=======system type related=": "=======================",
-    "CLN_simulator": "Simulator_LHPP2V3",
+    "CLN_simulator": "Simulator_intergrated",
     "CLN_trainer": "LHPP2V3_PPO_trainer",
-    "CLN_TDmemory": "TD_memory_LHPP2V3",
+    "CLN_TDmemory": "TD_memory_integrated",
     "=======CLN_agent detailed===": "=======================",
     "agent_method_sv": "CNN",
     "agent_method_joint_lvsv": "CNN",
     "agent_method_apsv": "HP",
     "=======action related====": "=======================",
     "action_type_dict": {
-        "0": "buy",
-        "1": "no_action",
-        "2": "sell",
-        "3": "no_action"
+        "0": "Buy",
+        "1": "No_action",
+        "2": "Sell",
+        "3": "No_action"
     },
+    "=======Train_record_realted=======": "=======================",
+    "TD_get_verified_record": "get_OB_verified_record",
+    "TD_get_after_buy_accumulate_R":"get_after_buy_accumulate_R_discounted",
+    "Optimize_accumulate_reward_method": "optimize_get_accumulate_r",
     "=======Class_eval_train=======": "=======================",
     "train_scale_factor":20,
     "train_shift_factor":0.01,
@@ -37,8 +41,8 @@
     "eval_flag_clip": false,
     "eval_flag_punish_no_action": false,
     "=======Train_brain=======": "=======================",
-    "Brian_core": "GPU_1",
-    "Brian_gpu_percent": 0.4,
+    "Brian_core": "GPU_0",
+    "Brian_gpu_percent": 0.7,
     "flag_brain_log_file": false,
     "flag_brain_log_screen": true,
     "start_train_count": 0,
@@ -50,36 +54,40 @@
     "num_train_record_to_brain": 100,
     "TDn": 1,
     "Buffer_nb_Features": 6,
-    "brain_buffer_reuse_times": 4,
+    "brain_buffer_reuse_times": 1,
     "=======Explore Procee=====": "=======================",
     "l_work_core": [
         "GPU_1"
     ],
     "l_percent_gpu_core_for_work": [
-        0.2
+        0.4
     ],
     "l_flag_worker_log_file": [
-        false
+        true
     ],
     "l_flag_worker_log_screen": [
         true
     ],
+    "l_train_SL_param": [
+        [0, 20180101, 20191231]
+    ],
     "num_workers": 1,
     "=======Eval process=======": "=======================",
     "l_eval_core": [
-        "GPU_1", "GPU_1"
+        "GPU_1","GPU_1"
     ],
     "l_percent_gpu_core_for_eva": [
         0.2,0.2
     ],
     "l_flag_eval_log_file": [
-        false,false
+        true, true
     ],
     "l_flag_eval_log_screen": [
         false,false
     ],
-    "l_eval_data_name": [
-        "T5","T5_V2_"
+    "l_eval_SL_param": [
+        [0,20180101, 20191231],
+        [1,20200101, 20200531]
     ],
     "start_eval_count": 0,
     "eval_num_process": 2,
@@ -93,44 +101,32 @@
     "Brain_optimizer": "Adam",
     "Brain_leanring_rate": 0.0001,
     "Brain_gamma": 0.95,
-    "batch_size": 50,
+    "batch_size": 150,
     "=======Simulator=======": "=======================",
-    "env_min_invest_per_round": 100000,
-    "env_max_invest_per_round": 100000,
-    "env_flag_random_start_in_episode_for_explore": true,
-    "env_flag_random_start_in_episode_for_eval": true,
-    "evn_eval_rest_total_times": 40,
-    "=======train Data=======": "=======================",
-    "train_data_base": 2,
-    "train_data_index": 1,
-    "=======Eval Data=======": "=======================",
-    "eval_data_base": 4,
-    "eval_data_index": 0,
-    "eval_num_stock_per_process": 64,
+    "env_min_invest_per_round": 600000,
+    "env_max_invest_per_round": 600000,
+    "evn_eval_rest_total_times": 100,
     "=======debug=======": "=======================",
     "flag_record_state": true,
     "flag_record_buffer_to_server": false,
     "flag_record_sim": false,
-    "CLN_record_variable": "record_variable2",
-    "record_checked_threahold": 500,
-    "tensorboard_port": 6006,
+    "CLN_record_variable": "record_variable_DBTP",
+    "tensorboard_port": 6002,
     "=======LHP=": "=======================",
     "LHP": 5,
     "=======P2=======": "=======================",
     "P2_current_phase": "Train_Buy",
-    "P2_sell_system_name": "try4-4-2",
-    "P2_sell_model_tc": 7500,
+    "P2_sell_system_name": "SepTSell",
+    "P2_sell_model_tc": 75250,
     "=======trial=======": "=======================",
     "Dict_specifc_param": {
-        "BB_NBD":5,
-        "max_record_taken":10,
-        "punish_r_base":-0.05
+        "LNB": 5
     },
     "=======Net=======": "=======================",
     "net_config": {
         "lv_shape": [
             20,
-            16
+            15
         ],
         "sv_shape": [
             20,
@@ -186,8 +182,7 @@
             2
         ],
         "dense_l": [
-            512,
-            256
+            512
         ],
         "dense_prob": [
             256,
@@ -202,6 +197,15 @@
             64,
             32,
             1
+        ],
+        "###comment###":"only for agent_method_sv, agent_method_joint_lvsv is RNN or RCN",
+        "ms_param_TimeDistributed": [
+            100,
+            256
+        ],
+        "ms_param_CuDNNLSTM": [
+            100,
+            200
         ]
     }
 }

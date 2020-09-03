@@ -4,7 +4,8 @@ import numpy as np
 import config as sc
 import logger_comm  as lcom
 import pipe_comm as pcom
-import Stocklist_comm as scom
+#import Stocklist_comm as scom
+import DBI_Base as  DBI_Base
 import Buffer_comm as bcom
 import av_state as av_state
 import env as env
@@ -14,13 +15,14 @@ from miscellaneous import getselected_item_name, create_system,remove_system_sub
 #from miscellaneous import sanity_check_config
 from A3C_workers import Explore_process,Eval_process, init_A3C_worker
 from A3C_brain import Train_Process, init_A3C_brain
+import DB_main
 class main(Process):
     def __init__(self, argv):
         Process.__init__(self)
         random.seed(2)
         np.random.seed(2)
 
-        l_fun_menu = ["create_train", "remote_copy", "learn", "eval","create_eval"]
+        l_fun_menu = ["create_train", "remote_copy", "learn", "eval","create_eval","DataBase"]
         fun_selected = getselected_item_name(l_fun_menu, colum_per_row=1) if len(argv)==0 else argv[0]
         if fun_selected == "learn":
             self.run = self.main_learn
@@ -34,11 +36,14 @@ class main(Process):
 
             self.init_system(system_name)
         elif fun_selected == "create_eval":
-            create_eval_system("T5_V2_")
+            create_eval_system()
         elif fun_selected == "create_train":
             create_system(sc.base_dir_RL_system)
         elif fun_selected == "remote_copy":
-            copy_between_two_machine().copy_between_two_machine("192.168.199.100","")
+            #copy_between_two_machine().copy_between_two_machine("192.168.199.100","")
+            copy_between_two_machine().copy_between_two_machine()
+        elif fun_selected == "DataBase":
+            DB_main.main(argv[1:])
         else:
             raise ValueError("not support arg {0}".format(argv[1]))
 
@@ -51,9 +56,9 @@ class main(Process):
         self.lgc=lgc
         init_A3C_brain(lgc)
         init_A3C_worker(lgc)
-        for pack in [env,pcom,lcom,scom,bcom,av_state]:
+        for pack in [env, pcom, lcom, bcom, av_state]:
             pack.init_gc(lgc)
-
+        self.iSL=DBI_Base.StockList(lgc.SLName)
         logging.getLogger().setLevel(logging.INFO)
         #set root level to Debug, other wise, no matter the setting on sub level, it will only show waring and error
         self.Manager = Manager()
@@ -98,7 +103,7 @@ class main(Process):
             time.sleep(600)
         self.join_eval()
 
-
+    '''
     def start_brain_process(self):
         LL_output                   =   [self.Manager.list() for _ in range (self.lgc.num_workers)]
         E_stop_brain                =   self.Manager.Event()
@@ -111,48 +116,74 @@ class main(Process):
         TrainP.start()
         return TrainP, LL_output, D_share, E_stop_brain, LE_update_weight,LE_worker_work
 
-    def start_worker_process(self, idx, Manager, data_name,learn_sl, L_output, D_share, E_update_weight,E_worker_work ):
+    def start_worker_process(self, idx, Manager, data_name,learn_sl, SL_StartI, SL_EndI,L_output, D_share, E_update_weight,E_worker_work ):
         p_name = "{0}_{1}".format(self.lgc.client_process_name_seed, idx)
         E_stop = Manager.Event()
-        ExploreP=Explore_process(p_name, idx, data_name,learn_sl,L_output, D_share, E_stop, E_update_weight, E_worker_work)
+        ExploreP=Explore_process(p_name, idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, D_share, E_stop, E_update_weight, E_worker_work)
         ExploreP.daemon = True
         ExploreP.start()
         return ExploreP,E_stop
 
-    def start_eval_process(self, idx, Manager,data_name,unl_eval_sl):
+    def start_eval_process(self, idx, Manager,data_name,unl_eval_sl,SL_StartI, SL_EndI):
         E_stop_eval = Manager.Event()
         p_name = "{0}_{1}".format(self.lgc.eval_process_seed, idx)
-        EvalP=Eval_process(p_name, idx, data_name,unl_eval_sl,None, E_stop_eval)
+        EvalP=Eval_process(p_name, idx, data_name,unl_eval_sl,SL_StartI, SL_EndI,None, E_stop_eval)
         EvalP.daemon = True
         EvalP.start()
         return EvalP,E_stop_eval
+    '''
 
     def learn_init(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = self.lgc.get_CUDA_VISIBLE_DEVICES_str(self.lgc.Brian_core)
-        i_d_sl=scom.divide_sl_to_process(self.lgc.data_name)
-        learn_divided_sl = i_d_sl.get_sl_full_divided(self.lgc.train_data_base, self.lgc.train_data_index, self.lgc.num_workers)
 
-        self.TrainP, self.LL_output, self.D_share, self.E_stop_brain, self.LE_update_weight, self.LE_worker_work,  \
-            = self.start_brain_process()
+        self.LL_output                   =   [self.Manager.list() for _ in range (self.lgc.num_workers)]
+        self.E_stop_brain                =   self.Manager.Event()
+        self.LE_update_weight            =   [self.Manager.Event() for _ in range (self.lgc.num_workers)]
+        self.LE_worker_work              =   [self.Manager.Event() for _ in range(self.lgc.num_workers)]
+        self.D_share                     =   self.Manager.dict()
+        self.TrainP = Train_Process(self.lgc.server_process_name_seed, 0, self.LL_output,self.D_share,
+                               self.E_stop_brain,self.LE_update_weight,self.LE_worker_work)
+        self.TrainP.daemon=True
+        self.TrainP.start()
+
         self.l_Process_worker = []
         self.l_E_stop_worker = []
         for idx in range(self.lgc.num_workers):
             os.environ["CUDA_VISIBLE_DEVICES"] = self.lgc.get_CUDA_VISIBLE_DEVICES_str(self.lgc.l_work_core[idx])
-            ExploreP, E_stop_worker = self. start_worker_process(idx,self.Manager, self.lgc.data_name,learn_divided_sl[idx],
-                            self.LL_output[idx],self.D_share,self.LE_update_weight[idx], self.LE_worker_work[idx] )
-            self.l_E_stop_worker.append(E_stop_worker)
+
+            SL_idx, SL_StartI, SL_EndI = self.lgc.l_train_SL_param[idx]
+            flag,sl_explore=self.iSL.get_sub_sl("Train", SL_idx)
+            assert flag, "Get Stock list {0} tag=\"Train\" index={1}".format(self.lgc.SLName,idx)
+            #ExploreP, E_stop_worker = self. start_worker_process(idx,self.Manager, self.lgc.data_name,learn_divided_sl,SL_StartI, SL_EndI,
+            #                self.LL_output[idx],self.D_share,self.LE_update_weight[idx], self.LE_worker_work[idx] )
+
+            p_name = "{0}_{1}".format(self.lgc.client_process_name_seed, idx)
+            E_stop = self.Manager.Event()
+            ExploreP = Explore_process(p_name, idx, self.lgc.data_name, sl_explore, SL_StartI, SL_EndI,
+                    self.LL_output[idx], self.D_share, E_stop,self.LE_update_weight[idx], self.LE_worker_work[idx])
+            ExploreP.daemon = True
+            ExploreP.start()
+
+            self.l_E_stop_worker.append(E_stop)
             self.l_Process_worker.append(ExploreP)
         self.eval_init()
 
     def eval_init(self):
         if self.lgc.flag_eval_unlearn:
-            l_eval_sl=scom.prepare_eval_sl(self.lgc.l_eval_data_name, self.lgc.eval_data_base,self.lgc.eval_data_index,
-                                           self.lgc.eval_num_stock_per_process)
             self.l_eval_unlearn_process=[]
             self.l_E_stop_eval_unlearn=[]
             for idx in range(self.lgc.eval_num_process):
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.lgc.get_CUDA_VISIBLE_DEVICES_str(self.lgc.l_eval_core[idx])
-                EvalP, E_stop_eval = self.start_eval_process(idx, self.Manager, self.lgc.l_eval_data_name[idx],l_eval_sl[idx])
+                SL_idx,SL_StartI, SL_EndI=self.lgc.l_eval_SL_param[idx]
+                flag,sl_eval=self.iSL.get_sub_sl("Eval",SL_idx)
+                assert flag,  "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lgc.SLName,idx)
+                #EvalP, E_stop_eval = self.start_eval_process(idx, self.Manager, self.lgc.data_name,l_eval_sl, SL_StartI, SL_EndI)
+
+                E_stop_eval = self.Manager.Event()
+                p_name = "{0}_{1}".format(self.lgc.eval_process_seed, idx)
+                EvalP = Eval_process(p_name, idx, self.lgc.data_name,sl_eval, SL_StartI, SL_EndI, None, E_stop_eval)
+                EvalP.daemon = True
+                EvalP.start()
                 self.l_eval_unlearn_process.append(EvalP)
                 self.l_E_stop_eval_unlearn.append(E_stop_eval)
 

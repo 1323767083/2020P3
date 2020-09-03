@@ -14,14 +14,17 @@ else:
 #-- rar base dir
 qz_rar_dir="/home/rdchujf/rar_quanzheng"
 #--data source_base dir
-base_dir_source_trade_by_trade              = os.path.join(base_dir, "Stk_TradeByTrade")
-base_dir_qz_1                               = os.path.join(base_dir, "Stk_qz")
-base_dir_qz_2                               = os.path.join(base_dir, "Stk_qz_2")
+#base_dir_source_trade_by_trade              = os.path.join(base_dir, "Stk_TradeByTrade")
+#base_dir_qz_1                               = os.path.join(base_dir, "Stk_qz")
+#base_dir_qz_2                               = os.path.join(base_dir, "Stk_qz_2")
+
 base_dir_RL_data                            = os.path.join(base_dir,"n_workspace","data/RL_data")
 base_dir_RL_system                          = os.path.join(base_dir,"n_workspace","RL")
-for dir in [base_dir_source_trade_by_trade,base_dir_qz_1,base_dir_qz_2,base_dir_RL_data,base_dir_RL_system]:
+#for dir in [base_dir_source_trade_by_trade,base_dir_qz_1,base_dir_qz_2,base_dir_RL_data,base_dir_RL_system]:
+for dir in [base_dir_RL_data,base_dir_RL_system]:
     if not os.path.exists(dir): raise ValueError("{0} not exists".format(dir))
 
+'''----data_comm parameter obsolete
 #Param
 #--qz
 qz_sh_avail_start = "20130415"
@@ -41,203 +44,223 @@ RL_data_skip_days = 100
 RL_data_least_length = 23
 RL_da_dan_threadhold = 1000000
 RL_xiao_dan_threadhold = 100000
+'''
+
 
 l_GPU_size=[11019,12196]
-conf= \
-    {
-        "=======General=======": "=======================",
-        #"RL_system_name": "OS1",
-        "data_name": "T5",
-        "system_type": "LHPP2V2",
-        "=======Class=======": "=======================",
-        "CLN_brain_train": "Train_Brian",
-        "CLN_brain_explore": "Explore_Brain",
-        #"CLN_brain_buffer":"brain_buffer",
-        "CLN_buffer_to_train": "buffer_to_train",
-        "CLN_env_account": "env_account",
-        "CLN_env_read_data": "R_T5_skipSwh_balance",
-        "CLN_env_get_data_train": "env_get_data_LHP_train",
-        "CLN_env_get_data_eval": "env_get_data_LHP_eval",
-        "CLN_AV_state":"Phase_State_V2",
-        "CLN_GenStockList": "API_SH_sl",
-        "=======system type related class": "=======================",
-        "CLN_simulator": "Simulator_LHPP2V2",
-        "CLN_trainer": "LHPP2V2_PPO_trainer",
-        "CLN_TDmemory": "TD_memory_LHPP2V2",
-        "=======CLN_agent detailed===": "=======================",
-        "agent_method_sv": "CNN",
-        "agent_method_joint_lvsv": "CNN",
-        "agent_method_apsv": "HP",
-        "=======action related=======": "=======================",
-        "action_type_dict": {"0": "buy", "1": "no_action", "2": "sell", "3": "no_action"},
-        #"method_name_of_choose_action_for_train": "choose_action_LHPP2V2",
-        #"method_name_of_choose_action_for_eval": "choose_action_LHPP2V2",
-        "=======Train_record_realted=======": "=======================",
-        "TD_get_verified_record": "",
-        "TD_get_after_buy_accumulate_R":"",
-        "Optimize_accumulate_reward_method": "",
-        "=======Class_eval_train=======": "=======================",
-        "train_scale_factor":20,
-        "train_shift_factor":0.01,
-        "train_flag_clip":True,
-        "train_flag_punish_no_action":False,
-        "eval_scale_factor": 1,
-        "eval_shift_factor": 0,
-        "eval_flag_clip": False,
-        "eval_flag_punish_no_action": False,
-
-        #"train_reward_type": "scaler_clip",
-        #"train_reward_scaler_factor":1,
-        #"eval_reward_type": "scaler",
-        #"eval_reward_scaler_factor":1,
-        "=======Train_brain=======": "=======================",
-        "Brian_core": "GPU_0",
-        "Brian_gpu_percent": 0.6,
-        "flag_brain_log_file": False,
-        "flag_brain_log_screen": True,
-        "start_train_count": 0,
-        "num_train_to_save_model": 1000,
-        "load_AIO_fnwp": "",
-        "load_config_fnwp": "",
-        "load_weight_fnwp": "",
-        "=======Buffer=======": "=======================",
-        "num_train_record_to_brain": 100,
-        "TDn": 1,
-        "Buffer_nb_Features": 6,
-        "brain_buffer_reuse_times": 4,
-        "=======Explore Procee=======": "=======================",
-        "l_work_core": ["GPU_0"],
-        "l_percent_gpu_core_for_work": [0.4],
-        "l_flag_worker_log_file": [False],
-        "l_flag_worker_log_screen": [True],
-        "num_workers": 1,
-        "=======Eval process=======": "=======================",
-        "l_eval_core": ["GPU_1"],
-        "l_percent_gpu_core_for_eva": [0.4],
-        "l_flag_eval_log_file": [False],
-        "l_flag_eval_log_screen": [True],
-        "l_eval_data_name": ["T5"],
-        "start_eval_count": 0,
-        "eval_num_process": 1,
-        "=======LOSS=======": "=======================",
-        "LOSS_POLICY": 1.0,
-        "LOSS_V": 0.5,
-        "LOSS_ENTROPY": 0.01,
-        "LOSS_clip":0.2,
-        "LOSS_sqr_threadhold":10,
-        "=======Optimizer=======": "=======================",
-        "Brain_optimizer": "Adam",
-        "Brain_leanring_rate": 1e-4,
-        "Brain_gamma": 0.95,
-        "batch_size": 500,
-        "=======Net=======": "=======================",
-        "net_config": {
-            "lv_shape": [20, 16],
-            "sv_shape": [20, 25, 2],
-            "flag_l_level": [
-                "C",
-                "I",
-                "I",
-                "C"
-            ],
-            "l_kernel_l": [
-                3,
-                0,
-                0,
-                3
-            ],
-            "l_filter_l": [
-                64,
-                128,
-                256,
-                512
-            ],
-            "l_maxpool_l": [
-                2,
-                2,
-                2,
-                2
-            ],
-            "flag_s_level": [
-                "C",
-                "C",
-                "C",
-                "C"
-            ],
-            "s_kernel_l": [
-                3,
-                3,
-                3,
-                3
-            ],
-            "s_filter_l": [
-                32,
-                64,
-                128,
-                256
-            ],
-            "s_maxpool_l": [
-                2,
-                2,
-                2,
-                2
-            ],
-            "dense_l": [
-                512
-            ],
-            "dense_prob": [
-                256,
-                128,
-                64,
-                32,
-                2
-            ],
-            "dense_advent": [
-                256,
-                128,
-                64,
-                32,
-                1
-            ],
-            "ms_param_TimeDistributed": [
-                100,
-                256
-            ],
-            "ms_param_CuDNNLSTM": [
-                100,
-                200
-            ]
-        },
-        "=======Simulator=======": "=======================",
-        "env_min_invest_per_round": 100000,
-        "env_max_invest_per_round": 100000,
-        "env_flag_random_start_in_episode_for_explore": True,
-        "env_flag_random_start_in_episode_for_eval": True,
-        "evn_eval_rest_total_times": 200,
-        "=======train Data=======": "=======================",
-        "train_data_base": 2,
-        "train_data_index": 1,
-        "=======Eval Data=======": "=======================",
-        "eval_data_base": 4,
-        "eval_data_index": 0,
-        "eval_num_stock_per_process": 64,
-        "=======debug=======": "=======================",
-        "flag_record_state": True,
-        "flag_record_buffer_to_server": False,
-        "flag_record_sim": False,
-        "CLN_record_variable": "record_variable2",
-        "record_checked_threahold": 500,
-        "tensorboard_port": 6002,
-        "=======system_type_specific LHP=======": "=======================",
-        "LHP": 5,
-        "=======system_type_specific 2P=======": "=======================",
-        "P2_current_phase": "Train_Sell",
-        "P2_sell_system_name": "",
-        "P2_sell_model_tc": "",
-        "=======trial=======": "=======================",
-        "Dict_specifc_param": {
-        }
+{
+    "=======General=======": "=======================",
+    "data_name": "TPVTest1",
+    "system_type": "LHPP2V2",
+    "SLName":"SLV1",
+    "=======Class=========": "=======================",
+    "CLN_brain_train": "Train_Brain",
+    "CLN_brain_explore": "Explore_Brain",
+    "CLN_buffer_to_train": "buffer_to_train",
+    "CLN_env_account": "env_account",
+    #"CLN_env_read_data": "R_T5_skipSwh_balance",
+    "CLN_env_get_data_train": "DBTP_Train_Reader",
+    "CLN_env_get_data_eval": "DBTP_Eval_Reader",
+    "CLN_AV_state":"Phase_State_V2",
+    "CLN_GenStockList": "StockList",
+    "=======system type related=": "=======================",
+    "CLN_simulator": "Simulator_intergrated",
+    "CLN_trainer": "LHPP2V2_PPO_trainer",
+    "CLN_TDmemory": "TD_memory_integrated",
+    "=======CLN_agent detailed===": "=======================",
+    "agent_method_sv": "CNN",
+    "agent_method_joint_lvsv": "CNN",
+    "agent_method_apsv": "HP",
+    "=======action related====": "=======================",
+    "action_type_dict": {
+        "0": "Buy",
+        "1": "No_action",
+        "2": "Sell",
+        "3": "No_action"
+    },
+    "=======Train_record_realted=======": "=======================",
+    "Optimize_accumulate_reward_method": "OS_ForceSell_accumulate_reward",
+	"TD_get_verified_record":"get_OS_verified_record",
+    "TD_get_after_buy_accumulate_R":"get_after_buy_accumulate_R_discounted",
+    "=======Class_eval_train=======": "=======================",
+    "train_scale_factor":20,
+    "train_shift_factor":0.01,
+    "train_flag_clip":True,
+    "train_flag_punish_no_action":False,
+    "eval_scale_factor": 1,
+    "eval_shift_factor": 0,
+    "eval_flag_clip": False,
+    "eval_flag_punish_no_action": False,
+    "=======Train_brain=======": "=======================",
+    "Brian_core": "GPU_1",
+    "Brian_gpu_percent": 0.4,
+    "flag_brain_log_file": False,
+    "flag_brain_log_screen": True,
+    "start_train_count": 0,
+    "num_train_to_save_model": 250,
+    "load_AIO_fnwp": "",
+    "load_config_fnwp": "",
+    "load_weight_fnwp": "",
+    "=======Buffer=======": "=======================",
+    "num_train_record_to_brain": 100,
+    "TDn": 1,
+    "Buffer_nb_Features": 6,
+    "brain_buffer_reuse_times": 4,
+    "=======Explore Procee=====": "=======================",
+    "l_work_core": [
+        "GPU_1"
+    ],
+    "l_percent_gpu_core_for_work": [
+        0.2
+    ],
+    "l_flag_worker_log_file": [
+        False
+    ],
+    "l_flag_worker_log_screen": [
+        True
+    ],
+    "l_train_SL_param": [
+        [0, 20180101, 20191231]
+    ],
+    "num_workers": 1,
+    "=======Eval process=======": "=======================",
+    "l_eval_core": [
+        "GPU_1","GPU_0","GPU_1"
+    ],
+    "l_percent_gpu_core_for_eva": [
+        0.2,0.2,0.2
+    ],
+    "l_flag_eval_log_file": [
+        True, True,True
+    ],
+    "l_flag_eval_log_screen": [
+        False,False,False
+    ],
+    "l_eval_SL_param": [
+        [0,20180101, 20191231],
+        [1,20180101, 20191231],
+        [1,20200101, 20200531]
+    ],
+    "start_eval_count": 0,
+    "eval_num_process": 3,
+    "=======LOSS=======": "=======================",
+    "LOSS_POLICY": 1.0,
+    "LOSS_V": 0.5,
+    "LOSS_ENTROPY": 0.01,
+    "LOSS_clip": 0.2,
+    "LOSS_sqr_threadhold": 0,
+    "=======Optimizer=====": "=======================",
+    "Brain_optimizer": "Adam",
+    "Brain_leanring_rate": 0.0001,
+    "Brain_gamma": 0.95,
+    "batch_size": 150,
+    "=======Simulator=======": "=======================",
+    "env_min_invest_per_round": 100000,
+    "env_max_invest_per_round": 100000,
+    "evn_eval_rest_total_times": 200,
+    "=======debug=======": "=======================",
+    "flag_record_state": True,
+    "flag_record_buffer_to_server": False,
+    "flag_record_sim": False,
+    "CLN_record_variable": "record_variable_DBTP",
+    "tensorboard_port": 6002,
+    "=======LHP=": "=======================",
+    "LHP": 5,
+    "=======P2=======": "=======================",
+    "P2_current_phase": "Train_Sell",
+    "P2_sell_system_name": "",
+    "P2_sell_model_tc": "",
+    "=======trial=======": "=======================",
+    "Dict_specifc_param": {
+    },
+    "=======Net=======": "=======================",
+    "net_config": {
+        "lv_shape": [
+            20,
+            16
+        ],
+        "sv_shape": [
+            20,
+            25,
+            2
+        ],
+        "flag_l_level": [
+            "C",
+            "I",
+            "I",
+            "C"
+        ],
+        "l_kernel_l": [
+            3,
+            0,
+            0,
+            3
+        ],
+        "l_filter_l": [
+            64,
+            128,
+            256,
+            512
+        ],
+        "l_maxpool_l": [
+            2,
+            2,
+            2,
+            2
+        ],
+        "flag_s_level": [
+            "C",
+            "C",
+            "C",
+            "C"
+        ],
+        "s_kernel_l": [
+            3,
+            3,
+            3,
+            3
+        ],
+        "s_filter_l": [
+            32,
+            64,
+            128,
+            256
+        ],
+        "s_maxpool_l": [
+            2,
+            2,
+            2,
+            2
+        ],
+        "dense_l": [
+            512
+        ],
+        "dense_prob": [
+            256,
+            128,
+            64,
+            32,
+            2
+        ],
+        "dense_advent": [
+            256,
+            128,
+            64,
+            32,
+            1
+        ],
+        #only for "agent_method_sv" "agent_method_joint_lvsv" : "RNN","RCN"
+        "ms_param_TimeDistributed": [
+            100,
+            256
+        ],
+        "ms_param_CuDNNLSTM": [
+            100,
+            200
+        ]
     }
+}
+
 class gconfig_specific:
     """
     @DynamicAttrs
@@ -247,7 +270,8 @@ class gconfig_data:
 
         ###general input
         self.RL_system_name =  float("nan") #"RL_try"
-        self.data_name = float("nan") #"T5"
+        self.SLName= ""
+        self.data_name = float("nan") #
         self.system_type = float("nan") #"CTE"
         ###class name
         self.CLN_brain_train = float("nan") #"Train_Brian"
@@ -267,11 +291,6 @@ class gconfig_data:
         self.eval_shift_factor= float("nan")
         self.eval_flag_clip=float("nan")
         self.eval_flag_punish_no_action=float("nan")
-
-        #self.train_reward_type=float("nan") #"scaler" "scaler_clip"
-        #self.train_reward_scaler_factor=float("nan") #1
-        #self.eval_reward_type = float("nan")  # "scaler" "scaler_clip"
-        #self.eval_reward_scaler_factor=float("nan") #1
 
         self.CLN_env_read_data = float("nan") #"R_T5"
         self.CLN_env_get_data_train = float("nan") #"env_get_data_base"
@@ -311,6 +330,7 @@ class gconfig_data:
         self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
         self.l_flag_worker_log_file = [float("nan")] #[True, True, True]
         self.l_flag_worker_log_screen = [float("nan")] #[False, False, False]
+        self.l_train_SL_param=[[0,20000000,20000000]]
         self.num_workers = float("nan") #3
 
         # eval class
@@ -318,7 +338,7 @@ class gconfig_data:
         self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
         self.l_flag_eval_log_file = [float("nan")] #[True, True]
         self.l_flag_eval_log_screen = [float("nan")] #[False, False]
-        self.l_eval_data_name =[float("nan")] # ["T5", "T5", "T5_V2_"]
+        self.l_eval_SL_param = [[0, 20000000, 20000000]]
         self.start_eval_count = float("nan") #0
         self.eval_num_process = float("nan") #2
 
@@ -340,8 +360,6 @@ class gconfig_data:
         # ENV CONFIG
         self.env_min_invest_per_round = float("nan") #100000
         self.env_max_invest_per_round = float("nan") #500000
-        self.env_flag_random_start_in_episode_for_explore = float("nan") #False
-        self.env_flag_random_start_in_episode_for_eval = float("nan") #False
         self.evn_eval_rest_total_times = float("nan") #500
 
         # train
@@ -364,7 +382,7 @@ class gconfig_data:
         self.flag_record_sim = float("nan") #False
 
         self.CLN_record_variable = float("nan") #"record_variable"
-        self.record_checked_threahold = float("nan") #0
+        #self.record_checked_threahold = float("nan") #0
         self.tensorboard_port = float("nan") #6006
         # LHF
         self.LHP = float("nan") #0
@@ -387,6 +405,7 @@ class gconfig_data:
         self.OS_AV_shape=()
         self.raw_AV_shape=()
 
+        self.Plen=float("nan")
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -489,14 +508,13 @@ class gconfig(gconfig_data):
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
         l_specific_param_title=[]
         # 1.Simulator get data
-        assert self.CLN_env_get_data_train == "env_get_data_LHP_train"
-        assert self.CLN_env_get_data_eval == "env_get_data_LHP_eval"
+        assert self.CLN_env_get_data_train == "DBTP_Train_Reader"
+        assert self.CLN_env_get_data_eval == "DBTP_Eval_Reader"
 
         # 2.Simulator
         assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"
         assert not self.flag_multi_buy
         assert self.LHP != 0
-        assert self.env_flag_random_start_in_episode_for_eval == True
 
         # 3.TD_buffer
         assert self.CLN_TDmemory == "TD_memory_integrated"
@@ -526,7 +544,7 @@ class gconfig(gconfig_data):
             assert self.CLN_AV_state == "Phase_State_V2"
             self.OS_AV_shape = (self.LHP + 1,)
             self.raw_AV_shape =(self.LHP + 1,)
-
+            self.PLen=self.LHP
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
@@ -550,7 +568,7 @@ class gconfig(gconfig_data):
                 self.OB_AV_shape = (1,)
             self.OS_AV_shape =(self.LHP + 1,)
             self.raw_AV_shape = (self.specific_param.LNB + 1 + self.LHP + 1,)
-
+            self.PLen = self.LHP+self.specific_param.LNB
         elif self.system_type in ["LHPP2V8"]:
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
@@ -572,6 +590,7 @@ class gconfig(gconfig_data):
             self.OS_AV_shape = (self.LHP + 1,)
             self.OB_AV_shape = (self.specific_param.LNT+1+self.specific_param.LNB+1+1,)
             self.raw_AV_shape = (self.specific_param.LNT + 1 + self.specific_param.LNB + 1 + self.LHP + 1,)
+            self.PLen = self.LHP + self.specific_param.LNB+self.specific_param.LNT
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

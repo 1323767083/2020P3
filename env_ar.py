@@ -1,9 +1,9 @@
-from data_common import hfq_toolbox,ginfo_one_stock
+#from data_common import hfq_toolbox,ginfo_one_stock
+#from DBI_Base import hfq_toolbox,ginfo_one_stock
+from DBI_Base import hfq_toolbox
 def env_ar_init(lgc):
     global lc
     lc=lgc
-    global flag_accout_store_transaction_record
-    flag_accout_store_transaction_record = False
 
 class env_account:
     param_shou_xu_fei = 0.00025
@@ -12,13 +12,13 @@ class env_account:
     param_guohufei = 1
     transit_record_template = {
         "Action": "",  # "Buy"
-        "date": "",
+        "DateI": "",
         "volume_gu": 0,
         "Nprice": 0,
         "Hratio": 1.0,  # for caculate volume later
         "action_cost": 0.0
     }
-
+    flag_accout_store_transaction_record=False
     def __init__(self):
         self.i_hfq_tb = hfq_toolbox()
         self._account_reset()
@@ -43,11 +43,11 @@ class env_account:
                    self.param_guohufei * int(volume / 1000.0)
         return buy_cost
 
-    def _get_stock_ginform(self,stock):
-        if stock!=self.current_stock:
-            self.stock_ginfom= ginfo_one_stock(stock)
-            self.current_stock=stock
-        return self.stock_ginfom
+    #def _get_stock_ginform(self,stock):
+    #    if stock!=self.current_stock:
+    #        self.stock_ginfom= ginfo_one_stock(stock)
+    #        self.current_stock=stock
+    #    return self.stock_ginfom
 
     #### account API
     def _account_reset(self):
@@ -55,22 +55,22 @@ class env_account:
         self.total_invest = 0.0
         self.Hratio = 1.0
         self.buy_times = 0
-        if flag_accout_store_transaction_record:
+        if self.flag_accout_store_transaction_record:
             if hasattr(self,"transit_history"):
                 del self.transit_history[:]
             else:
                 self.transit_history = []
 
-    def _account_buy(self, date_s,trade_Nprice, trade_hfq_ratio):
+    def _account_buy(self, DateI,trade_Nprice, trade_hfq_ratio):
         if self.buy_times < self.max_num_invest:
             volume_gu = int(self.invest_per_term * 0.995 / (trade_Nprice * 100)) * 100
-            assert volume_gu != 0, "{0} {1} {2} can not buy one hand".format(self.current_stock, date_s,
+            assert volume_gu != 0, "{0} {1} {2} can not buy one hand".format(self.current_stock, DateI,
                                                                                    self.invest_per_term)
             buy_cost= self._buy_stock_cost(volume_gu, trade_Nprice)
-            if flag_accout_store_transaction_record:
+            if self.flag_accout_store_transaction_record:
                 tr=dict(self.transit_record_template)
                 tr["Action"]        =   "Buy"
-                tr["date"]          =   date_s
+                tr["DateI"]          =   DateI
                 tr["volume_gu"]     =   volume_gu
                 tr["Nprice"]        =   trade_Nprice
                 tr["Hratio"]        =   trade_hfq_ratio
@@ -87,7 +87,7 @@ class env_account:
         else:
             return False, "Exceed_limit"
 
-    def _account_sell(self,date_s,trade_Nprice, trade_hfq_ratio):
+    def _account_sell(self,DateI,trade_Nprice, trade_hfq_ratio):
         if self.volume_gu != 0:
             current_holding_volume_gu = self.i_hfq_tb.get_update_volume_on_hfq_ratio_change \
                 (old_hfq_ratio=self.Hratio, new_hfq_ratio=trade_hfq_ratio, old_volume=self.volume_gu)
@@ -103,7 +103,7 @@ class env_account:
     ####env_account interface
     def reset(self):
         self._account_reset()
-
+    '''
     def buy(self, trade_Nprice, trade_hfq_ratio, stock, date_s):
         i_ginform=self._get_stock_ginform(stock)
         if not i_ginform.check_not_tinpai(date_s):
@@ -115,6 +115,14 @@ class env_account:
         if not i_ginform.check_not_tinpai(date_s):  # if tinpai
             return False,"Tinpai",0.0
         return self._account_sell(date_s,trade_Nprice, trade_hfq_ratio)
+    '''
+
+    def buy(self, trade_Nprice, trade_hfq_ratio, stock, DateI):
+        return self._account_buy(DateI,trade_Nprice, trade_hfq_ratio)
+
+    def sell(self, trade_Nprice,trade_hfq_ratio,stock, DateI):
+        return self._account_sell(DateI,trade_Nprice, trade_hfq_ratio)
+
 
     def eval(self):  #this trade day price
         return 1 if self.volume_gu!=0 else 0

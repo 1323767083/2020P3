@@ -1,10 +1,11 @@
 import numpy as np
 import os, pickle,re
 import datetime as dt
-from data_T5 import R_T5,R_T5_scale, R_T5_skipSwh,R_T5_skipSwh_balance
+#from data_T5 import R_T5,R_T5_scale, R_T5_skipSwh,R_T5_skipSwh_balance
 import config as sc
 import pandas as pd
-
+from DBTP_Reader import DBTP_Reader
+'''
 class record_variable:
     def __init__(self, lc, checked_name="loss"):
     #def __init__(self, dirwp, checked_name="loss", checked_threadhold=10):
@@ -155,13 +156,13 @@ class record_variable2(record_variable):
                 pickle.dump(compressed_inputs, f)
             self.F_need_record = False
 
-    def read_SC_CC_compressed_data(self, sc, cc):
-        raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"rb"))
-        return raw_states, raw_loss, raw_sccc
+    #def read_SC_CC_compressed_data(self, sc, cc):
+    #    raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"rb"))
+    #    return raw_states, raw_loss, raw_sccc
 
 
     def read_SC_CC_data(self, sc, cc):
-        raw_states, raw_loss, raw_sccc=self.read_SC_CC_compressed_data(sc,cc)
+        raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"rb"))
         assert raw_sccc["current_train_count"]==cc
         assert raw_sccc["saved_train_count"] == sc
         l_s_lv = []
@@ -235,6 +236,191 @@ class record_variable3(record_variable2):
         current_dir = os.path.join(self.dirwp, "SC{0}".format(sc))
         if not os.path.exists(current_dir): os.mkdir(current_dir)
         return  os.path.join(current_dir, "CC{0}.pikle".format(cc))
+'''
+
+class record_variable_DBTP(DBTP_Reader):
+    def __init__(self, lc):
+
+        #self.lc=lc
+        #self.system_name = lc.RL_system_name
+        #self.data_name=lc.data_name
+        DBTP_Reader.__init__(self,lc.data_name )
+        self.dirwp=lc.record_variable_dir
+        if not os.path.exists(self.dirwp):os.makedirs(self.dirwp)
+        self.reset()
+    def reset(self):
+        self.F_trainer_recorded, self.F_brain_recorded, self.F_process_recorded = False, False, False
+        self.RD_trainer, self.RD_brain,self.RD_process=[],[],[]
+
+    def recorder_trainer(self, inputs):
+        self.RD_trainer = inputs
+        self.F_trainer_recorded = True
+        return True
+
+        #if self.F_need_record:
+        #    self.RD_trainer = inputs
+        #    self.F_trainer_recorded = True
+        #    return True
+        #else:
+        #    return False
+
+    def recorder_brainer(self, inputs):
+        self.RD_brain= inputs
+        self.F_brain_recorded = True
+        return True
+
+        #if self.F_need_record:
+        #    self.RD_brain= inputs
+        #    self.F_brain_recorded = True
+        #    return True
+        #else:
+        #    return False
+
+    def recorder_process(self, inputs):
+        self.RD_process = inputs
+        self.F_process_recorded = True
+        return True
+
+        #if self.F_need_record:
+        #    self.RD_process = inputs
+        #    self.F_process_recorded = True
+        #    return True
+        #else:
+        #    return False
+
+
+
+    def _compress_content(self, inputs):
+        C_RD_trainer, C_RD_brain, C_RD_process=inputs
+        s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view=C_RD_trainer
+        trainer_content=[]
+        for idx in range(len(s_lv)):
+            to_saved_item_dic={
+                "Stock":  l_support_view[idx][0,0]["Stock"],
+                "s_DateI": l_support_view[idx][0, 0]["DateI"],
+                "s__DateI": l_support_view[idx][0, 0]["_support_view_dic"]["DateI"],
+                "action_taken":l_support_view[idx][0,0]["action_taken"],
+                "action_return_message":l_support_view[idx][0,0]["action_return_message"],
+                "action":a[idx][0],
+                "TD_reward":r[idx][0],
+                "s_av":s_av[idx][0],
+                "s__av": s__av[idx][0],
+                "flag_force_sell":l_support_view[idx][0,0]['flag_force_sell'],
+                "old_ap": l_support_view[idx][0, 0]['old_ap']
+            }
+            to_saved_item_dic["SdisS_"]=l_support_view[idx][0, 0]['SdisS_']
+            trainer_content.append(to_saved_item_dic)
+
+        tr_dic={
+            "current_train_count":C_RD_process[0],
+            "saved_train_count":C_RD_process[1]
+        }
+        compressed_inputs=[trainer_content,C_RD_brain, tr_dic]
+        return compressed_inputs
+
+    def _get_fnwp(self,sc, cc):
+        current_dir = os.path.join(self.dirwp, "SC{0}".format(sc))
+        if not os.path.exists(current_dir): os.mkdir(current_dir)
+        return  os.path.join(current_dir, "CC{0}.pikle".format(cc))
+
+
+    def check_need_record(self, inputs):
+        #lm_names, lm_valuess=inputs
+        #self.F_need_record = True
+        self.reset()
+        #return self.F_need_record
+
+
+    def saver(self):
+        #if self.F_need_record and self.F_trainer_recorded and self.F_brain_recorded and self.F_process_recorded:
+        if self.F_trainer_recorded and self.F_brain_recorded and self.F_process_recorded:
+            compressed_inputs = self._compress_content([self.RD_trainer, self.RD_brain, self.RD_process])
+            fnwp = self._get_fnwp(compressed_inputs[2]["saved_train_count"],compressed_inputs[2]["current_train_count"])
+            with open(fnwp, 'wb') as f:
+                pickle.dump(compressed_inputs, f)
+            #self.F_need_record = False
+
+    def loader(self, fn):
+        fnwp=os.path.join(self.dirwp, fn)
+        with open(fnwp, 'rb') as f:
+            return pickle.load(f)
+
+    def read_SC_CC_data(self, sc, cc):
+        raw_states, raw_loss, raw_sccc=pickle.load(open(self._get_fnwp(sc, cc),"rb"))
+        assert raw_sccc["current_train_count"]==cc
+        assert raw_sccc["saved_train_count"] == sc
+        l_s_lv = []
+        l_s_sv = []
+        l_s_av = []
+        l_a    = []
+        l_r    = []
+        l_s__lv = []
+        l_s__sv = []
+        l_s__av = []
+        l_support_view = []
+
+        for raw_state in raw_states:
+            stock=raw_state["Stock"]
+            #try:
+            #    sdf_idx=self.dic_dh_index[stock]
+            #except:
+            #    sdf=self.class_env_read_data(self.data_name, stock)
+            #    if not sdf.flag_prepare_data_ready:
+            #        assert False, "unexpected error {0} data not availble".format(stock)
+            #    self.l_sdh.append(sdf)
+            #    self.dic_dh_index[stock]=len(self.l_sdh)-1
+            #    sdf_idx = self.dic_dh_index[stock]
+
+            s_DateI=raw_state["s_DateI"]
+            s_lv, s_sv, _ = pickle.load(open(self.get_DBTP_data_fnwp(stock, s_DateI), "rb"))
+
+            s__DateI = raw_state["s__DateI"]
+            s__lv, s__sv, _ = pickle.load(open(self.get_DBTP_data_fnwp(stock, s__DateI), "rb"))
+
+
+            #period_idx=raw_state["s_period_idx"]
+            #idx_in_period=raw_state["s_idx_in_period"]
+            #[s_lv, s_sv], s_support_view = self.l_sdh[sdf_idx].read_one_day_data_by_index(period_idx, idx_in_period-1)
+            #assert s_support_view["stock"]==stock
+
+            #period_idx=raw_state["s__period_idx"]
+            #idx_in_period=raw_state["s__idx_in_period"]
+            #[s__lv, s__sv], s__support_view = self.l_sdh[sdf_idx].read_one_day_data_by_index(period_idx, idx_in_period)
+
+            l_s_lv.append(s_lv)
+            l_s_sv.append(s_sv)
+            l_s_av.append(np.expand_dims(raw_state["s_av"], axis=0))
+            l_a.append(np.expand_dims(raw_state["action"], axis=0))
+            l_r.append(np.array([raw_state["TD_reward"]]))
+            l_s__lv.append(s__lv)
+            l_s__sv.append(s__sv)
+            l_s__av.append(np.expand_dims(raw_state["s__av"], axis=0))
+            support_view={}
+            support_view["Stock"] = raw_state ["Stock"]
+            #support_view["date"] = raw_state ["s_date"]
+            support_view["DateI"] = raw_state["s_DateI"]
+            support_view["action_return_message"] = raw_state ["action_return_message"]
+            support_view["action_taken"] = raw_state ["action_taken"]
+            #support_view["period_idx"] = raw_state ["s_period_idx"]
+            #support_view["idx_in_period"] = raw_state ["s_idx_in_period"]
+            support_view["flag_force_sell"] = raw_state["flag_force_sell"]
+            support_view["old_ap"] = raw_state["old_ap"]
+            support_view["SdisS_"] = raw_state["SdisS_"]
+            l_support_view.append(np.array([[support_view]]))
+
+        RD_trainer = [l_s_lv, l_s_sv, l_s_av, l_a, l_r, l_s__lv, l_s__sv, l_s__av,False,l_support_view]
+        RD_brain = raw_loss
+        RD_process = [raw_sccc["current_train_count"],raw_sccc["saved_train_count"]]
+        return RD_trainer, RD_brain,RD_process
+
+    def read_SC_CC_data_loss_sccc(self, sc, cc):
+        fnwp = self._get_fnwp(sc, cc)
+        raw_data=pickle.load(open(fnwp,"rb"))
+        compressed_RD_trainer, raw_loss, raw_sccc=raw_data
+        return compressed_RD_trainer,raw_loss, raw_sccc
+
+    def read_SC_CC_data_raw(self, sc, cc):
+        assert False, "legacy debug purpose, not support in class {0}".format(self.__class__.__name__)
 
 
 class record_send_to_server:
@@ -271,8 +457,8 @@ class record_sim_stock_data:
         self.dir_base=dirwp
         self.dirwp=os.path.join(self.dir_base, stock)
         if not os.path.exists(self.dirwp): os.makedirs(self.dirwp)
-    def saver(self, inputs, date):
-        fn = date + ".pkl"
+    def saver(self, inputs, date_S):
+        fn = date_S + ".pkl"
         fnwp = os.path.join(self.dirwp, fn)
         with open(fnwp, 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump(inputs, f)

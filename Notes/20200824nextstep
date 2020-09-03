@@ -1,0 +1,44 @@
+Brain
+WorkerCPUs
+WorkGPU
+
+
+Eval_main
+Eval_CPUs
+Eval_GPU
+
+
+Brain<--> WorkerGPU
+
+Init same as normal?
+1 Brain Set E_Update
+2.Brain Wait E_Update clear
+3.Brian set Worker_work      # this in not necussary now as WorkCPU is either in the wait status or in the sim status
+
+
+Normal
+1 Brain Set E_Update
+2.Brain Wait E_Update clear
+3.Brian set Worker_work      # this in not necussary now as WorkCPU is either in the wait status or in the sim status
+
+
+WorkerCPUs <--> WorkerGPU
+1. WorkerCPU set the Flag_wait_action
+2. WorkerCPU send stat to list_workGPU_input
+3. WorkerCPU wait for Flag_wait_action clear
+
+
+Eval:
+Eval_Main_process
+Eval_CPUs
+Eval_GPU
+
+Eval_main_process
+check weight file avalaible
+let GPU load weight
+wait GOU finish load
+let cpu start eval
+wait CPUs finish load
+
+
+

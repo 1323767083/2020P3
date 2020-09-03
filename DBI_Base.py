@@ -124,8 +124,9 @@ class DBI_init(DB_Base):
             flag,mess=self.init_lumpsum_1stock_HFQ(code)
             logs.append(["init HFQ",code, flag, mess])
             print ("\t",logs[-1])
-        print("Finish Init lumpsum_HFQs for DBI")
+
         pd.DataFrame(logs, columns=self.title_DBI_HFQ_Inited_flag).to_csv(flag_HFQ_inited_fnwp, index=False)
+        print("Finish Init lumpsum_HFQs for DBI. Log file in {0}".format(flag_HFQ_inited_fnwp))
         return
 
     def Reset_Init_Index_HFQ(self):
@@ -215,6 +216,7 @@ class DBI_init(DB_Base):
             continue
 
         pd.DataFrame(Log_List, columns=["stock", "status","mess"]).to_csv(logfnwp, index=False)
+        print ("Finish Update_DBI_addon_HFQ_Index {0}. Log file in {1}".format(DayI,logfnwp))
         return True, "Success"
 
     ##TD related
@@ -241,6 +243,16 @@ class DBI_init(DB_Base):
             assert len(lidx[0]) >= 1
             idx=lidx[0][-1]
         return idx, self.nptd[idx]
+
+class hfq_toolbox:
+    def get_Nprice_from_hfq_price(self, hfq_price, hfq_ratio):
+        return hfq_price/hfq_ratio
+    def get_update_volume_on_hfq_ratio_change(self, old_hfq_ratio, new_hfq_ratio, old_volume):
+        #return old_volume*old_hfq_ratio/new_hfq_ratio
+        return old_volume *  new_hfq_ratio/ old_hfq_ratio
+    def get_hfqprice_from_Nprice(self, Nprice, hfq_ratio):
+        return Nprice * hfq_ratio
+
 
 {
     "TLStartI":20180101,
@@ -301,6 +313,7 @@ class StockList(DBI_init):
         assert len(sl_result)>=1
         df=pd.DataFrame(sl_result,columns=["stock"])
         df.to_csv(slfnwp, index=False)
+        print ("Create Total Stock List in {0}".format(slfnwp))
         return df["stock"].tolist()
 
     def generate_Train_Eval_stock_list(self):
@@ -320,10 +333,16 @@ class StockList(DBI_init):
                 extract_list=adj_Total_List[:num]
                 fnwp=self.Sub_fnwp(tag,id)
                 pd.DataFrame(extract_list,columns=["stock"]).to_csv(fnwp, index=False)
+                print("Create Sub Stock List in {0}".format(fnwp))
                 adj_Total_List=adj_Total_List[num:]
         return True, "Success"
 
-
+    def get_sub_sl(self, tag, index):
+        fnwp=self.Sub_fnwp(tag, index)
+        if not os.path.exists(fnwp):
+            return False, ""
+        else:
+            return True, pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist()
 
 class DBI_Base(DBI_init):
     def __init__(self, DBI_name):
@@ -350,3 +369,45 @@ class DBI_Base(DBI_init):
     def get_DBI_log_fnwp(self, stock):
         return os.path.join(self.Dir_DBI_WP_Log,"{0}.csv".format(stock))
 
+
+'''
+class ginfo_one_stock:
+    def __init__(self, stock):
+        self.stock = stock
+
+        self.i_tdate=API_trade_date()
+        self.df_hfq=API_HFQ_from_file().get_df_HFQ(self.stock)
+    def check_not_tinpai(self,date_s):
+        assert self.i_tdate.check_trading_date(date_s)
+        #return np.any( self.df_hfq["date"] == date_s)
+        return date_s in self.df_hfq["date"].values
+    def check_after_IPO(self, date_s):
+        assert self.i_tdate.check_trading_date(date_s)
+        IPO_date_s=self.df_hfq["date"][0]
+        return date_s>=IPO_date_s
+
+    def hfq_amount(self, date_s):  #this is called after check_not_tinpai
+        return self.df_hfq[self.df_hfq["date"] == date_s].iloc[0]["amount_gu"]
+    def hfq_ratio(self,date_s): #this is called after check_not_tinpai
+        return self.df_hfq[self.df_hfq["date"]==date_s].iloc[0]["coefficient_fq"]
+
+    def get_closest_close_Nprice(self, date_s):
+        df=self.df_hfq[self.df_hfq["date"] <= date_s]
+        assert len(df)>0, "no_price_before_that_day {0} {1}".format(self.stock,date_s)
+        hfq_price = df.iloc[-1]["close_price"]
+        hfq_ratio = df.iloc[-1]["coefficient_fq"]
+        Nprice=hfq_toolbox().get_Nprice_from_hfq_price(hfq_price,hfq_ratio )
+
+        return Nprice,hfq_ratio
+
+    def get_open_price(self,date_s): #this is called after check_not_tinpai
+        df=self.df_hfq[self.df_hfq["date"] == date_s]
+        assert len(df)>0
+        hfq_price = df.iloc[0]["open_price"]
+        hfq_ratio = df.iloc[0]["coefficient_fq"]
+        Nprice = hfq_toolbox().get_Nprice_from_hfq_price(hfq_price, hfq_ratio)
+        return Nprice, hfq_ratio
+
+    def get_exchange_ratio_for_tradable_part(self, date_s):
+        return self.df_hfq[self.df_hfq["date"] == date_s].iloc[0]["exchange_ratio_for_tradable_part"]
+'''

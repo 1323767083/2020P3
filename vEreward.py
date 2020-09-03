@@ -7,7 +7,8 @@ import tkinter as tk
 import re,os
 import vresult_data_reward
 import config as sc
-from data_common import API_HFQ_from_file,hfq_toolbox
+#from data_common import API_HFQ_from_file,hfq_toolbox
+from DBI_Base import DBI_init
 from vcomm import Checkbar,label_entry,img_tool,one_label_entry,one_radion_box,param_input
 class vEreward(tk.Frame):
     def __init__(self, container, param):
@@ -130,8 +131,9 @@ class vEreward(tk.Frame):
         return next_button_core
 
 
-class anaExtreR:
+class anaExtreR(DBI_init):
     def __init__(self,system_name, process_name, threadhold,compare_operation,Lstock, LEvalT, LYM,lgc):
+        DBI_init.__init__(self)
         #system_name="LHPP2V2_PPO3_LOSSV05P3R10_SV_Deep_SG_round_6_reward_same_2_Eval3_3"
         #process_name="Eval_0"
         #threadhold=-20
@@ -165,7 +167,8 @@ class anaExtreR:
         l_tid_ncc=[]
         for stock in lstock:
             print("handling ", stock)
-            dfh = API_HFQ_from_file().get_df_HFQ(stock)
+            #dfh = API_HFQ_from_file().get_df_HFQ(stock)
+            dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
             dfr = df[df["stock"]==stock]
             for idx, row in dfr.iterrows():
                 dfhr=dfh[(dfh["date"]>=str(row["trans_start"])) & (dfh["date"]<=str(row["trans_end"]))]
@@ -183,7 +186,8 @@ class anaExtreR:
         for tid in l_tid_ncc:
             working_stock=re.findall(r"(\w+)_\w+", tid)[0]
             if working_stock!=current_stock:
-                dfh = API_HFQ_from_file().get_df_HFQ(working_stock)
+                #dfh = API_HFQ_from_file().get_df_HFQ(working_stock)
+                dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(working_stock))
                 dfh["Open_Nprice"] = dfh["open_price"] / dfh["coefficient_fq"]
                 dfh["highest_Nprice"] = dfh["highest_price"] / dfh["coefficient_fq"]
                 dfh["lowest_Nprice"] = dfh["lowest_price"] / dfh["coefficient_fq"]
@@ -204,7 +208,8 @@ class anaExtreR:
         return lncc_hle, lncc_nhle
 
     def CmdTool_check_Hratio_change(self,stock):
-        dfh = API_HFQ_from_file().get_df_HFQ(stock)
+        #dfh = API_HFQ_from_file().get_df_HFQ(stock)
+        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         dfh["Scoefficient_fq"] = dfh["coefficient_fq"].shift(1)
         dfh.bfill(inplace=True)
         dfh["change_flag_Hratio"] = dfh["Scoefficient_fq"] - dfh["coefficient_fq"]
@@ -263,7 +268,8 @@ class anaExtreR:
         df=self.dfare[self.dfare["trans_id"]==tid]
         assert len(df)==1
         stock=re.findall(r'(\w+)_\w+', tid)[0]
-        dfh = API_HFQ_from_file().get_df_HFQ(stock)
+        #dfh = API_HFQ_from_file().get_df_HFQ(stock)
+        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         dfh["Open_Nprice"]=dfh["open_price"]/dfh["coefficient_fq"]
         dfh["highest_Nprice"] = dfh["highest_price"] / dfh["coefficient_fq"]
         dfh["lowest_Nprice"] = dfh["lowest_price"] / dfh["coefficient_fq"]

@@ -48,7 +48,8 @@ class Phase_State_template:
             if self.CuPs_idx[self.CuP] >= self.CuPs_limits[self.CuP]:
                 Done_flag = True
             else:
-                Done_flag=support_view_dic["last_day_flag"]
+                #Done_flag=support_view_dic["last_day_flag"]
+                Done_flag = support_view_dic["Flag_LastDay"]
         else:
             assert actual_action == 2
             self.CuPs_idx[self.P_HP] = 0  # this is set the holding period to 0 after successful sell
@@ -93,7 +94,7 @@ class Phase_State_V2(Phase_State_template):
 
 
     def get_OS_av(self,av):
-        assert av.shape[1]==lc.raw_AV_shape[0]
+        assert av.shape[1]==lc.raw_AV_shape[0], "av.shape={0}. lc.raw_AV_shape= {1}".format(av.shape,lc.raw_AV_shape)
         return av
 
     def get_OB_av(self,av):

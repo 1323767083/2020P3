@@ -22,7 +22,7 @@ def init_A3C_worker(lgc):
     CSimulator=globals()[lc.CLN_simulator]
 
 class client_datas:
-    def __init__(self, process_working_dir, data_name,stock_list, logger, called_by):
+    def __init__(self, process_working_dir, data_name,stock_list, StartI, EndI,logger, called_by):
         self.stock_list = stock_list
         self.data_name=data_name
         self.called_by=called_by
@@ -52,7 +52,7 @@ class client_datas:
         self.l_i_episode_init_flag = [True for _ in range(num_stock)]  # for log purpose
 
         for stock in self.stock_list:
-            i_env = CSimulator(self.data_name,stock,self.called_by)
+            i_env = CSimulator(self.data_name,stock,StartI, EndI,self.called_by)
             self.l_i_env.append(i_env)
 
     def eval_reset_data(self):
@@ -61,8 +61,8 @@ class client_datas:
         self.l_i_episode=[0 for _ in range(len(self.stock_list))]
         # this is add to record the state value for are currently only used in eval process
         self.l_sv = [0.0 for _ in range(len(self.stock_list))]
-        for env in self.l_i_env:
-            env.data_reset()
+        #for env in self.l_i_env:
+        #    env.data_reset()
         self.l_done_flag = [True for _ in self.stock_list]   # this is ensure after this fun called, the first round will call reset data
 
     def worker_reset_data(self):
@@ -71,8 +71,8 @@ class client_datas:
         self.l_i_episode = [0 for _ in self.stock_list]
         self.l_t = [0 for _ in self.stock_list] # as after round save, but worker still work on and l_t will continue to add
         self.l_sv = [0.0 for _ in range(len(self.stock_list))]
-        for env in self.l_i_env:
-            env.data_reset()
+        #for env in self.l_i_env:
+        #    env.data_reset()
         self.l_done_flag = [True for _ in self.stock_list]         #this is to avoid unfinished reset
         #avoid un saved
         for idx,_ in enumerate(self.stock_list):
@@ -143,13 +143,13 @@ class are_ssdi_handler:
         self.ongoing_save_count=save_count
 
     def in_round(self, data, idx, a, ap, r, sv_dic, trans_id):
-        item=[a, r, data.l_i_episode[idx], sv_dic["date"], sv_dic["action_return_message"]]
+        item=[a, r, data.l_i_episode[idx], sv_dic["DateI"], sv_dic["action_return_message"]]
         #for ap_idx in range(lc.num_action):### remove .num_action
         for ap_idx in range(lc.train_num_action):
             item.append(ap[ap_idx])
         item.append(data.l_sv[idx])
-        #item.extend([sv_dic["holding"], sv_dic["potential_profit"],sv_dic["this_trade_day_Nprice"], trans_id])
-        item.extend([sv_dic["holding"], sv_dic["this_trade_day_Nprice"], trans_id])
+        #item.extend([sv_dic["holding"], sv_dic["this_trade_day_Nprice"], trans_id])
+        item.extend([sv_dic["holding"], sv_dic["Nprice"], trans_id])
         data.l_log_a_r_e[idx].append(item)
 
 class transaction_id:
@@ -178,12 +178,14 @@ class transaction_id:
         self.flag_holding = False
 
 class client_base(Process):
-    def __init__(self, process_name, process_idx, lstock,L_output, D_share, E_stop, E_update_weight, E_worker_work):
+    def __init__(self, process_name, process_idx, lstock,SL_StartI,SL_EendI, L_output, D_share, E_stop, E_update_weight, E_worker_work):
         Process.__init__(self)
         self.process_name = process_name
         self.process_idx = process_idx
         self.L_output=L_output
         self.stock_list=lstock
+        self.SL_StartI=SL_StartI
+        self.SL_EendI=SL_EendI
         self.D_share=D_share
         self.E_stop=E_stop
         self.E_update_weight=E_update_weight
@@ -202,6 +204,7 @@ class client_base(Process):
         stack_state=[np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
         return stack_state
 
+
     def find_train_count_through_weight_fnwp(self, weight_fnwp):
         _, fn = os.path.split(weight_fnwp)
         regex = r'\w*_T(\d*).h5py'
@@ -210,8 +213,8 @@ class client_base(Process):
         return int(match.group(1))
 
 class Explore_process(client_base):
-    def __init__(self, process_name, process_idx, data_name,learn_sl,L_output, D_share, E_stop, E_update_weight, E_worker_work):
-        client_base.__init__(self, process_name, process_idx, learn_sl,L_output, D_share, E_stop, E_update_weight, E_worker_work)
+    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, D_share, E_stop, E_update_weight, E_worker_work):
+        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI, L_output, D_share, E_stop, E_update_weight, E_worker_work)
         #self.init_data_explore(eval_loop_count =0) # not eval worker
         self.data_name=data_name
         flag_file_log = lc.l_flag_worker_log_file[process_idx]
@@ -228,7 +231,7 @@ class Explore_process(client_base):
         if lc.flag_record_buffer_to_server:
             self.i_record_send_to_server=record_send_to_server(dirwp ,lc.flag_record_buffer_to_server)
     def init_data_explore(self):
-        self.data = client_datas(self.process_working_dir, self.data_name,self.stock_list, self.logger,called_by="explore")
+        self.data = client_datas(self.process_working_dir, self.data_name,self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,called_by="explore")
         self.i_train_buffer_to_server = Cbuffer_to_server(len(self.stock_list))
         self.i_bs=buffer_series()
     def run(self):
@@ -318,6 +321,29 @@ class Explore_process(client_base):
         self.data.l_a, self.data.l_ap, self.data.l_sv = self.i_wb.choose_action(stacted_state)
 
     def clean_support_view_from_worker_to_server(self,support_view_dic):
+        support_view_dic.pop("Flag_LastDay")
+        support_view_dic.pop("Nprice")
+        support_view_dic.pop("HFQRatio")
+        support_view_dic.pop("Flag_Tradable")
+        support_view_dic.pop("flag_all_period_explored")
+
+        #support_view_dic.pop("Stock")  # add by Env need use by revorder state
+        #support_view_dic.pop("DateI")  # add by Env need use by revorder state
+
+
+        #support_view_dic.pop("action_return_message") #env
+        #support_view_dic.pop("action_taken") #env
+        #support_view_dic.pop("holding")    #av_state
+        #support_view_dic.pop("flag_force_sell")    #av_state
+        #support_view_dic.pop("old_ap")   #Explore_process
+
+        # TD_intergrated will be add after add this fun
+        #support_view_dic.pop(""SdisS_"")
+        # support_view_dic.pop("_support_view_dic")   #TD_intergrated
+
+        assert len(support_view_dic.keys())==7,support_view_dic.keys()
+    '''
+    def clean_support_view_from_worker_to_server(self,support_view_dic):
         #support_view_dic.pop("action_return_message")
         #support_view_dic.pop("action_taken")
         #support_view_dic.pop("holding")
@@ -329,7 +355,7 @@ class Explore_process(client_base):
         support_view_dic.pop("this_trade_day_Nprice")
         support_view_dic.pop("this_trade_day_hfq_ratio")
         # only keep 'date' 'stock' 'old_ap'
-
+    '''
     def worker_send_buffer_brain(self):
         if self.i_train_buffer_to_server.get_len_train_buffer_to_server() > lc.num_train_record_to_brain:
             train_buffer_to_server = self.i_train_buffer_to_server.get_train_buffer_to_server()
@@ -373,8 +399,8 @@ class Explore_process(client_base):
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 class Eval_process(client_base):
-    def __init__(self, process_name, process_idx, data_name,learn_sl,L_output, E_stop):
-        client_base.__init__(self, process_name, process_idx, learn_sl,L_output, None, E_stop, None, None)
+    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, E_stop):
+        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI,L_output, None, E_stop, None, None)
         self.data_name = data_name
         flag_file_log=lc.l_flag_eval_log_file[process_idx]
         flag_screen_show=lc.l_flag_eval_log_screen[process_idx]
@@ -388,7 +414,7 @@ class Eval_process(client_base):
         self.initialed_prepare_summary_are_1ET=False
 
     def init_data_eval(self):
-        self.data = client_datas(self.process_working_dir, self.data_name, self.stock_list, self.logger,called_by="eval")
+        self.data = client_datas(self.process_working_dir, self.data_name, self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,called_by="eval")
         self.i_are_ssdi=are_ssdi_handler(self.process_name, self.process_working_dir,self.logger)
         self.l_i_tran_id=[transaction_id(stock, start_id=0) for stock in self.stock_list]
 

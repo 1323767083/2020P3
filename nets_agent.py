@@ -22,8 +22,8 @@ def init_agent_config(input_lc):
     CNN_sv_list=["flag_s_level","s_kernel_l","s_filter_l","s_maxpool_l"]
     RNN_sv_list=["ms_param_TimeDistributed"]
 
-    CNN_lvsv_list=["flag_l_level","l_kernel_l","l_filter_l","l_maxpool_l"]
-    RNN_lvsv_list=["ms_param_CuDNNLSTM"]
+    CNN_lv_list=["flag_l_level","l_kernel_l","l_filter_l","l_maxpool_l"]
+    RNN_lv_list=["ms_param_CuDNNLSTM"]
 
     D_list=["dense_l","dense_prob","dense_advent"]
 
@@ -40,13 +40,13 @@ def init_agent_config(input_lc):
         nc_item_list += CNN_sv_list
 
     if lc.agent_method_joint_lvsv=="RNN":
-        nc_item_list += RNN_lvsv_list
+        nc_item_list += RNN_lv_list
     elif lc.agent_method_joint_lvsv=="CNN":
-        nc_item_list += CNN_lvsv_list
+        nc_item_list += CNN_lv_list
     else:
         assert lc.agent_method_joint_lvsv=="RCN"
-        nc_item_list += RNN_lvsv_list
-        nc_item_list += CNN_lvsv_list
+        nc_item_list += RNN_lv_list
+        nc_item_list += CNN_lv_list
 
 
     for item_title in nc_item_list:

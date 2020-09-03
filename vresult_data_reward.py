@@ -1,7 +1,7 @@
 import os,re,collections
 import pandas as pd
 import numpy as np
-from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
+#from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
 from vcomm import img_tool
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -10,6 +10,7 @@ import progressbar
 import pickle
 from env import env_reward_basic#, env_reward_10,env_reward_100,env_reward_1000,env_reward_1000_shift10
 from vresult_data_com import get_data_start_end,are_esi_reader
+from DBI_Base import DBI_init
 import config as sc
 def natural_keys(text):
     return [ int(c) if c.isdigit() else c for c in re.split(r'(\d+)',text) ]
@@ -22,12 +23,14 @@ def natural_keys(text):
 # self.get_are_summary
 # self.get_stock_hprice_data
 # self.get_tranaction_price_data
-class ana_reward_data(are_esi_reader):
+class ana_reward_data(are_esi_reader, DBI_init):
     def __init__(self, system_name, process_name,Lstock, LEvalT, LYM,lgc):
+        DBI_init.__init__(self)
         are_esi_reader.__init__(self,system_name, process_name)
         self.Lstock, self.LEvalT, self.LYM,self.lgc=Lstock, LEvalT, LYM, lgc
         self.data_start_s,self.data_end_s=get_data_start_end(self.lgc,process_name)
-        self.td = API_trade_date().np_date_s
+        self.td=self.nptd.astype(str)
+        #self.td = API_trade_date().np_date_s
 
         self.ET_Summary_des_dir=self.dir_analysis
         for sub_dir in [self.process_name,"per_ET"]:
@@ -116,6 +119,7 @@ class ana_reward_data(are_esi_reader):
         return True, dfrr, Dic_effective
 
     def _get_are_summary_1ET(self, evalT):
+        print ("Handling {0}".format(evalT))
         ET_summary_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}.csv".format(evalT))
         effective_count_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}_effective_count.csv".format(evalT))
         stock_statistic_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}_stockstastic.pkl".format(evalT))
@@ -133,14 +137,12 @@ class ana_reward_data(are_esi_reader):
                     l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum = pickle.load(f)
 
                 #debug purpose
-                print ("duration is 1 day")
                 dfd=df
                 for _ , row in dfd[dfd["duration"]==1].iterrows():
-                    print (row["trans_id"],row["EvalT"])
-                print ("duration is 6 day")
+                    print ("duration is 1 day",row["trans_id"],row["EvalT"])
                 dfd=df
                 for _ , row in dfd[dfd["duration"]==6].iterrows():
-                    print (row["trans_id"],row["EvalT"])
+                    print ("duration is 6 day",row["trans_id"],row["EvalT"])
                 #debug purpose
                 return True, df,Summery_effective_count,[l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum]
             except Exception:
@@ -269,7 +271,8 @@ class ana_reward_data(are_esi_reader):
                 return row[row_name] / row["coefficient_fq"]
             return convert_row
 
-        dfh=API_HFQ_from_file().get_df_HFQ(stock)
+        #dfh=API_HFQ_from_file().get_df_HFQ(stock)
+        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         #dfh["date"] = dfh["date"].astype(str)
         #dfh = dfh[(dfh.date >= self.data_start_s) & (dfh.date <= self.data_end_s)]
         dfh["date"] = dfh["date"].astype(int)
