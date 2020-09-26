@@ -20,15 +20,9 @@ class LHPP2V3_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        #self.check_holding_fun=LHPP2V2_check_holding
-        if  hasattr(lc,"CLN_AV_state"):
-            i_cav=globals()[lc.CLN_AV_state]()
-            self.check_holding_fun = i_cav.check_holding_item
-            self.get_OB_AV = i_cav.get_OB_av
-        else:
-            assert False, "CLN_AV_state is mandatory param"
-            self.check_holding_fun = LHPP2V2_check_holding
-            self.get_OB_AV = Train_Buy_get_AV_2
+        i_cav = globals()[lc.CLN_AV_state]()
+        self.check_holding_fun = i_cav.check_holding_item
+        self.get_OB_AV = i_cav.get_OB_av
 
 
     def build_predict_model(self, name):
@@ -108,7 +102,7 @@ class LHPP2V3_Agent:
         p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv,"P_input_av":self.get_OB_AV(av)})
         return p, v
 
-    def choose_action(self,state):
+    def choose_action(self,state,calledby="Eval"):
         assert lc.P2_current_phase == "Train_Buy"
         assert not lc.flag_multi_buy
         lv, sv, av = state
@@ -131,8 +125,16 @@ class LHPP2V3_Agent:
                 l_ap.append(np.zeros_like(sell_prob))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(sell_sv[0])
             else: # not have holding
-                #action = np.random.choice([0, 1], p=buy_prob)
-                action = self.i_action.I_nets_choose_action(buy_prob)
+                if calledby=="Explore":
+                    Flag_random_explore=np.random.choice([0, 1], p=[0.5,0.5])
+                    if Flag_random_explore:
+                        action=0
+                    else:
+                        action = self.i_action.I_nets_choose_action(buy_prob)
+                elif calledby=="Eval":
+                    action = self.i_action.I_nets_choose_action(buy_prob)
+                else:
+                    assert False, "Only support Explore and Eval as calledby not support {0}".format(calledby)
                 l_a.append(action)
                 l_ap.append(buy_prob)
                 l_sv.append(buy_sv[0])

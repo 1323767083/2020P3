@@ -59,8 +59,8 @@ l_GPU_size=[11019,12196]
     "CLN_buffer_to_train": "buffer_to_train",
     "CLN_env_account": "env_account",
     #"CLN_env_read_data": "R_T5_skipSwh_balance",
-    "CLN_env_get_data_train": "DBTP_Train_Reader",
-    "CLN_env_get_data_eval": "DBTP_Eval_Reader",
+    #"CLN_env_get_data_train": "DBTP_Train_Reader",
+    #"CLN_env_get_data_eval": "DBTP_Eval_Reader",
     "CLN_AV_state":"Phase_State_V2",
     "CLN_GenStockList": "StockList",
     "=======system type related=": "=======================",
@@ -107,29 +107,29 @@ l_GPU_size=[11019,12196]
     "Buffer_nb_Features": 6,
     "brain_buffer_reuse_times": 4,
     "=======Explore Procee=====": "=======================",
-    "l_work_core": [
-        "GPU_1"
-    ],
-    "l_percent_gpu_core_for_work": [
-        0.2
-    ],
     "l_flag_worker_log_file": [
         False
     ],
     "l_flag_worker_log_screen": [
         True
     ],
+
+    "num_workers": 1,
+    "=======Old_explore========":"========================",
+    "l_work_core": [
+        "GPU_1"
+    ],
     "l_train_SL_param": [
         [0, 20180101, 20191231]
     ],
-    "num_workers": 1,
+    "l_percent_gpu_core_for_work": [0.2],
+    "l_CLN_env_get_data_train": ["DBTP_Train_Reader"],
+    "=======New_explore========":"========================",
+    "work_core": "GPU_1",
+    "percent_gpu_core_for_work": 0.2,
+    "CLN_env_get_data_train": "DBTP_Train_Reader",
+    "train_SL_param": [0, 20180101, 20191231],
     "=======Eval process=======": "=======================",
-    "l_eval_core": [
-        "GPU_1","GPU_0","GPU_1"
-    ],
-    "l_percent_gpu_core_for_eva": [
-        0.2,0.2,0.2
-    ],
     "l_flag_eval_log_file": [
         True, True,True
     ],
@@ -141,8 +141,23 @@ l_GPU_size=[11019,12196]
         [1,20180101, 20191231],
         [1,20200101, 20200531]
     ],
+    "l_CLN_env_get_data_eval": [
+        "DBTP_Eval_Reader",
+        "DBTP_Eval_Reader",
+        "DBTP_Continue_Reader"
+    ],
     "start_eval_count": 0,
+    "=======Old_Eval========":"========================",
+    "l_eval_core": [
+        "GPU_1", "GPU_0", "GPU_1"
+    ],
+    "l_percent_gpu_core_for_eva": [0.2, 0.2, 0.2],
     "eval_num_process": 3,
+    "=======New_Eval========":"========================",
+    "eval_core": "GPU_1",
+    "percent_gpu_core_for_eva": 0.2,
+    "eval_num_process_group": 3,
+    "eval_num_process_each_group":3,
     "=======LOSS=======": "=======================",
     "LOSS_POLICY": 1.0,
     "LOSS_V": 0.5,
@@ -258,7 +273,9 @@ l_GPU_size=[11019,12196]
             100,
             200
         ]
-    }
+    },
+    "===========Tunning_Param=======":"=======================",
+    "Flag_Delete_Train_Brain_Buffer_After_Weight_Update":True
 }
 
 class gconfig_specific:
@@ -293,8 +310,8 @@ class gconfig_data:
         self.eval_flag_punish_no_action=float("nan")
 
         self.CLN_env_read_data = float("nan") #"R_T5"
-        self.CLN_env_get_data_train = float("nan") #"env_get_data_base"
-        self.CLN_env_get_data_eval = float("nan") #"env_get_data_base"
+        #self.CLN_env_get_data_train = float("nan") #"env_get_data_base"
+        #self.CLN_env_get_data_eval = float("nan") #"env_get_data_base"
         self.CLN_TDmemory = float("nan") #"TD_memory"
         self.CLN_GenStockList = float("nan") #"API_SH_sl"
 
@@ -326,21 +343,36 @@ class gconfig_data:
         self.brain_buffer_reuse_times = float("nan") #1
 
         # explore class
-        self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
-        self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
         self.l_flag_worker_log_file = [float("nan")] #[True, True, True]
         self.l_flag_worker_log_screen = [float("nan")] #[False, False, False]
         self.l_train_SL_param=[[0,20000000,20000000]]
+
         self.num_workers = float("nan") #3
+        #old_explore
+        self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
+        self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
+        self.l_CLN_env_get_data_train = [""]
+        #new_explore
+        self.work_core = "" #"GPU_0"
+        self.percent_gpu_core_for_work = float("nan") #0.2
+        self.CLN_env_get_data_train = ""
 
         # eval class
-        self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
-        self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
+
         self.l_flag_eval_log_file = [float("nan")] #[True, True]
         self.l_flag_eval_log_screen = [float("nan")] #[False, False]
         self.l_eval_SL_param = [[0, 20000000, 20000000]]
+        self.l_CLN_env_get_data_eval=""
         self.start_eval_count = float("nan") #0
         self.eval_num_process = float("nan") #2
+        #old eval
+        self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
+        self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
+        #new eval
+        self.eval_core = "" #"GPU_1"
+        self.percent_gpu_core_for_eva = float("nan") #0.2
+        self.eval_num_process_group=3
+        self.eval_num_process_per_group=3
 
         # loss WEIGHT
         self.LOSS_POLICY = float("nan") #1.0
@@ -410,9 +442,9 @@ class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
         # seed
-        self.client_process_name_seed = "Explore_worker"
-        self.server_process_name_seed = "Train_Brain"
-        self.eval_process_seed = "Eval"
+        self.client_process_name_seed = "ExploreAgent"
+        self.server_process_name_seed = "TrainBrain"
+        self.eval_process_seed = "EvalAgent"
         self.actor_model_AIO_fn_seed = "train_model_AIO"
         self.actor_config_fn_seed = "config"
         self.actor_weight_fn_seed = "weight"
@@ -454,6 +486,9 @@ class gconfig(gconfig_data):
 
         self.l_percent_gpu_core_for_eva =  [l_GPU_size[int(eval_core[-1])]*percent_gpu_core
                             for eval_core,percent_gpu_core in zip(self.l_eval_core,self.l_percent_gpu_core_for_eva)]
+
+        self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
+        self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
 
         assert self.env_max_invest_per_round>=self.env_min_invest_per_round
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
@@ -508,8 +543,8 @@ class gconfig(gconfig_data):
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
         l_specific_param_title=[]
         # 1.Simulator get data
-        assert self.CLN_env_get_data_train == "DBTP_Train_Reader"
-        assert self.CLN_env_get_data_eval == "DBTP_Eval_Reader"
+        #assert self.CLN_env_get_data_train == "DBTP_Train_Reader"
+        #assert self.CLN_env_get_data_eval == "DBTP_Eval_Reader"
 
         # 2.Simulator
         assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"

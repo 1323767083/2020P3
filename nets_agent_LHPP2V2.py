@@ -18,14 +18,9 @@ class LHPP2V2_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        if  hasattr(lc,"CLN_AV_state"):
-            i_cav=globals()[lc.CLN_AV_state]()
-            self.check_holding_fun = i_cav.check_holding_item
-            self.get_OS_av=i_cav.get_OS_av
-        else:
-            assert False,"CLN_AV_state is mandatory param"
-            self.check_holding_fun = LHPP2V2_check_holding
-
+        i_cav = globals()[lc.CLN_AV_state]()
+        self.check_holding_fun = i_cav.check_holding_item
+        self.get_OS_av = i_cav.get_OS_av
 
 
     def build_predict_model(self, name):
@@ -125,7 +120,7 @@ class LHPP2V2_Agent:
         p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_av(av)})
         return p,v
 
-    def choose_action(self, state):
+    def choose_action(self, state, calledby="Eval"):
         assert lc.P2_current_phase == "Train_Sell"
         assert not lc.flag_multi_buy
         lv, sv, av = state

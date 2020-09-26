@@ -13,7 +13,7 @@ from Buffer_comm import buffer_series,buffer_to_train
 from env import Simulator_intergrated
 '''modify move_get actula to action common '''
 from action_comm import actionOBOS
-
+from miscellaneous import find_model_surfix
 def init_A3C_worker(lgc):
     global lc
     lc=lgc
@@ -22,7 +22,7 @@ def init_A3C_worker(lgc):
     CSimulator=globals()[lc.CLN_simulator]
 
 class client_datas:
-    def __init__(self, process_working_dir, data_name,stock_list, StartI, EndI,logger, called_by):
+    def __init__(self, process_working_dir, data_name,stock_list, StartI, EndI,logger,CLN_get_data, called_by):
         self.stock_list = stock_list
         self.data_name=data_name
         self.called_by=called_by
@@ -52,7 +52,7 @@ class client_datas:
         self.l_i_episode_init_flag = [True for _ in range(num_stock)]  # for log purpose
 
         for stock in self.stock_list:
-            i_env = CSimulator(self.data_name,stock,StartI, EndI,self.called_by)
+            i_env = CSimulator(self.data_name,stock,StartI, EndI,CLN_get_data,self.called_by)
             self.l_i_env.append(i_env)
 
     def eval_reset_data(self):
@@ -178,7 +178,7 @@ class transaction_id:
         self.flag_holding = False
 
 class client_base(Process):
-    def __init__(self, process_name, process_idx, lstock,SL_StartI,SL_EendI, L_output, D_share, E_stop, E_update_weight, E_worker_work):
+    def __init__(self, process_name, process_idx, lstock,SL_StartI,SL_EendI, L_output, D_share, E_stop, E_update_weight, E_worker_work,CLN_get_data):
         Process.__init__(self)
         self.process_name = process_name
         self.process_idx = process_idx
@@ -190,6 +190,7 @@ class client_base(Process):
         self.E_stop=E_stop
         self.E_update_weight=E_update_weight
         self.E_worker_work=E_worker_work
+        self.CLN_get_data=CLN_get_data
         self.process_working_dir=os.path.join(lc.system_working_dir,self.process_name)
         if not os.path.exists(self.process_working_dir): os.mkdir(self.process_working_dir)
         self.inp=pcom.name_pipe_cmd(self.process_name)
@@ -213,8 +214,8 @@ class client_base(Process):
         return int(match.group(1))
 
 class Explore_process(client_base):
-    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, D_share, E_stop, E_update_weight, E_worker_work):
-        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI, L_output, D_share, E_stop, E_update_weight, E_worker_work)
+    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, D_share, E_stop, E_update_weight, E_worker_work,CLN_get_data):
+        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI, L_output, D_share, E_stop, E_update_weight, E_worker_work,CLN_get_data)
         #self.init_data_explore(eval_loop_count =0) # not eval worker
         self.data_name=data_name
         flag_file_log = lc.l_flag_worker_log_file[process_idx]
@@ -231,12 +232,12 @@ class Explore_process(client_base):
         if lc.flag_record_buffer_to_server:
             self.i_record_send_to_server=record_send_to_server(dirwp ,lc.flag_record_buffer_to_server)
     def init_data_explore(self):
-        self.data = client_datas(self.process_working_dir, self.data_name,self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,called_by="explore")
+        self.data = client_datas(self.process_working_dir, self.data_name,self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,self.CLN_get_data,called_by="Explore")
         self.i_train_buffer_to_server = Cbuffer_to_server(len(self.stock_list))
         self.i_bs=buffer_series()
     def run(self):
         import tensorflow as tf
-        lcom.setup_tf_logger(self.process_name)
+        #lcom.setup_tf_logger(self.process_name)
         tf.random.set_seed(2)
         from nets import Explore_Brain, init_gc,init_virtual_GPU
         init_gc(lc)    #init_gc(lgc)
@@ -247,8 +248,6 @@ class Explore_process(client_base):
         virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_work[self.process_idx])
         with tf.device(virtual_GPU):
             self.logger.info("{0} start".format(self.process_name))
-            #self.i_wb= locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_work[self.process_idx],
-            #                                    method_name_of_choose_action=lc.method_name_of_choose_action_for_train)
             self.i_wb= locals()[lc.CLN_brain_explore]()
             self.logger.info(" wait for initial weight ")
             Ds={}
@@ -260,7 +259,7 @@ class Explore_process(client_base):
             Ds["This_round_received_weight_fnwp"] = self.worker_check_update_weight()
             while len(Ds["This_round_received_weight_fnwp"])==0:
                 Ds["This_round_received_weight_fnwp"] = self.worker_check_update_weight()
-                time.sleep(0.01)
+                time.sleep(1)
             else:
                 self.logger.info("initial weight update from {0}".format(Ds["This_round_received_weight_fnwp"]))
             while not self.E_stop.is_set():
@@ -307,18 +306,13 @@ class Explore_process(client_base):
                 #ap =self.data.l_ap[idx]
                 s_, r, done, support_view_dic = i_env.step(a)
                 self.data.l_done_flag[idx] = done
-                '''
-                actual_action04 =self.i_ac.get_actual_action04(support_view_dic)
-                a_onehot04=self.i_ac.action04_2_actionarray04(actual_action04)
-                support_view_dic["old_ap"] = self.i_ac.get_prob_from_AParray02(self.data.l_ap[idx], actual_action04)
-                '''
                 a_onehot04,support_view_dic["old_ap"]=self.i_ac.I_A3C_worker_explorer(support_view_dic, self.data.l_ap[idx])
                 self.clean_support_view_from_worker_to_server(support_view_dic)
 
                 self.i_train_buffer_to_server.add_one_record(idx, s, a_onehot04, r, s_, done, support_view_dic)
                 self.data.l_s[idx] = s_
         stacted_state = self.stack_l_state(self.data.l_s)
-        self.data.l_a, self.data.l_ap, self.data.l_sv = self.i_wb.choose_action(stacted_state)
+        self.data.l_a, self.data.l_ap, self.data.l_sv = self.i_wb.choose_action(stacted_state,"Explore")
 
     def clean_support_view_from_worker_to_server(self,support_view_dic):
         support_view_dic.pop("Flag_LastDay")
@@ -334,28 +328,15 @@ class Explore_process(client_base):
         #support_view_dic.pop("action_return_message") #env
         #support_view_dic.pop("action_taken") #env
         #support_view_dic.pop("holding")    #av_state
-        #support_view_dic.pop("flag_force_sell")    #av_state
+        #remove "flag_force_sell" #support_view_dic.pop("flag_force_sell")    #av_state
         #support_view_dic.pop("old_ap")   #Explore_process
 
         # TD_intergrated will be add after add this fun
         #support_view_dic.pop(""SdisS_"")
         # support_view_dic.pop("_support_view_dic")   #TD_intergrated
 
-        assert len(support_view_dic.keys())==7,support_view_dic.keys()
-    '''
-    def clean_support_view_from_worker_to_server(self,support_view_dic):
-        #support_view_dic.pop("action_return_message")
-        #support_view_dic.pop("action_taken")
-        #support_view_dic.pop("holding")
-        #support_view_dic.pop("idx_in_period")
-        support_view_dic.pop("last_day_flag")
-        #support_view_dic.pop("period_idx")
-        #support_view_dic.pop("potential_profit")
-        support_view_dic.pop("stock_SwhV1")
-        support_view_dic.pop("this_trade_day_Nprice")
-        support_view_dic.pop("this_trade_day_hfq_ratio")
-        # only keep 'date' 'stock' 'old_ap'
-    '''
+        assert len(support_view_dic.keys())==6,support_view_dic.keys()
+
     def worker_send_buffer_brain(self):
         if self.i_train_buffer_to_server.get_len_train_buffer_to_server() > lc.num_train_record_to_brain:
             train_buffer_to_server = self.i_train_buffer_to_server.get_train_buffer_to_server()
@@ -399,8 +380,8 @@ class Explore_process(client_base):
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 class Eval_process(client_base):
-    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, E_stop):
-        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI,L_output, None, E_stop, None, None)
+    def __init__(self, process_name, process_idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, E_stop,CLN_get_data):
+        client_base.__init__(self, process_name, process_idx, learn_sl,SL_StartI, SL_EndI,L_output, None, E_stop, None, None,CLN_get_data)
         self.data_name = data_name
         flag_file_log=lc.l_flag_eval_log_file[process_idx]
         flag_screen_show=lc.l_flag_eval_log_screen[process_idx]
@@ -414,13 +395,13 @@ class Eval_process(client_base):
         self.initialed_prepare_summary_are_1ET=False
 
     def init_data_eval(self):
-        self.data = client_datas(self.process_working_dir, self.data_name, self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,called_by="eval")
+        self.data = client_datas(self.process_working_dir, self.data_name, self.stock_list, self.SL_StartI,self.SL_EendI,self.logger,self.CLN_get_data,called_by="Eval")
         self.i_are_ssdi=are_ssdi_handler(self.process_name, self.process_working_dir,self.logger)
         self.l_i_tran_id=[transaction_id(stock, start_id=0) for stock in self.stock_list]
 
     def run(self):
         import tensorflow as tf
-        lcom.setup_tf_logger(self.process_name)
+        #lcom.setup_tf_logger(self.process_name)
         tf.random.set_seed(2)
         from nets import Explore_Brain, init_gc,init_virtual_GPU
         init_gc(lc)  #init_gc(lgc)
@@ -429,8 +410,6 @@ class Eval_process(client_base):
         assert lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])]!=0.0, "Only Support GPU"
         virtual_GPU = init_virtual_GPU(lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])])
         with tf.device(virtual_GPU):
-            #self.i_eb = locals()[lc.CLN_brain_explore](GPU_per_program=lc.l_percent_gpu_core_for_eva[int(self.process_name[-1])],
-            #                                           method_name_of_choose_action=lc.method_name_of_choose_action_for_eval)
             self.i_eb = locals()[lc.CLN_brain_explore]()
             while not self.E_stop.is_set():
                 self.eval_name_pipe_cmd("Waiting for evaluation")
@@ -486,7 +465,7 @@ class Eval_process(client_base):
                 self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id)
 
         stacted_state = self.stack_l_state(self.data.l_s)
-        self.data.l_a, self.data.l_ap,self.data.l_sv = self.i_eb.choose_action(stacted_state)
+        self.data.l_a, self.data.l_ap,self.data.l_sv = self.i_eb.choose_action(stacted_state,"Eval")
 
     def __env_done_fun(self, idx, s, support_view_dic):
         self.data.l_s[idx] = s
@@ -505,17 +484,19 @@ class Eval_process(client_base):
                 self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
 
 
-    def find_model_surfix(self, eval_loop_count):
-        l_model_fn = [fn for fn in os.listdir(lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
-        if len(l_model_fn) == 2:
-            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
-            match = re.search(regex, l_model_fn[0])
-            return match.group(1)
-        else:
-            return None
+    #def find_model_surfix(self, eval_loop_count):
+    #    l_model_fn = [fn for fn in os.listdir(lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
+    #    if len(l_model_fn) == 2:
+    #        regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
+    #        match = re.search(regex, l_model_fn[0])
+    #        return match.group(1)
+    #    else:
+    #        return None
 
     def eval_init_round(self):
-        found_model_surfix=self.find_model_surfix(self.eval_loop_count)
+        #found_model_surfix=self.find_model_surfix(self.eval_loop_count)
+        found_model_surfix = find_model_surfix(lc.brain_model_dir,self.eval_loop_count)
+
         if found_model_surfix is None:
             return ""
         weight_fn = "{0}{1}.h5".format(lc.actor_weight_fn_seed, found_model_surfix)

@@ -1,3 +1,20 @@
+1 single worker GPU process, multiple worker
+2.single eval GPU process, multiple eval
+
+3. seperate potential buy price and potential sell price in support view
+
+4. simulator fully go through eval peirod
+   buy-sell
+   next day buy
+
+5. note book show change of one stock for fully go through simulator result
+
+6. increase to 5 min 1 min
+
+
+7. brain class does not need GPU percent param
+
+
 Brain
 WorkerCPUs
 WorkGPU

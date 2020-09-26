@@ -247,10 +247,14 @@ class TD_memory_integrated:
 
     def get_OB_verified_record(self):
         _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
+        #if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
+        #    "action_taken"] == "Sell"):
+        #    del self.memory[:]
+        #    return False
         if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-            "action_taken"] == "Sell"):
-            del self.memory[:]
-            return False
+                "action_taken"] == "Sell"):
+            self.memory[-1][2]=-1   #punish unsuccess final sell reward for buy training
+
         success_buy_idx, buy_R = self.get_after_buy_accumulate_R()
         self.memory[success_buy_idx][2]=buy_R
         del self.memory[success_buy_idx + 1:]

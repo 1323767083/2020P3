@@ -10,7 +10,7 @@ import progressbar
 import pickle
 from env import env_reward_basic#, env_reward_10,env_reward_100,env_reward_1000,env_reward_1000_shift10
 from vresult_data_com import get_data_start_end,are_esi_reader
-from DBI_Base import DBI_init
+from DBI_Base import DBI_init,DBI_Base,StockList
 import config as sc
 def natural_keys(text):
     return [ int(c) if c.isdigit() else c for c in re.split(r'(\d+)',text) ]
@@ -23,6 +23,7 @@ def natural_keys(text):
 # self.get_are_summary
 # self.get_stock_hprice_data
 # self.get_tranaction_price_data
+'''
 class ana_reward_data(are_esi_reader, DBI_init):
     def __init__(self, system_name, process_name,Lstock, LEvalT, LYM,lgc):
         DBI_init.__init__(self)
@@ -36,8 +37,25 @@ class ana_reward_data(are_esi_reader, DBI_init):
         for sub_dir in [self.process_name,"per_ET"]:
             self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
             if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
+'''
 
+class ana_reward_data(are_esi_reader, DBI_init):
+    def __init__(self, system_name, process_name,Lstock, LEvalT, LYM,lgc):
+        DBI_init.__init__(self)
+        eval_process_idx = int(re.findall(r"{0}_(\d)".format(lgc.eval_process_seed), process_name)[0])
+        eval_group_idx = eval_process_idx // lgc.eval_num_process_per_group
+        process_group_name=process_name[:-1]+str(eval_group_idx)
+        are_esi_reader.__init__(self,system_name, process_group_name)
+        self.Lstock, self.LEvalT, self.LYM,self.lgc=Lstock, LEvalT, LYM, lgc
+        self.data_start_s,self.data_end_s=get_data_start_end(self.lgc,process_group_name)
+        self.td=self.nptd.astype(str)
+        #self.td = API_trade_date().np_date_s
 
+        self.ET_Summary_des_dir=self.dir_analysis
+        #for sub_dir in [self.process_name,"per_ET"]:
+        for sub_dir in [process_name, "per_ET"]:
+            self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
+            if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
 
     def _get_are_summary_1stock_1ET(self, stock, evalT):
         flag_file_found,df = self._read_stock_are(stock, evalT)
@@ -272,9 +290,10 @@ class ana_reward_data(are_esi_reader, DBI_init):
             return convert_row
 
         #dfh=API_HFQ_from_file().get_df_HFQ(stock)
-        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+        _, dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         #dfh["date"] = dfh["date"].astype(str)
         #dfh = dfh[(dfh.date >= self.data_start_s) & (dfh.date <= self.data_end_s)]
+
         dfh["date"] = dfh["date"].astype(int)
         dfh = dfh[(dfh.date >= int(self.data_start_s)) & (dfh.date <= int(self.data_end_s))]
 
@@ -323,14 +342,37 @@ class ana_reward_data_A3C_worker_interface(ana_reward_data):
         param_fnwp = os.path.join(sc.base_dir_RL_system, system_name, "config.json")
         if not os.path.exists(param_fnwp):
             raise ValueError("{0} does not exisit".format(param_fnwp))
-        lgc = sc.gconfig()
-        lgc.read_from_json(param_fnwp)
+        self.lc = sc.gconfig()
+        self.lc.read_from_json(param_fnwp)
 
-        src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
-        Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
+        process_idx=int(process_name[-1])
+        process_group_idx=process_idx//self.lc.eval_num_process_per_group
+        #working_sub_dir="{0}_{1}".format(self.lc.eval_process_seed, process_group_idx)
+        #src_dir = os.path.join(sc.base_dir_RL_system, system_name, working_sub_dir)
+
+        self.iSL = StockList(self.lc.SLName)
+        #SL_idx, self.SL_StartI, self.SL_EndI =  self.lc.l_train_SL_param[self.process_idx]
+        SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_train_SL_param[process_group_idx]
+        #flag, self.stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
+        flag, group_stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
+
+        assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lc.SLName, process_group_idx)
+
+        #total_num_eval_process = self.lc.eval_num_process_group * self.lc.eval_num_process_per_group
+
+        process_idx_left=process_idx%self.lc.eval_num_process_group
+
+        mod=len(group_stock_list)//self.lc.eval_num_process_per_group
+        left=len(group_stock_list)%self.lc.eval_num_process_per_group
+        Lstock = group_stock_list[process_idx_left * mod:(process_idx_left + 1) * mod]
+        if process_idx_left<left:
+            Lstock.append(group_stock_list[-(process_idx_left+1)])
+
+        #src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
+        #Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
         Fake_lET=""
         Fake_lM=""
-        ana_reward_data.__init__(self,system_name, process_name,Lstock, Fake_lET,Fake_lM,lgc)
+        ana_reward_data.__init__(self,system_name, process_name,Lstock, Fake_lET,Fake_lM,self.lc)
 
     def get_are_summary(self):
         assert False, "not support in this interface {0}".format(self.__class__.__name__)

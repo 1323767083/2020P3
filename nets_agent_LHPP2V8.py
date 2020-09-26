@@ -20,14 +20,10 @@ class LHPP2V8_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        if  hasattr(lc,"CLN_AV_state"):
-            i_cav=globals()[lc.CLN_AV_state]()
-            self.check_holding_fun = i_cav.check_holding_item
-            self.get_OB_AV = i_cav.get_OB_av
-        else:
-            assert False,"CLN_AV_state is mandatory param"
-            self.check_holding_fun = LHPP2V2_check_holding
-            self.get_OB_AV = Train_Buy_get_AV_2
+        i_cav = globals()[lc.CLN_AV_state]()
+        self.check_holding_fun = i_cav.check_holding_item
+        self.get_OB_AV = i_cav.get_OB_av
+
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -108,7 +104,7 @@ class LHPP2V8_Agent:
         p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv,"P_input_av":self.get_OB_AV(av)})
         return p, v
 
-    def choose_action(self,state):
+    def choose_action(self,state,calledby="Eval"):
         assert lc.P2_current_phase == "Train_Buy"
         assert not lc.flag_multi_buy
         lv, sv, av = state

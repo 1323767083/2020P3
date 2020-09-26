@@ -168,7 +168,7 @@ class anaExtreR(DBI_init):
         for stock in lstock:
             print("handling ", stock)
             #dfh = API_HFQ_from_file().get_df_HFQ(stock)
-            dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+            _,dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
             dfr = df[df["stock"]==stock]
             for idx, row in dfr.iterrows():
                 dfhr=dfh[(dfh["date"]>=str(row["trans_start"])) & (dfh["date"]<=str(row["trans_end"]))]
@@ -187,7 +187,7 @@ class anaExtreR(DBI_init):
             working_stock=re.findall(r"(\w+)_\w+", tid)[0]
             if working_stock!=current_stock:
                 #dfh = API_HFQ_from_file().get_df_HFQ(working_stock)
-                dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(working_stock))
+                _,dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(working_stock))
                 dfh["Open_Nprice"] = dfh["open_price"] / dfh["coefficient_fq"]
                 dfh["highest_Nprice"] = dfh["highest_price"] / dfh["coefficient_fq"]
                 dfh["lowest_Nprice"] = dfh["lowest_price"] / dfh["coefficient_fq"]
@@ -209,7 +209,7 @@ class anaExtreR(DBI_init):
 
     def CmdTool_check_Hratio_change(self,stock):
         #dfh = API_HFQ_from_file().get_df_HFQ(stock)
-        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+        _,dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         dfh["Scoefficient_fq"] = dfh["coefficient_fq"].shift(1)
         dfh.bfill(inplace=True)
         dfh["change_flag_Hratio"] = dfh["Scoefficient_fq"] - dfh["coefficient_fq"]
@@ -269,7 +269,7 @@ class anaExtreR(DBI_init):
         assert len(df)==1
         stock=re.findall(r'(\w+)_\w+', tid)[0]
         #dfh = API_HFQ_from_file().get_df_HFQ(stock)
-        dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+        _, dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
         dfh["Open_Nprice"]=dfh["open_price"]/dfh["coefficient_fq"]
         dfh["highest_Nprice"] = dfh["highest_price"] / dfh["coefficient_fq"]
         dfh["lowest_Nprice"] = dfh["lowest_price"] / dfh["coefficient_fq"]

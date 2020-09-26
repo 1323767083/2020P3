@@ -6,8 +6,11 @@ import config as sc
 #from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
 
 def get_data_start_end(lgc, process_name):
-    eval_process_idx = int(re.findall(r"Eval_(\d)", process_name)[0])
+    eval_process_idx = int(re.findall(r"{0}_(\d)".format(lgc.eval_process_seed), process_name)[0])
     _, StartI, EndI=lgc.l_eval_SL_param[eval_process_idx]
+    #eval_process_idx = int(re.findall(r"{0}_(\d)".format(lgc.eval_process_seed), process_name)[0])
+    #eval_stocklist_idx=eval_process_idx//lgc.eval_num_process_per_group
+    #_, StartI, EndI = lgc.l_eval_SL_param[eval_stocklist_idx]
     return str(StartI), str(EndI)
     '''
     eval_data_name = lgc.l_eval_data_name[eval_process_idx]

@@ -100,7 +100,7 @@ class DBTP_Eval_Reader(DBTP_Train_Reader):
             support_view_dic["flag_all_period_explored"] = False
         return state, support_view_dic
 
-class DBTP_BT_Reader(DBTP_Train_Reader):
+class DBTP_Continue_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
 

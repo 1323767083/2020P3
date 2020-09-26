@@ -1,0 +1,8 @@
+Deep Reinforcement Learning for Automated Stock Trading
+https://towardsdatascience.com/deep-reinforcement-learning-for-automated-stock-trading-f1dad0126a02
+
+Using Deep Learning to Create a Stock Trading Bot
+https://medium.com/analytics-vidhya/using-deep-learning-to-create-a-stock-trading-bot-a96e6351d31c
+
+AI in Finance: how to finally start to believe your backtests
+https://towardsdatascience.com/ai-in-finance-how-to-finally-start-to-believe-your-backtests-1-3-1613ad81ea44

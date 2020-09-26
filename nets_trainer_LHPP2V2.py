@@ -72,17 +72,22 @@ class LHPP2V2_trainer_base(base_trainer):
     def OS_ForceSell_accumulate_reward(self,n_r,v,l_support_view):
         l_adjR=[]
         for item_r, item_v, item_support_view in zip(n_r, v, l_support_view):
-            if item_support_view[0, 0]["flag_force_sell"]:
-                if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
-                    l_adjR.append(item_r)
-                else:
-                    l_adjR.append(0)
-                    assert False, "These records should be already removed from TD_memory_LHPP2V2"
+        #    if item_support_view[0, 0]["flag_force_sell"]:
+        #        if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
+        #            l_adjR.append(item_r)
+        #        else:
+        #            l_adjR.append(0)
+        #            assert False, "These records should be already removed from TD_memory_LHPP2V2"
+        #    else:
+        #        if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
+        #            l_adjR.append(item_r)
+        #        else:
+        #            l_adjR.append(item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
+            if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
+                l_adjR.append(item_r)
             else:
-                if item_support_view[0, 0]["action_taken"]=="Sell" and item_support_view[0, 0]["action_return_message"]=="Success":
-                    l_adjR.append(item_r)
-                else:
-                    l_adjR.append(item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
+                l_adjR.append(item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
+
         return np.array(l_adjR)
 
 

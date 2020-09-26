@@ -28,17 +28,18 @@ class actionOBOS:
             return np.random.choice([0, 1], p=prob) if self.action_type == "OB" else np.random.choice([2, 3], p=prob)
     '''
     def I_nets_choose_action(self,inputs):
-        assert self.action_type in ["OB", "OS"]
+        assert self.action_type in ["OB", "OS","B32"]
         if self.action_type=="OS":
             prob=inputs
             return np.random.choice([2, 3], p=prob)
         elif self.action_type=="OB":
             prob = inputs
-            Flag_Random_Explore=np.random.choice([0, 1], p=[0.8,0.2])
-            if Flag_Random_Explore:
-                return 0
-            else:
-                return np.random.choice([0, 1], p=prob)
+            return np.random.choice([0, 1], p=prob)
+            #Flag_Random_Explore=np.random.choice([0, 1], p=[0.8,0.2])
+            #if Flag_Random_Explore:
+            #    return 0
+            #else:
+            #    return np.random.choice([0, 1], p=prob)
         elif self.action_type == "B32":
             prob, av_item, lc_LNB = inputs
             if av_item[-lc_LNB-1]!=1:

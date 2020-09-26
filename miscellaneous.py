@@ -1,6 +1,5 @@
-import os,json,shutil,time
+import os,json,shutil,time,sys,re
 from collections import OrderedDict
-import sys
 import config as sc
 
 def getselected_item_name(l_items, colum_per_row=3,flag_sort=True):
@@ -66,65 +65,19 @@ def create_system(RL_systemn_dir):
     #    nfnwp=os.path.join(new_system_dir, fn)
     #    shutil.copy(sfnwp, nfnwp)
 
-def remove_system_sub_dirs(system_dir):
+def remove_system_sub_dirs(system_dir,SubDirs):
 
-    l_sub_dir = ["analysis", "Explore_worker_0", "log", "model", "name_pipe",
-                 "record_tb", "record_state", "record_send_buffer","record_sim","tensorboard"]
-    l_sub_dir_eval=[dn for dn in os.listdir(system_dir) if "Eval_" in dn]
-    l_sub_dir.extend(l_sub_dir_eval)
-    for sub_dir in l_sub_dir:
+    for sub_dir in SubDirs:
         directory_to_remove = os.path.join(system_dir, sub_dir)
         if os.path.exists(directory_to_remove):
             shutil.rmtree(directory_to_remove)
             print("remove ", directory_to_remove)
 
-def create_eval_system():
-    print("select the system to base from")
-
-    lfn=os.listdir(sc.base_dir_RL_system)
-    source_system_name=getselected_item_name(lfn)
-    source_system_dir=os.path.join(sc.base_dir_RL_system,source_system_name)
-    source_fnwp=os.path.join(source_system_dir,"config.json")
-    param = json.load(open(source_fnwp, "r"), object_pairs_hook=OrderedDict)
-    flag_not_found=True
-    new_system_dir=""
-    new_system_name=""
-    while flag_not_found:
-        new_system_name=input("Enter the new system name: ")
-        new_system_dir=os.path.join(sc.base_dir_RL_system,new_system_name)
-        if not os.path.exists(new_system_dir):
-            flag_not_found=False
-        else:
-            decision=input("{0} already exists, delete it? Yes/No".format(new_system_name))
-            if decision=="Yes":
-                shutil.rmtree(new_system_dir)
-                flag_not_found = False
-            else:
-                continue
-    os.mkdir(new_system_dir)
-    param["RL_system_name"]=new_system_name
-    new_data_name = input("Enter the new data name: ")
-    param["data_name"]=new_data_name
-
-    new_param_fnwp=os.path.join(sc.base_dir_RL_system, new_system_name,"config.json")
-    json.dump(param,open(new_param_fnwp,"w"),indent=4)
-
-    source_system_model_dir=os.path.join(source_system_dir,"model")
-    new_system_model_dir=os.path.join(new_system_dir,"model")
-    os.symlink(source_system_model_dir, new_system_model_dir)
-    #if not os.path.exists(new_system_model_dir): os.mkdir(new_system_model_dir)
-    #l_fn_tolink=os.listdir(source_system_model_dir)
-    #for fn in l_fn_tolink:
-    #    sfnwp=os.path.join(source_system_model_dir,fn)
-    #    dfnwp=os.path.join(new_system_model_dir,fn)
-    #    os.symlink(sfnwp, dfnwp)
-    return new_system_name
-
 def start_tensorboard(port, logdir):
     from tensorboard import program
     import tensorflow as tf
     import logger_comm as lcom
-    lcom.setup_tf_logger("tensorboad")
+    #lcom.setup_tf_logger("tensorboad")
     #sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=0)
     #sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=0)
 
@@ -268,5 +221,12 @@ def get_VGPU_lists(lc):
         ll_VGPU_config[int(eval_core[-1])].append(percent_gpu)
         ll_VGPU_process[int(eval_core[-1])].append("eval_{0}".format(idx))
 
-
-
+def find_model_surfix(model_dir, eval_loop_count):
+    #l_model_fn = [fn for fn in os.listdir(self.lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
+    l_model_fn = [fn for fn in os.listdir(model_dir) if "_T{0}.".format(eval_loop_count) in fn]
+    if len(l_model_fn) == 2:
+        regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
+        match = re.search(regex, l_model_fn[0])
+        return match.group(1)
+    else:
+        return None

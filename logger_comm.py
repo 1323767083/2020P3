@@ -1,15 +1,10 @@
 import os, logging, time,shutil
 from logging.handlers import RotatingFileHandler
 from multiprocessing import log_to_stderr,get_logger
-class lconfig:
-    def __init__(self):
-        self.log_dir=""
-
 def init_gc(lgc):
     global lc
-    lc=lconfig()
-    for key in list(lc.__dict__.keys()):
-        lc.__dict__[key] = lgc.__dict__[key]
+    lc=lgc
+
 
 
 def setup_logger(label,  maxBytes=1000000, backupCount=10, flag_file_log=False, flag_screen_show=False):

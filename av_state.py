@@ -79,17 +79,14 @@ class Phase_State_V2(Phase_State_template):
         self.CuPs_limits = [lc.LHP]
         assert lc.raw_AV_shape == (lc.LHP + 1,)
 
-    def fabricate_av_and_update_support_view(self, state, support_view_dic, flag_force_sell):
+    #remove "flag_force_sell" def fabricate_av_and_update_support_view(self, state, support_view_dic, flag_force_sell):
+    def fabricate_av_and_update_support_view(self, state, support_view_dic):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         lav=[1 if idx ==idx_HP else 0 for idx in list(range(lc.raw_AV_shape[0]))]
         state.append(np.array(lav).reshape(1, -1))
         support_view_dic["holding"] = 1 if state[2][0][0] == 0 else 0
-        support_view_dic["flag_force_sell"]=flag_force_sell
-        #support_view_dic["flag_force_sell"] = True if self.CuP==self.P_END and \
-        #                    self.CuPs_idx[self.P_HP] == self.CuPs_limits[self.P_HP] else False
-        #support_view_dic["flag_force_sell"] = True if self.CuP==self.P_END and \
-        #                    self.CuPs_idx[self.P_HP] == self.CuPs_limits[self.P_HP]-1 else False
+        #remove "flag_force_sell" support_view_dic["flag_force_sell"]=flag_force_sell
 
 
 
@@ -129,7 +126,8 @@ class Phase_State_V3__1(Phase_State_template):
         self.CuPs_limits = [lc.specific_param.LNB, lc.LHP]
         assert lc.raw_AV_shape == (lc.specific_param.LNB + 1 + lc.LHP + 1,)
 
-    def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
+    #remove "flag_force_sell" def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
+    def fabricate_av_and_update_support_view(self, state, support_view_dic):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NB=self.CuPs_idx[self.P_NB] + lc.LHP + 1
@@ -140,7 +138,7 @@ class Phase_State_V3__1(Phase_State_template):
             nav[0, lc.LHP + 1:] = 0
         state.append(nav)
         support_view_dic["holding"] = 1 if state[2][0][0] == 0 else 0
-        support_view_dic["flag_force_sell"] = flag_force_sell
+        #remove "flag_force_sell" support_view_dic["flag_force_sell"] = flag_force_sell
         #support_view_dic["flag_force_sell"] = True if self.CuP==self.P_END and \
         #                    self.CuPs_idx[self.P_HP] == self.CuPs_limits[self.P_HP] else False
 
@@ -194,7 +192,8 @@ class Phase_State_V8(Phase_State_template):
         self.CuPs_limits = [lc.specific_param.LNT, lc.specific_param.LNB, lc.LHP]
         assert lc.raw_AV_shape[0]==lc.specific_param.LNT+1+lc.specific_param.LNB+1+lc.LHP+1
 
-    def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
+    #def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
+    def fabricate_av_and_update_support_view(self, state, support_view_dic):
         assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NT=self.CuPs_idx[self.P_NT] + lc.LHP + 1
@@ -213,7 +212,7 @@ class Phase_State_V8(Phase_State_template):
 
         #support_view_dic["flag_force_sell"] = True if self.CuP==self.P_END and \
         #                    self.CuPs_idx[self.P_HP] == self.CuPs_limits[self.P_HP] else False
-        support_view_dic["flag_force_sell"] =flag_force_sell
+        #remove "flag_force_sell" support_view_dic["flag_force_sell"] =flag_force_sell
 
     def get_OS_av(self,av):
         assert av.shape[1]==lc.raw_AV_shape[0]

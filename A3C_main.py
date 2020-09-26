@@ -11,7 +11,7 @@ import av_state as av_state
 import env as env
 import logging
 import setproctitle
-from miscellaneous import getselected_item_name, create_system,remove_system_sub_dirs,start_tensorboard,copy_between_two_machine,create_eval_system
+from miscellaneous import getselected_item_name, create_system,remove_system_sub_dirs,start_tensorboard,copy_between_two_machine
 #from miscellaneous import sanity_check_config
 from A3C_workers import Explore_process,Eval_process, init_A3C_worker
 from A3C_brain import Train_Process, init_A3C_brain
@@ -22,21 +22,31 @@ class main(Process):
         random.seed(2)
         np.random.seed(2)
 
-        l_fun_menu = ["create_train", "remote_copy", "learn", "eval","create_eval","DataBase"]
+        l_fun_menu = ["create_train", "remote_copy", "learn", "eval","DataBase"]
         fun_selected = getselected_item_name(l_fun_menu, colum_per_row=1) if len(argv)==0 else argv[0]
         if fun_selected == "learn":
             self.run = self.main_learn
             system_name = argv[1] if len(argv) == 2 else getselected_item_name(os.listdir(sc.base_dir_RL_system))
             if input("Clean all the sub dir Enter Yes or no: ")== "Yes":
-                remove_system_sub_dirs(os.path.join(sc.base_dir_RL_system, system_name))
+                system_dir=os.path.join(sc.base_dir_RL_system, system_name)
+                SubDirs = ["analysis", "Explore_worker_0", "log", "model", "name_pipe",
+                             "record_tb", "record_state", "record_send_buffer","record_sim","tensorboard"]
+                SubDirEvals=[dn for dn in os.listdir(system_dir) if "Eval_" in dn]
+                SubDirs.extend(SubDirEvals)
+                remove_system_sub_dirs(system_dir,SubDirs)
             self.init_system(system_name)
         elif fun_selected == "eval":
             self.run = self.main_eval_only
             system_name = argv[1] if len(argv) == 2 else getselected_item_name(os.listdir(sc.base_dir_RL_system))
-
+            if input("Clean Eval records Enter Yes or no: ")== "Yes":
+                system_dir=os.path.join(sc.base_dir_RL_system, system_name)
+                SubDirs = ["analysis", "log"]
+                SubDirEvals=[dn for dn in os.listdir(system_dir) if "Eval_" in dn]
+                SubDirs.extend(SubDirEvals)
+                remove_system_sub_dirs(system_dir,SubDirs)
             self.init_system(system_name)
-        elif fun_selected == "create_eval":
-            create_eval_system()
+        #elif fun_selected == "create_eval":
+        #    create_eval_system()
         elif fun_selected == "create_train":
             create_system(sc.base_dir_RL_system)
         elif fun_selected == "remote_copy":
@@ -103,36 +113,6 @@ class main(Process):
             time.sleep(600)
         self.join_eval()
 
-    '''
-    def start_brain_process(self):
-        LL_output                   =   [self.Manager.list() for _ in range (self.lgc.num_workers)]
-        E_stop_brain                =   self.Manager.Event()
-        LE_update_weight            =   [self.Manager.Event() for _ in range (self.lgc.num_workers)]
-        LE_worker_work              =   [self.Manager.Event() for _ in range(self.lgc.num_workers)]
-        D_share                     =   self.Manager.dict()
-        TrainP = Train_Process(self.lgc.server_process_name_seed, 0, LL_output,D_share,
-                               E_stop_brain,LE_update_weight,LE_worker_work)
-        TrainP.daemon=True
-        TrainP.start()
-        return TrainP, LL_output, D_share, E_stop_brain, LE_update_weight,LE_worker_work
-
-    def start_worker_process(self, idx, Manager, data_name,learn_sl, SL_StartI, SL_EndI,L_output, D_share, E_update_weight,E_worker_work ):
-        p_name = "{0}_{1}".format(self.lgc.client_process_name_seed, idx)
-        E_stop = Manager.Event()
-        ExploreP=Explore_process(p_name, idx, data_name,learn_sl,SL_StartI, SL_EndI,L_output, D_share, E_stop, E_update_weight, E_worker_work)
-        ExploreP.daemon = True
-        ExploreP.start()
-        return ExploreP,E_stop
-
-    def start_eval_process(self, idx, Manager,data_name,unl_eval_sl,SL_StartI, SL_EndI):
-        E_stop_eval = Manager.Event()
-        p_name = "{0}_{1}".format(self.lgc.eval_process_seed, idx)
-        EvalP=Eval_process(p_name, idx, data_name,unl_eval_sl,SL_StartI, SL_EndI,None, E_stop_eval)
-        EvalP.daemon = True
-        EvalP.start()
-        return EvalP,E_stop_eval
-    '''
-
     def learn_init(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = self.lgc.get_CUDA_VISIBLE_DEVICES_str(self.lgc.Brian_core)
 
@@ -160,7 +140,7 @@ class main(Process):
             p_name = "{0}_{1}".format(self.lgc.client_process_name_seed, idx)
             E_stop = self.Manager.Event()
             ExploreP = Explore_process(p_name, idx, self.lgc.data_name, sl_explore, SL_StartI, SL_EndI,
-                    self.LL_output[idx], self.D_share, E_stop,self.LE_update_weight[idx], self.LE_worker_work[idx])
+                    self.LL_output[idx], self.D_share, E_stop,self.LE_update_weight[idx], self.LE_worker_work[idx],self.lgc.l_CLN_env_get_data_train[idx])
             ExploreP.daemon = True
             ExploreP.start()
 
@@ -181,13 +161,11 @@ class main(Process):
 
                 E_stop_eval = self.Manager.Event()
                 p_name = "{0}_{1}".format(self.lgc.eval_process_seed, idx)
-                EvalP = Eval_process(p_name, idx, self.lgc.data_name,sl_eval, SL_StartI, SL_EndI, None, E_stop_eval)
+                EvalP = Eval_process(p_name, idx, self.lgc.data_name,sl_eval, SL_StartI, SL_EndI, None, E_stop_eval,self.lgc.l_CLN_env_get_data_eval[idx])
                 EvalP.daemon = True
                 EvalP.start()
                 self.l_eval_unlearn_process.append(EvalP)
                 self.l_E_stop_eval_unlearn.append(E_stop_eval)
-
-
     def join_all(self):
         if self.l_Process_worker is not None:
             for E_stop_worker, process_worker in zip(self.l_E_stop_worker, self.l_Process_worker):
