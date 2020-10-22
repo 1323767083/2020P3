@@ -70,7 +70,6 @@ class DBTP_Train_Reader(DBTP_Reader):
         self.CTDidx = random.randrange(self.SDTDSidx,self.SDTDEidx-self.PLen)
         self.ETDidx = self.CTDidx + self.PLen
         lv, sv, ref=self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
-        #lv, sv, ref=pickle.load(open(self.get_DBTP_data_fnwp(self.Stock, self.nptd[self.CTDidx]), "rb"))
         support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock, self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
         support_view_dic["flag_all_period_explored"]=False
         return [lv,sv],support_view_dic
@@ -79,7 +78,6 @@ class DBTP_Train_Reader(DBTP_Reader):
         self.CTDidx+=1
         Flag_Done=True if self.CTDidx==self.ETDidx else False
         lv, sv, ref = self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
-        #lv, sv, ref=pickle.load(open(self.get_DBTP_data_fnwp(self.Stock, self.nptd[self.CTDidx]), "rb"))
         support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock,self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
         support_view_dic["flag_all_period_explored"]=False
         return [lv,sv], support_view_dic, Flag_Done
@@ -100,15 +98,21 @@ class DBTP_Eval_Reader(DBTP_Train_Reader):
             support_view_dic["flag_all_period_explored"] = False
         return state, support_view_dic
 
-class DBTP_Continue_Reader(DBTP_Train_Reader):
+class DBTP_DayByDay_reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
+        self.EvalTillTDidx= self.SDTDSidx
 
     def reset_get_data(self):
-        self.CTDidx += 1
+        self.CTDidx = self.EvalTillTDidx
+        self.EvalTillTDidx+=1
         self.ETDidx = self.CTDidx + self.PLen
-        lv, sv, ref = self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
-        #lv, sv, ref=pickle.load(open(self.get_DBTP_data_fnwp(self.Stock, self.nptd[self.CTDidx]), "rb"))
-        support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock,self.nptd[self.CTDidx],self.CTDidx==self.ETDidx)
-        support_view_dic["flag_all_period_explored"] = True if self.CTDidx>=self.SDTDEidx else False
-        return [lv, sv], support_view_dic
+        lv, sv, ref=self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
+        support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock, self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
+        if self.EvalTillTDidx <= self.SDTDEidx - self.PLen:
+            support_view_dic["flag_all_period_explored"] = False
+        else:
+            support_view_dic["flag_all_period_explored"] = True
+            self.EvalTillTDidx = self.SDTDSidx
+        return [lv,sv],support_view_dic
+

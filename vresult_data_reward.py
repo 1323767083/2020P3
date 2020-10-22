@@ -137,7 +137,8 @@ class ana_reward_data(are_esi_reader, DBI_init):
         return True, dfrr, Dic_effective
 
     def _get_are_summary_1ET(self, evalT):
-        print ("Handling {0}".format(evalT))
+        #print ("Handling {0} ".format(evalT))
+        print("{0} ".format(evalT), end=" ")
         ET_summary_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}.csv".format(evalT))
         effective_count_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}_effective_count.csv".format(evalT))
         stock_statistic_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}_stockstastic.pkl".format(evalT))
@@ -704,10 +705,8 @@ class ana_reward(ana_reward_plot):
         self.plot_reward_count(allaxes[0],EvalT)
         self.scatter_duration_vs_reward(allaxes[1], EvalT,rd_param)
         self.plot_effective_count(allaxes[2])
-
         self.hist_reward(allaxes[3], EvalT,hist_param)
         self.scatter_buy_time_vs_reward(allaxes[4], EvalT)
-
     def show_reward_detail(self,fig, stock, EvalT, YM,Dimgc):
         if not (stock== self.Lstock[self.Cidx_stock] and EvalT==self.LEvalT[self.Cidx_EvalT]):
             self.Cidx_stock=self.Lstock.index(stock)

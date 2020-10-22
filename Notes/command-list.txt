@@ -1,11 +1,11 @@
-Open jupyter on server
+##Open jupyter on server
 conda activate p37
 jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser --notebook-dir="/home/rdchujf/n_workspace"
 jupyter notebook --ip 192.168.199.100 --port 6005 --no-browser --notebook-dir="/home/rdchujf/n_workspace"
-
+jupyter notebook --ip 0.0.0.0 --port 6005 --no-browser --notebook-dir="/home/rdchujf/remote_sw"
 if need run lantern put the global url in the ignore list
 
-view h5py
+##view h5py
 vitables
 
 apt install libhdf5-dev
@@ -13,3 +13,21 @@ apt install libhdf5-dev
 conda install -c anaconda pyqt
 
 conda  install vitables
+
+
+##tmux
+
+tmux new-session -d -s SNAME -n w0
+tmux new-window -d -t SNAME -n w1
+
+tmux selectw -t 0 or tmux selectw -t w0
+tmux selectw -t 1 or tmux selectw -t w1
+
+tmux send-keys -t SNAME.0 'ls -a' ENTER
+
+tmux attach -t work
+
+##start terminal and nautilus
+gnome-terminal  -- bash -c "sshpass -p john925 ssh -Y homeserver;exec bash"
+
+nautilus sftp://homeserver/home/rdchujf/n_workspace &

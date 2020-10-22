@@ -254,18 +254,24 @@ class hfq_toolbox:
         return Nprice * hfq_ratio
 
 
+
 {
-    "TLStartI":20180101,
-    "TLEndI":20200531,
-    "TrainNums": [600],
-    "EvalNums":[150,150],
-    "IPO_threadhold":100,
-    "SL_Filter": "SH",
+    "FunGenTSL":"TSL_from_caculate",
+    "ParamGenSL":{
+        "TLStartI":         20180101,
+        "TLEndI":           20200531,
+        "IPO_threadhold":   100,
+        "SL_Filter":        "SH",
+        "TrainNums":        [600],
+        "EvalNums": [150, 150],
+    },
     "DBTP_Generator":
         [["Train", 0, 20180101, 20191231],
         ["Eval", 0, 20180101, 20191231],
         ["Eval", 1, 20200101, 20200531]]
 }
+
+
 class StockList(DBI_init):
     def __init__(self, SLName):
         DBI_init.__init__(self)
@@ -274,6 +280,11 @@ class StockList(DBI_init):
         assert os.path.exists(self.SL_wdn), self.SL_wdn
         SL_Def_fnwp=os.path.join(self.SL_wdn,"SL_Definition.json")
         self.SLDef = json.load(open(SL_Def_fnwp, "r"), object_pairs_hook=OrderedDict)
+        assert self.SLDef["FunGenTSL"] in ["TSL_from_caculate","TSL_from_50", "TSL_from_300"]
+        if self.SLDef["FunGenTSL"] == "TSL_from_caculate":
+            self.generate_Train_Eval_SL=self.generate_Train_Eval_SL_for_TSL_from_caculate
+        else:
+            self.generate_Train_Eval_SL = self.generate_Train_Eval_SL_for_TSL_from_src
 
     def TL_fnwp(self):
         return os.path.join(self.SL_wdn,"Total.csv")
@@ -283,59 +294,83 @@ class StockList(DBI_init):
         return os.path.join(self.SL_wdn, "{0}_{1}.csv".format( tag, idx))
 
 
-    def get_total_stock_list(self):
-        StartI          =   self.SLDef["TLStartI"]
-        EndI            =   self.SLDef["TLEndI"]
-        IPO_threadhold  =   self.SLDef["IPO_threadhold"]
+    def TSL_from_caculate(self):
+        try:
+            StartI = self.SLDef["ParamGenSL"]["TLStartI"]
+            EndI = self.SLDef["ParamGenSL"]["TLEndI"]
+            IPO_threadhold = self.SLDef["ParamGenSL"]["IPO_threadhold"]
+            filter = self.SLDef["ParamGenSL"]["SL_Filter"]
+        except:
+            assert False, "TSL_from_caculate missing param"
+        assert filter in ["SH", "SZ"], "Filter Not Support****{0}".format(filter)
+        adjust_StartI = self.nptd[np.where(self.nptd >= StartI)[0][0] - IPO_threadhold]
+        adjust_EndI = self.nptd[np.where(self.nptd <= EndI)[0][-1]]
+        HFQlog_fnwp = os.path.join(self.Dir_DBI_Update_Log_HFQ_Index, self.DBI_HFQ_Inited_flag)
+        df = pd.read_csv(HFQlog_fnwp, header=0, names=self.title_DBI_HFQ_Inited_flag)
+        sl_source = df[df["result"] == True]["code"].tolist()
+        sl_result = []
+        for code in sl_source:
+            flag, df, mess = self.IRHFQ.get_lumpsum_df(code)
+            if not flag:
+                print(code, flag, mess)
+                print("skip {0} due to no HFQ data".format(code))
+                continue
+            if (not df[df["date"] == str(adjust_StartI)].empty and not df[df["date"] == str(adjust_EndI)].empty):
+                print("add {0}".format(code))
+                sl_result.append(code)
+            else:
+                print("skip {0} due to data not exists for {1} {2} ".format(code, adjust_StartI,adjust_EndI))
+        assert len(sl_result) >= 1
 
+        adj_Total_List = [stock for stock in sl_result if filter in stock]
+        assert len(adj_Total_List) >= 1
+        return pd.DataFrame(adj_Total_List, columns=["stock"])
+
+    def TSL_from_50(self):
+        assert len(self.SLDef["ParamGenSL"])==0, "TSL_from_50 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock50.csv"))[["stock"]]
+
+    def TSL_from_300(self):
+        assert len(self.SLDef["ParamGenSL"]) == 0, "TSL_from_300 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock300.csv"))[["stock"]]
+
+    def Get_Total_SL(self):
         slfnwp=self.TL_fnwp()
         if os.path.exists(slfnwp):
             df = pd.read_csv(slfnwp, header=0, names=["stock"])
             return df["stock"].tolist()
-        adjust_StartI=self.nptd[np.where(self.nptd>=StartI)[0][0]-IPO_threadhold]
-        adjust_EndI=self.nptd[np.where(self.nptd<=EndI)[0][-1]]
-        print (adjust_StartI, adjust_EndI)
-        HFQlog_fnwp = os.path.join(self.Dir_DBI_Update_Log_HFQ_Index, self.DBI_HFQ_Inited_flag)
-        df=pd.read_csv(HFQlog_fnwp, header=0,names=self.title_DBI_HFQ_Inited_flag)
-        sl_source=df[df["result"]==True]["code"].tolist()
-        sl_result=[]
-        for code in sl_source:
-            flag, df, mess = self.IRHFQ.get_lumpsum_df(code)
-            if not flag:
-                print (code,flag,mess  )
-                print("skip {0}".format(code))
-                continue
-            if  (not df[df["date"]==str(adjust_StartI)].empty  and not df[df["date"]==str(adjust_EndI)].empty):
-                print ("add {0}".format(code))
-                sl_result.append(code)
-            else:
-                print("skip {0}".format(code))
-        assert len(sl_result)>=1
-        df=pd.DataFrame(sl_result,columns=["stock"])
-        df.to_csv(slfnwp, index=False)
-        print ("Create Total Stock List in {0}".format(slfnwp))
+
+        df=getattr(self,self.SLDef["FunGenTSL"])()
+        df.to_csv(slfnwp, index=False, header=["stock"])
         return df["stock"].tolist()
 
-    def generate_Train_Eval_stock_list(self):
-        l_Train_num = self.SLDef["TrainNums"]
-        l_Eval_num  = self.SLDef["EvalNums"]
-        filter      = self.SLDef["SL_Filter"]
-        Total_list=self.get_total_stock_list()
-        if filter not in ["SH", "SZ"]:
-            return False, "Filter Not Support****{0}".format(filter)
-        adj_Total_List=[stock for stock in Total_list if filter in stock]
-        if  len(adj_Total_List)<sum(l_Train_num)+sum(l_Eval_num):
-            return False, "Numb Stock Not Enought****adj total list len {0} less than the needed Train and Eval toal stock num {1}".\
-                format(len(adj_Total_List),sum(l_Train_num)+sum(l_Eval_num))
-        random.shuffle(adj_Total_List)
+    def generate_Train_Eval_SL_for_TSL_from_caculate(self):
+        l_Train_num = self.SLDef["ParamGenSL"]["TrainNums"]
+        l_Eval_num  = self.SLDef["ParamGenSL"]["EvalNums"]
+
+        Total_list=self.Get_Total_SL()
+        if  len(Total_list)<sum(l_Train_num)+sum(l_Eval_num):
+            print ("Numb Stock Not Enought****adj total list len {0} less than the needed Train and Eval toal stock num {1}".\
+                format(len(Total_list),sum(l_Train_num)+sum(l_Eval_num)))
+            return False
+        random.shuffle(Total_list)
         for l_num, tag in zip([l_Train_num,l_Eval_num],["Train", "Eval"]):
             for id,num in enumerate(l_num):
-                extract_list=adj_Total_List[:num]
+                extract_list=Total_list[:num]
                 fnwp=self.Sub_fnwp(tag,id)
                 pd.DataFrame(extract_list,columns=["stock"]).to_csv(fnwp, index=False)
                 print("Create Sub Stock List in {0}".format(fnwp))
-                adj_Total_List=adj_Total_List[num:]
-        return True, "Success"
+                Total_list=Total_list[num:]
+        return True
+
+    def generate_Train_Eval_SL_for_TSL_from_src(self):
+        Total_list = self.Get_Total_SL()
+        for tag in ["Train", "Eval"]:
+            fnwp=self.Sub_fnwp(tag,0)
+            pd.DataFrame(Total_list,columns=["stock"]).to_csv(fnwp, index=False)
+            print("Create Sub Stock List in {0}".format(fnwp))
+        return True
+
 
     def get_sub_sl(self, tag, index):
         fnwp=self.Sub_fnwp(tag, index)
@@ -370,44 +405,3 @@ class DBI_Base(DBI_init):
         return os.path.join(self.Dir_DBI_WP_Log,"{0}.csv".format(stock))
 
 
-'''
-class ginfo_one_stock:
-    def __init__(self, stock):
-        self.stock = stock
-
-        self.i_tdate=API_trade_date()
-        self.df_hfq=API_HFQ_from_file().get_df_HFQ(self.stock)
-    def check_not_tinpai(self,date_s):
-        assert self.i_tdate.check_trading_date(date_s)
-        #return np.any( self.df_hfq["date"] == date_s)
-        return date_s in self.df_hfq["date"].values
-    def check_after_IPO(self, date_s):
-        assert self.i_tdate.check_trading_date(date_s)
-        IPO_date_s=self.df_hfq["date"][0]
-        return date_s>=IPO_date_s
-
-    def hfq_amount(self, date_s):  #this is called after check_not_tinpai
-        return self.df_hfq[self.df_hfq["date"] == date_s].iloc[0]["amount_gu"]
-    def hfq_ratio(self,date_s): #this is called after check_not_tinpai
-        return self.df_hfq[self.df_hfq["date"]==date_s].iloc[0]["coefficient_fq"]
-
-    def get_closest_close_Nprice(self, date_s):
-        df=self.df_hfq[self.df_hfq["date"] <= date_s]
-        assert len(df)>0, "no_price_before_that_day {0} {1}".format(self.stock,date_s)
-        hfq_price = df.iloc[-1]["close_price"]
-        hfq_ratio = df.iloc[-1]["coefficient_fq"]
-        Nprice=hfq_toolbox().get_Nprice_from_hfq_price(hfq_price,hfq_ratio )
-
-        return Nprice,hfq_ratio
-
-    def get_open_price(self,date_s): #this is called after check_not_tinpai
-        df=self.df_hfq[self.df_hfq["date"] == date_s]
-        assert len(df)>0
-        hfq_price = df.iloc[0]["open_price"]
-        hfq_ratio = df.iloc[0]["coefficient_fq"]
-        Nprice = hfq_toolbox().get_Nprice_from_hfq_price(hfq_price, hfq_ratio)
-        return Nprice, hfq_ratio
-
-    def get_exchange_ratio_for_tradable_part(self, date_s):
-        return self.df_hfq[self.df_hfq["date"] == date_s].iloc[0]["exchange_ratio_for_tradable_part"]
-'''

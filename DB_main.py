@@ -40,11 +40,11 @@ def main(argv):
     elif command == "Create_Total_SL":
         SL_Name=argv[1]
         i=StockList(SL_Name)
-        i.get_total_stock_list()
+        i.Get_Total_SL()
     elif command == "Create_Sub_SL":
         SL_Name=argv[1]
         i=StockList(SL_Name)
-        i.generate_Train_Eval_stock_list()
+        i.generate_Train_Eval_SL()
     else:
         print ("Command {0} is not supported".format(command))
     print("Finished")

@@ -4,7 +4,7 @@ from sklearn.preprocessing import minmax_scale
 #from data_common import hfq_toolbox
 import numpy as np
 import pandas as pd
-import os, pickle,time
+import os, pickle,time, sys
 from datetime import datetime
 from multiprocessing import Process
 
@@ -42,7 +42,7 @@ class Memory_For_DBTP_Creater:
     def Add(self, Stock, DayI):
         iDBIDatas = []
         for iDBI in self.iDBIs:
-            flag,mess=iDBI.generate_DBI_day( Stock, DayI)
+            flag,mess=iDBI.Generate_DBI_day( Stock, DayI)
             if not flag:
                 self.Reset()
                 return flag,mess
@@ -114,7 +114,9 @@ class DBTP_Creater(DBTP_Base):
         SelectedIdxs = [idx for idx, typeD in enumerate(self.FT_TypesD_Flat[FT_idx]) if typeD == "Volume"]
         assert len(SelectedIdxs)==1, "sv only support has one column Volume type"
         SelectedData = result_datas[FT_idx][:, :, SelectedIdxs]
-        SelectedDataVolume = minmax_scale(SelectedData.reshape((-1, 1)), feature_range=(0, 1), axis=0).ravel()
+        #SelectedDataVolume = minmax_scale(SelectedData.reshape((-1, 1)), feature_range=(0, 1), axis=0).ravel()
+        SelectedDataVolume = minmax_scale(SelectedData.astype(float).reshape((-1, 1)), feature_range=(0, 1), axis=0).ravel()
+
 
         adjSelectedDataVolume = SelectedDataVolume.reshape((result_datas[FT_idx].shape[0], result_datas[FT_idx].shape[1]))
         for idx in list(range(result_datas[FT_idx].shape[0])):
@@ -138,18 +140,20 @@ class DBTP_Creater(DBTP_Base):
             result_datas[FT_idx] = result_data_item
         return result_datas
 
-    def get_DBTP_data(self, Stock, DayI):
+    def Generate_DBTP_Data(self, Stock, DayI):
         fnwp = self.get_DBTP_data_fnwp(Stock, DayI)
         if os.path.exists(fnwp):
-            return pickle.load(open(fnwp,"rb"))
+            #return pickle.load(open(fnwp,"rb"))
+            print("DBTP from DBI {0} {1} already exists ".format(Stock, DayI))
+            return False
 
-        print("DBTP generate {0} {1} from DBI".format(Stock, DayI))
+        print("DBTP from DBI {0} {1} success generated".format(Stock, DayI))
         result_datas=self.create_DBTP_Raw_Data_From_DBI()
         result_datas=self.Adjust_on_NPrice(result_datas)
         result_datas = self.Adjust_on_Volume(result_datas)
         pickle.dump(result_datas, open(fnwp, "wb"))
-        return result_datas
-
+        #return result_datas
+        return True
 
 
     def DBTP_generator(self, Stock, StartI, EndI):
@@ -173,8 +177,9 @@ class DBTP_Creater(DBTP_Base):
                 continue
             assert self.buff.Is_Last_Day(DayI)
 
-            self.get_DBTP_data(Stock, DayI)
-            self.log_append_keep_new([[True, DayI, "Success"]], logfnwp, ["Result", "Date", "Message"])
+            #self.get_DBTP_data(Stock, DayI)
+            flag_return=self.Generate_DBTP_Data(Stock, DayI)
+            self.log_append_keep_new([[True, DayI, "Generate" if flag_return else "Already Exists"]], logfnwp, ["Result", "Date", "Message"])
         self.buff.Reset()
         return True, "Success"
 
@@ -186,6 +191,7 @@ class Process_Generate_DBTP(Process):
         self.Stocks=Stocks
         self.StartI= StartI
         self.EndI= EndI
+        self.process_id=process_id
         logdn=self.iDBTP_Creater.Dir_IDB
         for sub_dir in ["Stock_List",SL_Name, "CreateLog"]:
             logdn=os.path.join(logdn,sub_dir)
@@ -201,11 +207,13 @@ class Process_Generate_DBTP(Process):
         with redirect_stdout(newstdout):
             print("#####################################################################")
             print("start process at {0}".format(datetime.now().time()))
-            for Stock in self.Stocks:
+            total_num=len(self.Stocks)
+            for idx,Stock in enumerate(self.Stocks):
                 print ("********************************************************************")
                 print ("Start Generate {0} {1} {2} @ {3}".format(Stock, self.StartI, self.EndI,datetime.now().time() ))
                 flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
                 print ("End with {0}".format(mess))
+                print ("Process {0} finish {1:.2f}".format(self.process_id, idx/total_num), file=sys.__stdout__)
                 newstdout.flush()
 def DBTP_main(DBTP_Name,SL_Name, NumP=4):
     iSL=StockList(SL_Name)
@@ -221,10 +229,13 @@ def DBTP_main(DBTP_Name,SL_Name, NumP=4):
         PIs=[]
         for i in list(range(NumP)):
             len_to_get=sub_len+1 if i< sub_beneficial else sub_len
-            PI=Process_Generate_DBTP(DBTP_Name, SL_Name,sl[:len_to_get+1], StartI, EndI,i)
+            #PI=Process_Generate_DBTP(DBTP_Name, SL_Name,sl[:len_to_get+1], StartI, EndI,i)
+            PI = Process_Generate_DBTP(DBTP_Name, SL_Name, sl[:len_to_get], StartI, EndI, i)
+            PI.daemon = True
             PI.start()
             PIs.append(PI)
-            sl=sl[len_to_get+1:]
+            #sl=sl[len_to_get+1:]
+            sl=sl[len_to_get:]
         while  any([PI.is_alive() for PI in PIs]):
             time.sleep(10)
         for PI in PIs:

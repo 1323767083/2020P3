@@ -143,8 +143,7 @@ l_GPU_size=[11019,12196]
     ],
     "l_CLN_env_get_data_eval": [
         "DBTP_Eval_Reader",
-        "DBTP_Eval_Reader",
-        "DBTP_Continue_Reader"
+        "DBTP_Eval_Reader"
     ],
     "start_eval_count": 0,
     "=======Old_Eval========":"========================",

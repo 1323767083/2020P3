@@ -7,7 +7,7 @@ from recorder import record_sim_stock_data
 from env_ar import *
 from av_state import Phase_State_V8,Phase_State_V3__1,Phase_State_V3__2,Phase_State_V2
 from action_comm import actionOBOS
-from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_Continue_Reader
+from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader
 
 def init_gc(lgc):
     global lc
@@ -30,7 +30,7 @@ class Simulator_intergrated:
         else:
             assert self.calledby == "Eval"
             #assert lc.CLN_env_get_data_eval == "DBTP_Eval_Reader"
-            assert CLN_get_data in ["DBTP_Eval_Reader", "DBTP_Continue_Reader"]
+            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader"]
             self.i_reward = env_reward_basic(lc.eval_scale_factor, lc.eval_shift_factor, lc.eval_flag_clip,
                                              lc.eval_flag_punish_no_action)
             #self.i_get_data = globals()[lc.CLN_env_get_data_eval](data_name, stock,StartI, EndI,lc.PLen,

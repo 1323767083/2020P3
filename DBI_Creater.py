@@ -259,22 +259,24 @@ class DBI_Creater(DBI_Base):
     def get_Tinpai_item(self, DBITypeD,DayI):
         assert DBITypeD in ["NPrice", "Percent", "Volume", "Ratio", "DateI","NPrice_Not_Normal","Flag_Tradable","NPrice_Not_Normal"],\
             "{0} {1}".format( DBITypeD,DayI)
-        if DBITypeD in ["NPrice", "Volume"]:
+        if DBITypeD in ["NPrice"]:
+            return 0.0
+        elif DBITypeD in ["Volume"]:
             return 0
         elif DBITypeD in ["Percent", "Ratio"]:
-            return 0
+            return 0.0
         elif DBITypeD in ["NPrice_Not_Normal"]:
-            return 0
+            return 0.0
         elif DBITypeD in ["DateI"]:
             return DayI
-        elif DBITypeD in ["NPrice_Not_Normal"]:
+        elif DBITypeD in ["Flag_Tradable"]:
             return False
-
-    def get_oneday_tinpai(self,Stock, DayI):
+    def Generate_Oneday_Tinpai(self,Stock, DayI):
         fnwp=self.get_DBI_data_fnwp(Stock, DayI)
         if os.path.exists(fnwp):
-            DBIdata=pickle.load(open(fnwp,"rb"))
-            return DBIdata
+            #DBIdata=pickle.load(open(fnwp,"rb"))
+            #return DBIdata
+            return False
         DBIdata=[]
         for DBIShapeM, DBITypesD in zip(self.DBIShapesM,self.DBITypesD):
             if len(DBIShapeM)==1:
@@ -284,13 +286,15 @@ class DBI_Creater(DBI_Base):
             else:
                 assert False, "Not Support shape length more than 2 {0}".format(DBIShapeM)
         pickle.dump(DBIdata, open(fnwp, 'wb'))
-        return DBIdata
+        #return DBIdata
+        return True
     ##DBI data generator
-    def get_oneday(self,  df_qz, df_hfq, dayI, stock, param):
+    def Generate_Oneday(self,  df_qz, df_hfq, dayI, stock, param):
         fnwp=self.get_DBI_data_fnwp(stock, dayI)
         if os.path.exists(fnwp):
-            result_L=pickle.load(open(fnwp,"rb"))
-            return result_L
+            #result_L=pickle.load(open(fnwp,"rb"))
+            #return result_L
+            return False
         result_L=[]
         for Element in param["Elements"]:
             iE=globals()[Element]()
@@ -306,9 +310,10 @@ class DBI_Creater(DBI_Base):
                     raise ValueError("{0} not in the supported input param type".format(input_item))
             result_L.append(iE.Gen(inputsL))
         pickle.dump(result_L, open(fnwp, 'wb'))
-        return result_L
+        #return result_L
+        return True
 
-    def generate_DBI_day(self, Stock, DayI):
+    def Generate_DBI_day(self, Stock, DayI):
         if DayI>self.Raw_Normal_Lumpsum_EndDayI:
             logfnwp = self.get_DBI_Update_Log_HFQ_Index_fnwp(DayI)
             if not os.path.exists(logfnwp):
@@ -321,22 +326,25 @@ class DBI_Creater(DBI_Base):
         if not os.path.exists(DBI_HFQ_fnwp):
             Error_Mess= "DBI HFQ File Not Found****{0}".format(DBI_HFQ_fnwp)
             self.log_append_keep_new([[False, DayI,Error_Mess]], logfnwp, ["Result", "Date", "Message"])
+            print("DBI {0} {1} {2}".format(Stock, DayI, "Fail Generate "+ Error_Mess))
             return False, Error_Mess
         hfq_flag,hfq_df, hfq_mess=self.get_hfq_df(DBI_HFQ_fnwp)
         if not hfq_flag:
             self.log_append_keep_new([[False, DayI,hfq_mess]], logfnwp, ["Result", "Date", "Message"])
+            print("DBI {0} {1} {2}".format(Stock, DayI, "Fail Generate " + hfq_mess))
             return False, hfq_mess
-        print ("DBI generate {0} {1}".format(Stock,DayI))
+
         if hfq_df[hfq_df["date"] == str(DayI)].empty: # Tinpai
-            self.get_oneday_tinpai(Stock, DayI)
-            self.log_append_keep_new([[True, DayI, "Tinpai"]], logfnwp, ["Result", "Date", "Message"])
+            Flag_Return=self.Generate_Oneday_Tinpai(Stock, DayI)
+            self.log_append_keep_new([[True, DayI, "Tinpai" + "Generate" if Flag_Return else  "Already Exists"]], logfnwp, ["Result", "Date", "Message"])
             return True, "Tinpai"
         qz_flag, qz_df, qz_mess = self.IRD.get_qz_df_inteface( Stock, DayI)
         if not qz_flag:
             self.log_append_keep_new([[False,DayI,qz_mess]], logfnwp, ["Result", "Date", "Message"])
             return False,qz_mess
-        self.get_oneday(qz_df, hfq_df, DayI, Stock,self.TypeDefinition)
-        self.log_append_keep_new([[True, DayI, "Success"]], logfnwp, ["Result", "Date", "Message"])
+        Flag_Return=self.Generate_Oneday(qz_df, hfq_df, DayI, Stock,self.TypeDefinition)
+        self.log_append_keep_new([[True, DayI, "Success" + "Generate" if Flag_Return else  "Already Exists"]], logfnwp, ["Result", "Date", "Message"])
+        print("DBI {0} {1} {2}".format(Stock, DayI,"Success" + "Generate" if Flag_Return else  "Already Exists"))
         return True, "Success"
 
 
