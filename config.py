@@ -344,17 +344,19 @@ class gconfig_data:
         # explore class
         self.l_flag_worker_log_file = [float("nan")] #[True, True, True]
         self.l_flag_worker_log_screen = [float("nan")] #[False, False, False]
-        self.l_train_SL_param=[[0,20000000,20000000]]
+
 
         self.num_workers = float("nan") #3
         #old_explore
-        self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
-        self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
-        self.l_CLN_env_get_data_train = [""]
+        #self.l_train_SL_param = [[0, 20000000, 20000000]]
+        #self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
+        #self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
+        #self.l_CLN_env_get_data_train = [""]
         #new_explore
         self.work_core = "" #"GPU_0"
         self.percent_gpu_core_for_work = float("nan") #0.2
         self.CLN_env_get_data_train = ""
+        self.train_SL_param=[]
 
         # eval class
 
@@ -363,10 +365,11 @@ class gconfig_data:
         self.l_eval_SL_param = [[0, 20000000, 20000000]]
         self.l_CLN_env_get_data_eval=""
         self.start_eval_count = float("nan") #0
-        self.eval_num_process = float("nan") #2
+
         #old eval
-        self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
-        self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
+        #self.eval_num_process = float("nan")  # 2
+        #self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
+        #self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
         #new eval
         self.eval_core = "" #"GPU_1"
         self.percent_gpu_core_for_eva = float("nan") #0.2
@@ -467,24 +470,24 @@ class gconfig(gconfig_data):
 
     def sanity_check_convert_enhance(self):
         #sanity check
-        assert len(self.l_work_core) == self.num_workers
-        assert len(self.l_percent_gpu_core_for_work) == self.num_workers
-        assert len(self.l_flag_worker_log_file) == self.num_workers
-        assert len(self.l_flag_worker_log_screen) == self.num_workers
+        #assert len(self.l_work_core) == self.num_workers
+        #assert len(self.l_percent_gpu_core_for_work) == self.num_workers
+        #assert len(self.l_flag_worker_log_file) == self.num_workers
+        #assert len(self.l_flag_worker_log_screen) == self.num_workers
 
-        assert len(self.l_eval_core)==self.eval_num_process
-        assert len(self.l_percent_gpu_core_for_eva) == self.eval_num_process
-        assert len(self.l_flag_eval_log_file) == self.eval_num_process
-        assert len(self.l_flag_eval_log_screen) == self.eval_num_process
+        #assert len(self.l_eval_core)==self.eval_num_process
+        #assert len(self.l_percent_gpu_core_for_eva) == self.eval_num_process
+        #assert len(self.l_flag_eval_log_file) == self.eval_num_process
+        #assert len(self.l_flag_eval_log_screen) == self.eval_num_process
 
 
         self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
 
-        self.l_percent_gpu_core_for_work = [l_GPU_size[int(work_core[-1])]*percent_gpu_core
-                            for work_core,percent_gpu_core in zip(self.l_work_core,self.l_percent_gpu_core_for_work)]
+        #self.l_percent_gpu_core_for_work = [l_GPU_size[int(work_core[-1])]*percent_gpu_core
+        #                    for work_core,percent_gpu_core in zip(self.l_work_core,self.l_percent_gpu_core_for_work)]
 
-        self.l_percent_gpu_core_for_eva =  [l_GPU_size[int(eval_core[-1])]*percent_gpu_core
-                            for eval_core,percent_gpu_core in zip(self.l_eval_core,self.l_percent_gpu_core_for_eva)]
+        #self.l_percent_gpu_core_for_eva =  [l_GPU_size[int(eval_core[-1])]*percent_gpu_core
+        #                    for eval_core,percent_gpu_core in zip(self.l_eval_core,self.l_percent_gpu_core_for_eva)]
 
         self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
         self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
@@ -492,7 +495,7 @@ class gconfig(gconfig_data):
         assert self.env_max_invest_per_round>=self.env_min_invest_per_round
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
 
-        self.flag_eval_unlearn = True if self.eval_num_process!=0 else False
+        #self.flag_eval_unlearn = True if self.eval_num_process!=0 else False
         self.flag_multi_buy =True if self.env_max_invest_per_round/self.env_min_invest_per_round >1 else False
         self.times_to_buy =self.env_max_invest_per_round/self.env_min_invest_per_round
 

@@ -353,7 +353,7 @@ class ana_reward_data_A3C_worker_interface(ana_reward_data):
 
         self.iSL = StockList(self.lc.SLName)
         #SL_idx, self.SL_StartI, self.SL_EndI =  self.lc.l_train_SL_param[self.process_idx]
-        SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_train_SL_param[process_group_idx]
+        SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_eval_SL_param[process_group_idx]
         #flag, self.stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
         flag, group_stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
 

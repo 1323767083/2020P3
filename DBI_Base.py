@@ -280,7 +280,7 @@ class StockList(DBI_init):
         assert os.path.exists(self.SL_wdn), self.SL_wdn
         SL_Def_fnwp=os.path.join(self.SL_wdn,"SL_Definition.json")
         self.SLDef = json.load(open(SL_Def_fnwp, "r"), object_pairs_hook=OrderedDict)
-        assert self.SLDef["FunGenTSL"] in ["TSL_from_caculate","TSL_from_50", "TSL_from_300"]
+        assert self.SLDef["FunGenTSL"] in ["TSL_from_caculate","TSL_from_50", "TSL_from_300","TSL_from_try"]
         if self.SLDef["FunGenTSL"] == "TSL_from_caculate":
             self.generate_Train_Eval_SL=self.generate_Train_Eval_SL_for_TSL_from_caculate
         else:
@@ -293,6 +293,13 @@ class StockList(DBI_init):
         assert tag in ["Train", "Eval"]
         return os.path.join(self.SL_wdn, "{0}_{1}.csv".format( tag, idx))
 
+    def Sanity_Check_SL(self, sl):
+
+        adj_fnwp=os.path.join(self.SL_wdn,"Adj_to_Remove.csv")
+        if os.path.exists(adj_fnwp):
+            sl_remove=pd.read_csv(adj_fnwp,header=0, names=["stock"])["stock"].tolist()
+            return list(set(sl) - set(sl_remove))
+        return sl
 
     def TSL_from_caculate(self):
         try:
@@ -327,11 +334,15 @@ class StockList(DBI_init):
         return pd.DataFrame(adj_Total_List, columns=["stock"])
 
     def TSL_from_50(self):
-        assert len(self.SLDef["ParamGenSL"])==0, "TSL_from_50 does not need param"
+        assert len(self.SLDef["ParamGenTSL"])==0, "TSL_from_50 does not need param"
         return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock50.csv"))[["stock"]]
 
+    def TSL_from_try(self):
+        assert len(self.SLDef["ParamGenTSL"])==0, "TSL_from_try does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "StockTry.csv"))[["stock"]]
+
     def TSL_from_300(self):
-        assert len(self.SLDef["ParamGenSL"]) == 0, "TSL_from_300 does not need param"
+        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
         return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock300.csv"))[["stock"]]
 
     def Get_Total_SL(self):
@@ -377,7 +388,23 @@ class StockList(DBI_init):
         if not os.path.exists(fnwp):
             return False, ""
         else:
-            return True, pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist()
+            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist())
+
+    def Get_Stocks_Error_Generate_DBTP(self):
+        logdn=os.path.join(self.SL_wdn,"CreateLog")
+        l_fnwp = [os.path.join(logdn, fn) for fn in os.listdir(logdn) if
+                  "Error" in fn and os.path.getsize(os.path.join(logdn, fn)) != 0]
+        l_stock_to_remove = []
+        for fnwp in l_fnwp:
+            df = pd.read_csv(fnwp, names=["stock", "day", "mess"])
+            l_stock_to_remove.extend(list(set(df["stock"].tolist())))
+        if len(l_stock_to_remove)!=0:
+            adj_fnwp=os.path.join(self.SL_wdn,"Adj_to_Remove.csv")
+            pd.DataFrame(l_stock_to_remove, columns=["stock"]).to_csv(adj_fnwp, index=False)
+            print ("TPDB Error generate Stocks saved to {0}".format(adj_fnwp))
+        else:
+            print("All Stocks succesfully generate TPDB")
+        return
 
 class DBI_Base(DBI_init):
     def __init__(self, DBI_name):

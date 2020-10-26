@@ -113,7 +113,10 @@ class are_esi_reader:
         fn = "{0}{1}.csv".format(self.are_fn_seed, evalT)
         fnwp=os.path.join(stock_dir,fn )
         if os.path.exists(fnwp):
-            df = pd.read_csv(fnwp, header=0)
+            try:
+                df = pd.read_csv(fnwp, header=0)
+            except Exception as e:
+                assert False, " {0} {1}".format(fnwp,e)
             if len(df) == 0:
                 # return pd.DataFrame(),{}
                 return False,"File_is_empty"

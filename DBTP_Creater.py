@@ -163,6 +163,7 @@ class DBTP_Creater(DBTP_Base):
             assert AStart_idx>19
             period=self.nptd[AStart_idx-19:AEnd_idx+1]
         else:
+            print("{0},{1},{2}".format(Stock, StartI, "No trading day between {0} {1}".format(StartI, EndI)), file=sys.stderr)
             return False, "No trading day between {0} {1}".format(StartI, EndI)
         logfnwp = self.get_DBTP_data_log_fnwp(Stock)
         for DayI in period:
@@ -170,10 +171,12 @@ class DBTP_Creater(DBTP_Base):
             if not flag:
                 self.log_append_keep_new([[flag,DayI,mess]], logfnwp, ["Result", "Date", "Message"])
                 #self.buff.Reset()   #already called in Add dicontinues in self.memory , so should reset meomory
+                print("{0},{1},{2}".format(Stock,DayI,mess ), file=sys.stderr)
                 continue
             if not self.buff.Is_Ready():
                 if DayI>=StartI:
                     self.log_append_keep_new([[False, DayI, "Not Enough Record"]], logfnwp, ["Result", "Date", "Message"])
+                    print("{0},{1},{2}".format(Stock, DayI, "Not Enough Record"), file=sys.stderr)
                 continue
             assert self.buff.Is_Last_Day(DayI)
 
@@ -198,13 +201,15 @@ class Process_Generate_DBTP(Process):
             if not os.path.exists(logdn): os.mkdir(logdn)
 
         self.stdoutfnwp=os.path.join(logdn,"Process{0}Output.txt".format(process_id))
+        self.stderrfnwp = os.path.join(logdn, "Process{0}Error.txt".format(process_id))
         pd.DataFrame(self.Stocks,columns=["stock"]).to_csv(os.path.join(logdn,"Process{0}SL.csv".format(process_id)), index=False)
 
     def run(self):
         print ("Printout has been redirected to {0}".format(self.stdoutfnwp))
-        from contextlib import redirect_stdout
+        from contextlib import redirect_stdout,redirect_stderr
         newstdout = open(self.stdoutfnwp, "a")
-        with redirect_stdout(newstdout):
+        newstderr = open(self.stderrfnwp, "a")
+        with redirect_stdout(newstdout),redirect_stderr(newstderr):
             print("#####################################################################")
             print("start process at {0}".format(datetime.now().time()))
             total_num=len(self.Stocks)
@@ -213,7 +218,7 @@ class Process_Generate_DBTP(Process):
                 print ("Start Generate {0} {1} {2} @ {3}".format(Stock, self.StartI, self.EndI,datetime.now().time() ))
                 flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
                 print ("End with {0}".format(mess))
-                print ("Process {0} finish {1:.2f}".format(self.process_id, idx/total_num), file=sys.__stdout__)
+                print ("Process {0} finish {1:.2f}".format(self.process_id, (idx+1)/total_num), file=sys.__stdout__)
                 newstdout.flush()
 def DBTP_main(DBTP_Name,SL_Name, NumP=4):
     iSL=StockList(SL_Name)

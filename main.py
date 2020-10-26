@@ -52,7 +52,8 @@ class Remove_DNFN:
         for sub_dir, Tags in zip(["name_pipe", "log"], [self.FNPip_Tags, self.FNLog_Tags]):
             dnwp = os.path.join(self.system_dir, sub_dir)
             for Tag in Tags:
-                ToRemove_fnwps.extend([os.path.join(dnwp, fn) for fn in os.listdir(dnwp) if Tag in fn])
+                if os.path.exists(dnwp):
+                    ToRemove_fnwps.extend([os.path.join(dnwp, fn) for fn in os.listdir(dnwp) if Tag in fn])
         for fnwp in ToRemove_fnwps:
             os.remove(fnwp)
             print ("Removed {0}".format(fnwp))

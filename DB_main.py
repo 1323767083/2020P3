@@ -5,10 +5,11 @@ commmand_smaples=[
     "Initial_DBI",
     "Reset_DBI",
     "Update_DBI  20200601",
-    "Generate_DBTP TPVTest1 SH600000 20200101 20200110",
-    "Generate_DBTP_Process TPVTest1 SLV1 4",
     "Create_Total_SL SLV1",
     "Create_Sub_SL SLV1"
+    "Generate_DBTP TPVTest1 SH600000 20200101 20200110",
+    "Generate_DBTP_Process TPVTest1 SLV1 4",
+    "Create_List_Stock_Fail_Generate_TPDB SLV1"
 ]
 def main(argv):
     if len(argv)==0:
@@ -45,6 +46,10 @@ def main(argv):
         SL_Name=argv[1]
         i=StockList(SL_Name)
         i.generate_Train_Eval_SL()
+    elif command == "Create_List_Stock_Fail_Generate_TPDB":
+        SL_Name=argv[1]
+        i=StockList(SL_Name)
+        i.Get_Stocks_Error_Generate_DBTP()
     else:
         print ("Command {0} is not supported".format(command))
     print("Finished")

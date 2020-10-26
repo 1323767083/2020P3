@@ -1,10 +1,49 @@
-[INFO/Eval_process-5] process shutting down                                                                                                                                                                  ]   3%
-Process Eval_process-5:                                                                                                                                                                                            
-Traceback (most recent call last):                                                                                                                                                                                 
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap                                                                                                        
-    self.run()                                                                                                                                                                                                     
-  File "/home/rdchujf/remote_sw/A3C_workers.py", line 437, in run                                                                                                                                                  
-    #self.i_prepare_summary_are_1ET._get_are_summary_1ET(temp_save_fininshed__eval_loop_count)                                                                                                                     
-  File "/home/rdchujf/remote_sw/vresult_data_reward.py", line 184, in _get_are_summary_1ET                                                                                                                         
-    Summery_effective_count["effective_buy"] += Dic_effective["effective_buy"]                                                                                                                                     
-KeyError: 'effective_buy' 
+Process8Output.txt:DBTP from DBI SZ002410 20180712 success generated
+Process8Output.txt:DBI SZ002410 20180713 SuccessGenerate
+Process8Output.txt:DBTP from DBI SZ002410 20180713 success generated
+Process8Output.txt:DBI SZ002410 20180717 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180718 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180719 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180720 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180723 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180724 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180725 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180726 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180727 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180730 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180731 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180801 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180802 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180803 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180806 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180807 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180808 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180809 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180810 SuccessGenerate
+Process8Output.txt:DBI SZ002410 20180813 SuccessGenerate
+Process8Output.txt:DBTP from DBI SZ002410 20180813 success generated
+Process8Output.txt:DBI SZ002410 20180814 SuccessGenerate
+Process8Output.txt:DBTP from DBI SZ002410 20180814 success generated
+Process8Output.txt:DBI SZ002410 20180815 SuccessGenerate
+
+
+False,20180716,Decompress File Not Found****/home/rdchujf/DB_raw/Normal/decompress/201807/20180716/SZ002410.csv
+False,20180717,Not Enough Record
+False,20180718,Not Enough Record
+False,20180719,Not Enough Record
+False,20180720,Not Enough Record
+False,20180723,Not Enough Record
+False,20180724,Not Enough Record
+False,20180725,Not Enough Record
+False,20180726,Not Enough Record
+False,20180727,Not Enough Record
+False,20180730,Not Enough Record
+False,20180731,Not Enough Record
+False,20180801,Not Enough Record
+False,20180802,Not Enough Record
+False,20180803,Not Enough Record
+False,20180806,Not Enough Record
+False,20180807,Not Enough Record
+False,20180808,Not Enough Record
+False,20180809,Not Enough Record
+False,20180810,Not Enough Record

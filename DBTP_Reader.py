@@ -52,7 +52,6 @@ class DBTP_Train_Reader(DBTP_Reader):
                             dtype={"Result":str,"Date":int,"Message":str})["Date"].values
         SD.sort()
         SD= SD[(SD>=SDateI) & (SD<=EDateI)]
-
         assert len(self.generate_TD_periods(SD[0],SD[-1]))==len(SD), \
             "{0}  len(self.generate_TD_periods(self.SD[0],self.SD[-1])) = {1} len(self.SD)= {2} ".format(
                 Stock,len(self.generate_TD_periods(SD[0], SD[-1])),len(SD))
