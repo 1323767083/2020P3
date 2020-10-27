@@ -47,3 +47,17 @@ False,20180807,Not Enough Record
 False,20180808,Not Enough Record
 False,20180809,Not Enough Record
 False,20180810,Not Enough Record
+
+
+Debug b'' <class 'bytes'>
+
+echo "status">EvalAgent_pipe.command
+
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 62, in run
+    self.name_pipe_cmd()
+  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 75, in name_pipe_cmd
+    cmd_list = self.inp.check_input_immediate_return()
+  File "/home/rdchujf/remote_sw/pipe_comm.py", line 58, in check_input_immediate_return
+TypeError: a bytes-like object is required, not 'str'

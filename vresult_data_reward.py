@@ -38,7 +38,7 @@ class ana_reward_data(are_esi_reader, DBI_init):
             self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
             if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
 '''
-
+'''
 class ana_reward_data(are_esi_reader, DBI_init):
     def __init__(self, system_name, process_name,Lstock, LEvalT, LYM,lgc):
         DBI_init.__init__(self)
@@ -54,6 +54,20 @@ class ana_reward_data(are_esi_reader, DBI_init):
         self.ET_Summary_des_dir=self.dir_analysis
         #for sub_dir in [self.process_name,"per_ET"]:
         for sub_dir in [process_name, "per_ET"]:
+            self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
+            if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
+'''
+'''
+class old_ana_reward_data(are_esi_reader, DBI_init):
+    def __init__(self, system_name, process_group_name,Lstock, LEvalT, LYM,lgc):
+        DBI_init.__init__(self)
+        are_esi_reader.__init__(self,system_name, process_group_name)
+        self.Lstock, self.LEvalT, self.LYM,self.lgc=Lstock, LEvalT, LYM, lgc
+        self.data_start_s,self.data_end_s=get_data_start_end(self.lgc,process_group_name)
+        self.td=self.nptd.astype(str)
+
+        self.ET_Summary_des_dir=self.dir_analysis
+        for sub_dir in [process_group_name, "per_ET"]:
             self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
             if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
 
@@ -126,13 +140,6 @@ class ana_reward_data(are_esi_reader, DBI_init):
         dfrr.loc[:, "flag_trans_valid"] = True
         dfrr.loc[:, "stock"] = stock
         dfrr.loc[:, "EvalT"] = evalT
-        '''
-        dfrr=pd.DataFrame(dfrr)
-        dfrr["buy_count"]=1
-        dfrr["flag_trans_valid"] = True
-        dfrr["stock"] = stock
-        dfrr["EvalT"] = evalT
-        '''
         Dic_effective = {"effective_buy": len(dfr), "effective_sell": len(dfrr), "effective_trans": len(dfrr)}
         return True, dfrr, Dic_effective
 
@@ -337,43 +344,312 @@ class ana_reward_data(are_esi_reader, DBI_init):
                 img_density[np_row, np_column] += unit
                 img_reward[np_row, np_column]  += row["reward"]
         return img_density,img_reward
+'''
+class ana_reward_data(are_esi_reader, DBI_init):
+    def __init__(self, system_name, process_group_name,process_idx,Lstock, LEvalT, LYM,lgc):
+        DBI_init.__init__(self)
+        are_esi_reader.__init__(self,system_name, process_group_name)
+        self.process_group_name,self.process_idx,self.Lstock, self.LEvalT, self.LYM,self.lgc = \
+            process_group_name,process_idx,Lstock, LEvalT, LYM, lgc
+
+        self.data_start_s,self.data_end_s=get_data_start_end(self.lgc,self.process_group_name)
+        self.td=self.nptd.astype(str)
+
+        self.ET_Summary_des_dir=self.dir_analysis
+        for sub_dir in [self.process_group_name, "per_ET"]:
+            self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
+            if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
+
+    def _get_are_summary_1stock_1ET(self, stock, evalT):
+        flag_file_found,df = self._read_stock_are(stock, evalT)
+        if not flag_file_found:
+            return False, "",df  # in False situation df is a string message
+        return self._get_verified_are_summary_1stock_1ET(stock, evalT,df)
+
+    def _get_verified_are_summary_1stock_1ET(self,stock, evalT,df):
+        # remove not in trans summary
+        idx_Not_in_trans = df["trans_id"] == "Not_in_trans"
+        df = df[~idx_Not_in_trans]
+        idx_pre_fail_buy = (df["action"] == 0) & (df["action_result"] != "Success")
+        if any(idx_pre_fail_buy):
+            df.loc[idx_pre_fail_buy, "action"] = 1
+            df.loc[idx_pre_fail_buy, "action_result"] = "No_action"
+        idx_pre_fail_sell = (df["action"] == 2) & (df["action_result"] != "Success")
+        if any(idx_pre_fail_sell):
+            df.loc[idx_pre_fail_sell, "action"] = 3
+            df.loc[idx_pre_fail_sell, "action_result"] = "No_action"
+
+        df = df[["action", "reward", "day", "trans_id", "action_result", "trade_Nprice"]]
+
+        df = df.groupby(["trans_id", "action", "action_result"]).\
+            agg(reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+                duration=pd.NamedAgg(column='day', aggfunc='count'),
+                trans_start=pd.NamedAgg(column='day', aggfunc='first'),
+                trans_end=pd.NamedAgg(column='day', aggfunc='last'),
+                price=pd.NamedAgg(column='trade_Nprice', aggfunc='mean') # mean for price because (buy success) (sell sucess) only have one record
+                )
+
+        df.reset_index(inplace=True)
+        df.loc[df.action == 3, 'action'] = 1
+        df.sort_values(by=["trans_id", "action"],inplace=True) # new added
+        dfr = df.groupby(["trans_id"]).agg(
+            trans_start=pd.NamedAgg(column="trans_start", aggfunc="first"),
+            trans_end=pd.NamedAgg(column="trans_end", aggfunc="last"),
+            reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+            duration=pd.NamedAgg(column="duration", aggfunc="sum"),
+            buy_price=pd.NamedAgg(column="price", aggfunc="first"),
+            sell_price=pd.NamedAgg(column="price", aggfunc="last"),
+            valid_trans_kpi=pd.NamedAgg(column="action", aggfunc="mean")
+        )
+        #dfr.columns = dfr.columns.droplevel(0)
+        # action senario  0,2 valid_trans_cpi=1
+        # action senario  0,1,2 valid_trans_cpi=1
+        # action senario  0,1,1 valid_trans_cpi=0.666  # this is unfinished trans becouse originally has 3 "no_action  and 3 "Success" (forcesell)
+        dfrr = dfr[dfr["valid_trans_kpi"] == 1]
+        dfrr.reset_index(inplace=True)
+        if len(dfrr)==0:
+            return False, "", "no_valid_transaction"
+        dfrr=pd.DataFrame(dfrr)
+        dfrr.loc[:, "buy_count"] = 1
+        dfrr.loc[:, "flag_trans_valid"] = True
+        dfrr.loc[:, "stock"] = stock
+        dfrr.loc[:, "EvalT"] = evalT
+        Dic_effective = {"effective_buy": len(dfr), "effective_sell": len(dfrr), "effective_trans": len(dfrr)}
+        return True, dfrr, Dic_effective
+
+    def _check_exists__are_summary_1ET1G(self,fnwps):
+        return all([True if os.path.exists(fnwp) else False for fnwp in fnwps])
+    def _get_fnwp__are_summary_1ET1G(self, evalT, group_process_id):
+        ET_summary_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}__{1}.csv".format(evalT, group_process_id))
+        effective_count_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}__{1}_effective_count.csv".format(evalT, group_process_id))
+        stock_statistic_fnwp=os.path.join(self.ET_Summary_des_dir, "ET{0}__{1}_stockstastic.pkl".format(evalT, group_process_id))
+        return [ET_summary_fnwp,effective_count_fnwp,stock_statistic_fnwp]
+    def _load_data__are_summary_1ET1G(self, fnwps):
+        ET_summary_fnwp,effective_count_fnwp,stock_statistic_fnwp = fnwps
+        df = pd.read_csv(ET_summary_fnwp)
+        dfe = pd.read_csv(effective_count_fnwp)
+        assert len(dfe) == 1
+        Summery_count = {}
+        Summery_count["effective_buy"] = dfe.iloc[0]["effective_buy"]
+        Summery_count["effective_sell"] = dfe.iloc[0]["effective_sell"]
+        Summery_count["effective_trans"] = dfe.iloc[0]["effective_trans"]
+        Summery_count["EvalT"] = dfe.iloc[0]["EvalT"]
+        with open(stock_statistic_fnwp, 'rb') as f:
+            l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count, l_CSR_Psum, l_CSR_Nsum = pickle.load(f)
+
+        return df, Summery_count, [l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,
+                                                   l_CSR_Psum,l_CSR_Nsum]
+    def _save_data__are_summary_1ET1G(self, fnwps,df, Summery_count,CSR_datas):
+        l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum, l_CSR_Nsum=CSR_datas
+        ET_summary_fnwp,effective_count_fnwp,stock_statistic_fnwp = fnwps
+        df.to_csv(ET_summary_fnwp, index=False)
+        pd.DataFrame([list(Summery_count.values())], columns=list(Summery_count.keys())). \
+            to_csv(effective_count_fnwp, index=False)
+        pickle.dump([l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count, l_CSR_Psum, l_CSR_Nsum],
+                    open(stock_statistic_fnwp, "wb"))
+
+    def _generate_data__are_summary_1ET1G(self, evalT, fnwps):
+        bar = progressbar.ProgressBar(maxval=len(self.Lstock),
+                                      widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+        flag_file_not_found = False
+        df=pd.DataFrame()
+        l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum=[],[],[],[],[],[],[]
+        Summery_count = {"EvalT": evalT, "effective_buy": 0, "effective_sell": 0, "effective_trans": 0}
+        print("preparing ", self.process_group_name, "Eval Process", self.process_idx, evalT)
+        for stock_idx, stock in enumerate(self.Lstock):
+            flag_opt, dfi, Dic_effective = self._get_are_summary_1stock_1ET(stock, evalT)
+            if not flag_opt:
+                if Dic_effective in ["File_Not_Found", "File_is_empty"]:
+                    flag_file_not_found = True
+                    break
+                else:
+                    assert Dic_effective == "no_valid_transaction"
+                    l_CSR_sum.append(0)
+                    l_CSR_mean.append(0)
+                    l_CSR_median.append(0)
+                    l_CSR_std.append(0)
+                    l_CSR_count.append(0)
+                    l_CSR_Psum.append(0)
+                    l_CSR_Nsum.append(0)
+                    bar.update(stock_idx)
+                    continue
+            else:
+                df = df.append(dfi, ignore_index=True)
+                Summery_count["effective_buy"] += Dic_effective["effective_buy"]
+                Summery_count["effective_sell"] += Dic_effective["effective_sell"]
+                Summery_count["effective_trans"] += Dic_effective["effective_trans"]
+
+                l_CSR_sum.append(dfi["reward"].sum())
+                l_CSR_mean.append(dfi["reward"].mean())
+                l_CSR_median.append(dfi["reward"].median())
+                l_CSR_std.append(dfi["reward"].std())
+                l_CSR_count.append(dfi["reward"].count())
+                l_CSR_Psum.append(dfi[dfi["reward"]>=0]["reward"].sum())
+                l_CSR_Nsum.append(dfi[dfi["reward"]<0]["reward"].sum())
+
+            bar.update(stock_idx)
+        bar.finish()
+        if flag_file_not_found:
+            return False, "","File_Not_Found",""
+        else:
+            if len(df)==0:
+                return False, "", "No_valid_transaction",""
+            else:
+                CSR_datas =[l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count, l_CSR_Psum, l_CSR_Nsum]
+                self._save_data__are_summary_1ET1G(fnwps,df, Summery_count,CSR_datas)
+            return True,df,Summery_count,[l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum]
+
+    def _get_are_summary_1ET(self, evalT):
+        df_total=pd.DataFrame()
+        l_TCSR_sum, l_TCSR_mean, l_TCSR_median, l_TCSR_std, l_TCSR_count,l_TCSR_Psum,l_TCSR_Nsum=[],[],[],[],[],[],[]
+        TSummery_count={"EvalT":evalT,"effective_buy":0,"effective_sell":0,"effective_trans":0}
+        for group_process_id in list(range(self.lgc.eval_num_process_per_group)):
+
+            fnwps=self._get_fnwp__are_summary_1ET1G(evalT, group_process_id)
+            if self._check_exists__are_summary_1ET1G(fnwps):
+                 df, Summery_count, CSR_datas=self._load_data__are_summary_1ET1G(fnwps)
+            else:
+                flag_return,df, Summery_count, CSR_datas=self._generate_data__are_summary_1ET1G(evalT, fnwps)
+                if flag_return:
+                    self._save_data__are_summary_1ET1G(fnwps, df, Summery_count,CSR_datas)
+                else:
+                    return False, "", Summery_count, ""
+            df_total=df if len(df_total)==0 else pd.concat([df_total,df],axis=0)
+            l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count, l_CSR_Psum, l_CSR_Nsum =CSR_datas
+            l_TCSR_sum.extend(l_CSR_sum)
+            l_TCSR_mean.extend(l_CSR_mean)
+            l_TCSR_median.extend(l_CSR_median)
+            l_TCSR_std.extend(l_CSR_std)
+            l_TCSR_count.extend(l_CSR_count)
+            l_TCSR_Psum.extend(l_CSR_Psum)
+            l_TCSR_Nsum.extend(l_CSR_Nsum)
+
+            TSummery_count["effective_buy"] += Summery_count["effective_buy"]
+            TSummery_count["effective_sell"] += Summery_count["effective_sell"]
+            TSummery_count["effective_trans"] += Summery_count["effective_trans"]
+        return True, df_total, TSummery_count, \
+            [l_TCSR_sum, l_TCSR_mean, l_TCSR_median, l_TCSR_std, l_TCSR_count,l_TCSR_Psum,l_TCSR_Nsum]
+
+
+    def get_are_summary(self):
+        df = pd.DataFrame()
+        dfse=pd.DataFrame()
+        ll_CSR_sum, ll_CSR_mean, ll_CSR_median, ll_CSR_std, ll_CSR_count,ll_CSR_Psum,ll_CSR_Nsum=[],[],[],[],[],[],[]
+        for ET_idx, EvalT in enumerate(self.LEvalT):
+            flag_opt, dfi, Dic_Summary,l_CSRs = self._get_are_summary_1ET(EvalT)
+
+            if not flag_opt:
+                if Dic_Summary == "File_Not_Found":
+                    if ET_idx==0:
+                        assert False, "File_Not_Found"
+                    else:
+                        dfse.reset_index(inplace=True)
+                        np_CSR_sum = np.array(ll_CSR_sum)
+                        np_CSR_mean = np.array(ll_CSR_mean)
+                        np_CSR_median = np.array(ll_CSR_median)
+                        np_CSR_std = np.array(ll_CSR_std)
+                        np_CSR_count = np.array(ll_CSR_count)
+                        np_CSR_Psum=np.array(ll_CSR_Psum)
+                        np_CSR_Nsum=np.array(ll_CSR_Nsum)
+                        return df, dfse,[np_CSR_sum,np_CSR_mean,np_CSR_median,np_CSR_std,np_CSR_count,np_CSR_Psum,np_CSR_Nsum]
+                else:
+                    assert Dic_Summary == "No_valid_transaction"
+                    lzero=[0 for _ in range(len(self.Lstock))]
+                    l_CSR_sum, l_CSR_mean, l_CSR_median, l_CSR_std, l_CSR_count,l_CSR_Psum,l_CSR_Nsum = lzero,lzero,lzero,lzero,lzero,lzero,lzero
+                    ll_CSR_sum.append(l_CSR_sum)
+                    ll_CSR_mean.append(l_CSR_mean)
+                    ll_CSR_median.append(l_CSR_median)
+                    ll_CSR_std.append(l_CSR_std)
+                    ll_CSR_count.append(l_CSR_count)
+                    ll_CSR_Psum.append(l_CSR_Psum)
+                    ll_CSR_Nsum.append(l_CSR_Nsum)
+                    continue
+            else:
+                if ET_idx==0:
+                    df = dfi
+                    dfse = pd.DataFrame([list(Dic_Summary.values())], columns=list(Dic_Summary.keys()))
+                else:
+                    df = df.append(dfi, ignore_index=True)
+                    dfse = dfse.append(pd.DataFrame([list(Dic_Summary.values())], columns=list(Dic_Summary.keys())),ignore_index=True)
+                l_CSR_sum,l_CSR_mean,l_CSR_median,l_CSR_std,l_CSR_count,l_CSR_Psum,l_CSR_Nsum=l_CSRs
+                ll_CSR_sum.append(l_CSR_sum)
+                ll_CSR_mean.append(l_CSR_mean)
+                ll_CSR_median.append(l_CSR_median)
+                ll_CSR_std.append(l_CSR_std)
+                ll_CSR_count.append(l_CSR_count)
+                ll_CSR_Psum.append(l_CSR_Psum)
+                ll_CSR_Nsum.append(l_CSR_Nsum)
+        np_CSR_sum=np.array(ll_CSR_sum)
+        np_CSR_mean=np.array(ll_CSR_mean)
+        np_CSR_median=np.array(ll_CSR_median)
+        np_CSR_std=np.array(ll_CSR_std)
+        np_CSR_count=np.array(ll_CSR_count)
+        np_CSR_Psum = np.array(ll_CSR_Psum)
+        np_CSR_Nsum = np.array(ll_CSR_Nsum)
+        dfse.reset_index(inplace=True)
+        return df, dfse,[np_CSR_sum,np_CSR_mean,np_CSR_median,np_CSR_std,np_CSR_count,np_CSR_Psum,np_CSR_Nsum]
+
+    def get_stock_hprice_data(self, stock):
+        def priceH2N(row_name):
+            def convert_row(row):
+                return row[row_name] / row["coefficient_fq"]
+            return convert_row
+
+        #dfh=API_HFQ_from_file().get_df_HFQ(stock)
+        _, dfh = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+        #dfh["date"] = dfh["date"].astype(str)
+        #dfh = dfh[(dfh.date >= self.data_start_s) & (dfh.date <= self.data_end_s)]
+
+        dfh["date"] = dfh["date"].astype(int)
+        dfh = dfh[(dfh.date >= int(self.data_start_s)) & (dfh.date <= int(self.data_end_s))]
+
+        dfh["NpriceHighest"] = dfh.apply(priceH2N("highest_price"), axis=1)
+        dfh["NpriceLowest"] = dfh.apply(priceH2N("lowest_price"), axis=1)
+        dfh["NpriceOpen"] = dfh.apply(priceH2N("open_price"), axis=1)
+        dfh=dfh[["date","NpriceHighest","NpriceLowest", "NpriceOpen"]]
+        dfh.reset_index(inplace=True)
+
+        td=self.td[(self.td>=self.data_start_s)&(self.td<=self.data_end_s)]
+        dftd = pd.DataFrame(data=td, columns=["date"])
+        dftd["date"]=dftd["date"].astype(int)
+        dfHprice = pd.merge(dftd, dfh, how="left", left_on="date", right_on="date")
+        dfHprice.drop(columns="index", inplace=True)
+        dfHprice = dfHprice.ffill().bfill()
+
+        return dfHprice
+
+    def get_TransDensity_RewardDistribution(self, stock, evalT):
+        start_year_i=int(self.data_start_s[:4])
+        end_year_i=int(self.data_end_s[:4])
+        #row=self.total_year_i*4
+        row = (end_year_i-start_year_i+1) * 4
+        col=93
+        unit=10
+        img_density = np.zeros((row, col))
+        img_reward  = np.zeros((row, col))
+        flag_opt, df, _ = self._get_are_summary_1stock_1ET(stock, evalT)
+        if not flag_opt:
+            return img_density,img_reward
+        for _, row in df.iterrows():
+            period= self.td[(self.td>=str(row.trans_start)) &(self.td<=str(row.trans_end))]
+            for day in period:
+                date_i = int(day)
+                date_year = date_i // 10000
+                date_month = (date_i // 100) % 100
+                date_day = date_i % 100
+                np_row = (date_year - start_year_i) * 4 + (date_month - 1) // 3
+                np_column = (date_month - 1) % 3 * 31 + (date_day - 1)
+                img_density[np_row, np_column] += unit
+                img_reward[np_row, np_column]  += row["reward"]
+        return img_density,img_reward
+
 
 class ana_reward_data_A3C_worker_interface(ana_reward_data):
-    def __init__(self,system_name, process_name):
-        param_fnwp = os.path.join(sc.base_dir_RL_system, system_name, "config.json")
-        if not os.path.exists(param_fnwp):
-            raise ValueError("{0} does not exisit".format(param_fnwp))
-        self.lc = sc.gconfig()
-        self.lc.read_from_json(param_fnwp)
-
-        process_idx=int(process_name[-1])
-        process_group_idx=process_idx//self.lc.eval_num_process_per_group
-        #working_sub_dir="{0}_{1}".format(self.lc.eval_process_seed, process_group_idx)
-        #src_dir = os.path.join(sc.base_dir_RL_system, system_name, working_sub_dir)
-
-        self.iSL = StockList(self.lc.SLName)
-        #SL_idx, self.SL_StartI, self.SL_EndI =  self.lc.l_train_SL_param[self.process_idx]
-        SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_eval_SL_param[process_group_idx]
-        #flag, self.stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
-        flag, group_stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
-
-        assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lc.SLName, process_group_idx)
-
-        #total_num_eval_process = self.lc.eval_num_process_group * self.lc.eval_num_process_per_group
-
-        process_idx_left=process_idx%self.lc.eval_num_process_group
-
-        mod=len(group_stock_list)//self.lc.eval_num_process_per_group
-        left=len(group_stock_list)%self.lc.eval_num_process_per_group
-        Lstock = group_stock_list[process_idx_left * mod:(process_idx_left + 1) * mod]
-        if process_idx_left<left:
-            Lstock.append(group_stock_list[-(process_idx_left+1)])
-
-        #src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
-        #Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
+    def __init__(self,system_name, process_group_name,process_idx,Lstock,lc):
         Fake_lET=""
         Fake_lM=""
-        ana_reward_data.__init__(self,system_name, process_name,Lstock, Fake_lET,Fake_lM,self.lc)
+        ana_reward_data.__init__(self, system_name, process_group_name,process_idx, Lstock, Fake_lET, Fake_lM, lc)
 
     def get_are_summary(self):
         assert False, "not support in this interface {0}".format(self.__class__.__name__)
@@ -387,7 +663,7 @@ class ana_reward_plot:
     def __init__(self, system_name, process_name,Lstock, LEvalT, LYM,lgc):
         self.process_name   =   process_name
         self.system_name    =   system_name
-        self.i_ana_data=ana_reward_data( self.system_name, self.process_name,Lstock, LEvalT, LYM,lgc)
+        self.i_ana_data=ana_reward_data( self.system_name, self.process_name,"All",Lstock, LEvalT, LYM,lgc)
         self.df,self.dfse, np_CSRs=self.i_ana_data.get_are_summary()
         self.np_CSR_sum, self.np_CSR_mean, self.np_CSR_median, self.np_CSR_std, self.np_CSR_count,self.np_CSR_Psum, self.np_CSR_Nsum=np_CSRs
         self.Lstock, self.LEvalT, self.LYM, self.lgc = Lstock, LEvalT, LYM,lgc
@@ -873,4 +1149,5 @@ class ana_reward(ana_reward_plot):
         ax=allaxes[3]
         self.plot_price_buy_sell(ax, LM2, self.df_bs2, self.df_price2)
         ax.get_title() + "@ ET {0}".format(ET2)
+
 

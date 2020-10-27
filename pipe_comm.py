@@ -51,8 +51,10 @@ class name_pipe_cmd:
     def check_input_immediate_return(self):
         try:
             pipe = os.open(self.np_fnwp, os.O_RDONLY | os.O_NONBLOCK)
-            input_command = os.read(pipe, 100)
+            input_command_b = os.read(pipe, 100)
+            input_command=input_command_b.decode()
             os.close(pipe)
+            #print("Debug",input_command, type(input_command))
             if len(input_command) != 0:
                 command_list = input_command.split(" ")
                 return command_list

@@ -98,7 +98,7 @@ class DBTP_Eval_Reader(DBTP_Train_Reader):
         return state, support_view_dic
 
 class DBTP_DayByDay_reader(DBTP_Train_Reader):
-    def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30):
+    def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=0):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
         self.EvalTillTDidx= self.SDTDSidx
 

@@ -59,8 +59,8 @@ class EvalMain(Process):
                         self.current_phase = 0
                 else:
                     assert False, "only support current phase 0. wait for wait ready 1. wait for round finish bu get {0}".format(self.current_phase)
+                self.name_pipe_cmd()
 
-            self.name_pipe_cmd()
     def EvaMain_Init_Round(self,eval_loop_count):
         #found_model_surfix = self.find_model_surfix(eval_loop_count)
         found_model_surfix = find_model_surfix(self.lc.brain_model_dir,eval_loop_count)
@@ -90,26 +90,21 @@ class EvalSub(Process):
             lc,process_group_idx,process_idx,L_Eval2GPU, L_GPU2Eval,E_stop, E_Start1Round,Share_eval_loop_count
 
         self.iSL = DBI_Base.StockList(self.lc.SLName)
-        #SL_idx, self.SL_StartI, self.SL_EndI =  self.lc.l_train_SL_param[self.process_idx]
         SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_eval_SL_param[self.process_group_idx]
-        #flag, self.stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
         flag, group_stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
 
         assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lc.SLName, self.process_group_idx)
 
-        #total_num_eval_process = self.lc.eval_num_process_group * self.lc.eval_num_process_per_group
-
-        process_idx_left=self.process_idx%self.lc.eval_num_process_group
-
+        #self.process_idx_left = self.process_idx % len(self.lc.l_eval_num_process_group)
+        self.process_idx_left = self.process_idx %self.lc.eval_num_process_per_group
         mod=len(group_stock_list)//self.lc.eval_num_process_per_group
         left=len(group_stock_list)%self.lc.eval_num_process_per_group
-        self.stock_list = group_stock_list[process_idx_left * mod:(process_idx_left + 1) * mod]
-        if process_idx_left<left:
-            self.stock_list.append(group_stock_list[-(process_idx_left+1)])
+        self.stock_list = group_stock_list[self.process_idx_left * mod:(self.process_idx_left + 1) * mod]
+        if self.process_idx_left<left:
+            self.stock_list.append(group_stock_list[-(self.process_idx_left+1)])
 
         self.process_name = "{0}_{1}".format(self.lc.eval_process_seed, self.process_idx)
         self.process_group_name="{0}_{1}".format(self.lc.eval_process_seed, self.process_group_idx)
-        #self.process_working_dir = os.path.join(lc.system_working_dir, self.process_name)
         self.process_working_dir = os.path.join(lc.system_working_dir, self.process_group_name)
         if not os.path.exists(self.process_working_dir): os.mkdir(self.process_working_dir)
 
@@ -119,9 +114,6 @@ class EvalSub(Process):
 
         self.inp=pcom.name_pipe_cmd(self.process_name)
 
-        #self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
-        #                         self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_idx],
-        #                         called_by="Eval")
         self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],
                                  called_by="Eval")
@@ -129,7 +121,7 @@ class EvalSub(Process):
         self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
         self.i_ac = actionOBOS(self.lc.train_action_type)
 
-        self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name, self.process_name)
+        self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name, self.process_group_name,self.process_idx,self.stock_list,lc)
 
     def run(self):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name, self.process_name))
@@ -160,11 +152,16 @@ class EvalSub(Process):
                         self.data.l_a, self.data.l_ap, self.data.l_sv = result
                         self.Flag_Wait_GPU_Response= False
                         if not any(self.data.l_idx_valid_flag):
+                            #self.data.eval_reset_data()
+                            #self.i_prepare_summary_are_1ET._get_are_summary_1ET(self.Share_eval_loop_count.value)
+                            fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(self.Share_eval_loop_count.value, self.process_idx_left)
+                            return_flag,_,Summery_count__mess,_=self.i_prepare_summary_are_1ET._generate_data__are_summary_1ET1G(self.Share_eval_loop_count.value,fnwps)
+                            if return_flag:
+                                self.logger.info("finish eval_loop_count {0} and generate 1ET summary ".format(self.Share_eval_loop_count.value))
+                            else:
+                                self.logger.info("finish eval_loop_count {0} but fail in generate 1ET summary due to {1}".format(self.Share_eval_loop_count.value,Summery_count__mess))
                             self.E_Start1Round.clear()
                             self.CurrentPhase = 0
-                            #self.data.eval_reset_data()
-                            self.i_prepare_summary_are_1ET._get_are_summary_1ET(self.Share_eval_loop_count.value)
-                            self.logger.info("finish eval_loop_count {0} ".format(self.Share_eval_loop_count.value))
                     else:
                         assert buf_len==0, "self.L_GPU2Eval only can have len 0 or 1 , but now {0} ".format(buf_len)
                 self.name_pipe_cmd()

@@ -16,7 +16,7 @@ from Agent_Explore import AgentMain, Agent_Sub
 from Agent_Eval import EvalMain,EvalSub
 from Brain import Train_Process
 import DB_main
-
+'''
 def learn_remove_DNs_FNs(system_name,SubDirs, SubDir_tag,name_pipefn_tags,log_fn_tags,fun_label):
     system_dir = os.path.join(sc.base_dir_RL_system, system_name)
     ToRemove_SubDirs=SubDirs
@@ -30,7 +30,7 @@ def learn_remove_DNs_FNs(system_name,SubDirs, SubDir_tag,name_pipefn_tags,log_fn
             ToRemove_fnwps.extend([os.path.join(dnwp,fn) for fn in os.listdir(dnwp) if Tag in fn])
     dnwp=os.path.join(system_dir,"log")
     ToRemove_fnwps.extend([os.path.join(dnwp, fn) for fn in os.listdir(dnwp) if fun_label in fn])
-
+'''
 
 class Remove_DNFN:
     SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=[],[],[],[]
@@ -191,7 +191,8 @@ class main(Process):
     def eval_init(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = self.lc.get_CUDA_VISIBLE_DEVICES_str(self.lc.eval_core)
 
-        total_num_eval_process=self.lc.eval_num_process_group*self.lc.eval_num_process_per_group
+        #total_num_eval_process=self.lc.eval_num_process_group*self.lc.eval_num_process_per_group
+        total_num_eval_process = len(self.lc.l_eval_num_process_group) * self.lc.eval_num_process_per_group
 
         self.L_E_Start1Round = [self.Manager.Event() for _ in range(total_num_eval_process)]
         self.L_Eval2GPU = self.Manager.list()
@@ -208,9 +209,10 @@ class main(Process):
         self.L_E_Stop_Evalsub = [self.Manager.Event() for _ in range(total_num_eval_process)]
 
         process_idx=0
-        for process_group_idx in list(range(self.lc.eval_num_process_group)):
+        #for process_group_idx in list(range(self.lc.eval_num_process_group)):
+        for process_group_idx in self.lc.l_eval_num_process_group:
             for _ in range(self.lc.eval_num_process_per_group):
-                print (")))))))))))))))))))))))))))))start process group {0} process idx {1}".format(process_group_idx,process_idx))
+                print ("Start Eval Process Group {0} Process idx {1}".format(process_group_idx,process_idx))
                 Eval_P = EvalSub(self.lc, process_group_idx,process_idx, self.L_Eval2GPU, self.LL_GPU2Eval[process_idx], self.L_E_Stop_Evalsub[process_idx],
                                  self.L_E_Start1Round[process_idx], self.Share_eval_loop_count)
                 Eval_P.daemon = True
