@@ -167,11 +167,7 @@ class LV_SV_joint_component:
 class V2OS_4_OB_agent:
     def __init__(self,ob_system_name, Ob_model_tc):
         self._load_model(ob_system_name, Ob_model_tc)
-        if  hasattr(lc,"CLN_AV_state"):
-            self.get_OS_AV =globals()[lc.CLN_AV_state]().get_OS_av
-        else:
-            assert False,"CLN_AV_state is mandatory param"
-            self.get_OS_AV = LHPP2V2_get_AV
+        self.get_OS_AV =globals()[lc.CLN_AV_state]().get_OS_av
 
 
     def _load_model(self, ob_system_name, Ob_model_tc):
@@ -194,7 +190,5 @@ class V2OS_4_OB_agent:
         p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_AV(av)})
         return p,v
 
-LHPP2V2_check_holding = lambda av_item: False if av_item[0] == 1 else True
-LHPP2V2_get_AV=lambda n_av:np.concatenate([n_av[:,:lc.LHP+1]])
-#LHPP2V7_get_AV=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)
-Train_Buy_get_AV_2=lambda n_av:np.concatenate([n_av[:,1:2],n_av[:,lc.LHP+1:]], axis=-1)
+
+

@@ -31,3 +31,25 @@ tmux attach -t work
 gnome-terminal  -- bash -c "sshpass -p john925 ssh -Y homeserver;exec bash"
 
 nautilus sftp://homeserver/home/rdchujf/n_workspace &
+
+
+Y70
+ +--------------------------------------------------+
+ |             Oray Phtunnel Linux 5.0.0            |
+ +--------------------------------------------------+
+ |  SN: oray1c138e90424f   Default password: admin  |
+ +--------------------------------------------------+
+ |    Remote Management Address http://b.oray.com   |
+ +--------------------------------------------------+
+
+homeserver
+ +--------------------------------------------------+
+ |             Oray Phtunnel Linux 5.0.0            |
+ +--------------------------------------------------+
+ |  SN: oray735c5dbf5ec3   Default password: admin  |
+ +--------------------------------------------------+
+ |    Remote Management Address http://b.oray.com   |
+ +--------------------------------------------------+
+
+http://b.oray.com
+rdchujf, pass same as linux

@@ -106,7 +106,6 @@ class LHPP2V8_Agent:
 
     def choose_action(self,state,calledby="Eval"):
         assert lc.P2_current_phase == "Train_Buy"
-        assert not lc.flag_multi_buy
         lv, sv, av = state
         buy_probs, buy_SVs = self.predict([lv, sv, av])
         if not hasattr(self, "OS_agent"):

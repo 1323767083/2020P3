@@ -1,17 +1,5 @@
 import os, time
 
-
-class lconfig:
-    def __init__(self):
-        self.system_working_dir=""
-        self.command_pipe_seed=""
-def init_gc(lgc):
-    global lc
-    lc=lconfig()
-    for key in list(lc.__dict__.keys()):
-        lc.__dict__[key] = lgc.__dict__[key]
-
-
 def pipe_recv_cmd(pipe, timeout):
     if timeout!=0:  #blocking
         count = 0
@@ -39,7 +27,7 @@ def pipe_send_cmd_recv_resp(pipe, cmd, time_out_in_second):
         #print "pipe_send_cmd_recv_resp wait for {0} second".format(count*0.1)
         return pipe.recv()
 class name_pipe_cmd:
-    def __init__(self, np_fnwp_seed):
+    def __init__(self, lc, np_fnwp_seed):
         pipe_dir=os.path.join(lc.system_working_dir, "name_pipe")
         if not os.path.exists(pipe_dir):
             os.mkdir(pipe_dir)

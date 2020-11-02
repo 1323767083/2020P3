@@ -496,8 +496,7 @@ class gconfig(gconfig_data):
         assert self.env_max_invest_per_round>=self.env_min_invest_per_round
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
 
-        #self.flag_eval_unlearn = True if self.eval_num_process!=0 else False
-        self.flag_multi_buy =True if self.env_max_invest_per_round/self.env_min_invest_per_round >1 else False
+        assert self.env_max_invest_per_round==self.env_min_invest_per_round,"Only support single buy"
         self.times_to_buy =self.env_max_invest_per_round/self.env_min_invest_per_round
 
         if self.load_AIO_fnwp!="" and self.load_config_fnwp!="" and self.load_weight_fnwp!="":
@@ -551,7 +550,6 @@ class gconfig(gconfig_data):
 
         # 2.Simulator
         assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"
-        assert not self.flag_multi_buy
         assert self.LHP != 0
 
         # 3.TD_buffer

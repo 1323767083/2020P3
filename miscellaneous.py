@@ -77,9 +77,6 @@ def start_tensorboard(port, logdir):
     from tensorboard import program
     import tensorflow as tf
     import logger_comm as lcom
-    #lcom.setup_tf_logger("tensorboad")
-    #sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=0)
-    #sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=0)
 
     sys.stdout = open(os.path.join(logdir,str(os.getpid()) + ".out"), "a", buffering=1)
     sys.stderr = open(os.path.join(logdir,str(os.getpid()) + "_error.out"), "a", buffering=1)

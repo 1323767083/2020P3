@@ -11,13 +11,12 @@ class Train_Process(Process):
         Process.__init__(self)
         self.lc,  self.LL_input,self.D_share, self.E_stop, self.E_update_weight=lc, LL_input, D_share, E_stop, E_update_weight
         self.process_name=self.lc.server_process_name_seed
-        self.logger= lcom.setup_logger(self.process_name,flag_file_log=lc.flag_brain_log_file,flag_screen_show=lc.flag_brain_log_screen)
-        self.inp=pcom.name_pipe_cmd(self.process_name)
+        self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=lc.flag_brain_log_file,flag_screen_show=lc.flag_brain_log_screen)
+        self.inp=pcom.name_pipe_cmd(self.lc,self.process_name)
         self.l_i_bs=[buffer_series() for _ in range (lc.num_workers)]
     def run(self):
         import tensorflow as tf
         from nets import Train_Brain, init_gc,init_virtual_GPU
-        #lcom.setup_tf_logger(self.process_name)
         tf.random.set_seed(2)
         init_gc(self.lc)
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))

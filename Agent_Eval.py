@@ -6,8 +6,8 @@ class EvalMain(Process):
         self.lc,self.E_Stop_Agent_Eval,self.L_E_Start1Round,self.L_Eval2GPU,self.LL_GPU2Eval,self.Share_eval_loop_count\
             =lc,E_Stop_Agent_Eval,  L_E_Start1Round,L_Eval2GPU,LL_GPU2Eval,Share_eval_loop_count
         self.process_name=self.lc.eval_process_seed
-        self.logger= lcom.setup_logger(self.process_name,flag_file_log=True, flag_screen_show=True)
-        self.inp = pcom.name_pipe_cmd(self.process_name)
+        self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=True, flag_screen_show=True)
+        self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
 
         #self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model + 1
         self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model
@@ -18,7 +18,6 @@ class EvalMain(Process):
         self.logger.info("All Eval Subs start")
         import tensorflow as tf
         from nets import Explore_Brain, init_gc, init_virtual_GPU
-        #lcom.setup_tf_logger(self.process_name)
         init_gc(self.lc)
         assert self.lc.percent_gpu_core_for_eva!= 0.0, "Only Support GPU"
         virtual_GPU = init_virtual_GPU(self.lc.percent_gpu_core_for_eva)
@@ -109,10 +108,10 @@ class EvalSub(Process):
         if not os.path.exists(self.process_working_dir): os.mkdir(self.process_working_dir)
 
 
-        self.logger= lcom.setup_logger(self.process_name,flag_file_log=self.lc.l_flag_eval_log_file[process_group_idx],
+        self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=self.lc.l_flag_eval_log_file[process_group_idx],
                                        flag_screen_show=self.lc.l_flag_eval_log_screen[process_group_idx])
 
-        self.inp=pcom.name_pipe_cmd(self.process_name)
+        self.inp=pcom.name_pipe_cmd(self.lc,self.process_name)
 
         self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],

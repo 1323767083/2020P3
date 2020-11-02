@@ -53,6 +53,7 @@ class Phase_State_template:
         else:
             assert actual_action == 2
             self.CuPs_idx[self.P_HP] = 0  # this is set the holding period to 0 after successful sell
+            #TODO: this seems to be not necessary as after reach P-End, next should be reset ??
             Done_flag = True
         return Done_flag
 
@@ -81,7 +82,6 @@ class Phase_State_V2(Phase_State_template):
 
     #remove "flag_force_sell" def fabricate_av_and_update_support_view(self, state, support_view_dic, flag_force_sell):
     def fabricate_av_and_update_support_view(self, state, support_view_dic):
-        assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         lav=[1 if idx ==idx_HP else 0 for idx in list(range(lc.raw_AV_shape[0]))]
         state.append(np.array(lav).reshape(1, -1))
@@ -128,7 +128,6 @@ class Phase_State_V3__1(Phase_State_template):
 
     #remove "flag_force_sell" def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
     def fabricate_av_and_update_support_view(self, state, support_view_dic):
-        assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NB=self.CuPs_idx[self.P_NB] + lc.LHP + 1
         lav=[1 if idx in [idx_HP,idx_NB] else 0 for idx in list(range(lc.raw_AV_shape[0]))]
@@ -194,7 +193,6 @@ class Phase_State_V8(Phase_State_template):
 
     #def fabricate_av_and_update_support_view(self, state, support_view_dic,flag_force_sell):
     def fabricate_av_and_update_support_view(self, state, support_view_dic):
-        assert not lc.flag_multi_buy, "{0} not support multi buy".format(self.__class__.__name__)
         idx_HP=self.CuPs_idx[self.P_HP]
         idx_NT=self.CuPs_idx[self.P_NT] + lc.LHP + 1
         idx_NB=self.CuPs_idx[self.P_NB] + lc.LHP + 1 + lc.specific_param.LNT +1

@@ -173,11 +173,8 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
                                           "M_entropy": self.M_entropy_loss, "M_state_value": self.M_state_value,
                                           "M_advent": self.M_advent, "M_advent_low": self.M_advent_low,
                                           "M_advent_high": self.M_advent_high, "lc": lc}
-        if  hasattr(lc,"CLN_AV_state"):
-            i_cav=globals()[lc.CLN_AV_state]()
-            self.get_OS_AV = i_cav.get_OS_av
-        else:
-            assert False
+        i_cav=globals()[lc.CLN_AV_state]()
+        self.get_OS_AV = i_cav.get_OS_av
 
 
 

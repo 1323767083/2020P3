@@ -3,18 +3,11 @@ import sys
 import random
 from action_comm import actionOBOS
 
-from env_ar import env_reward_basic
-
-
-def init_gc(gc):
-    global Cmemory,lgc
-    lgc = gc
-    Cmemory=globals()[lgc.CLN_TDmemory]
-
 # brain train buffer/ worker eval loss buffer
 class brain_buffer:
-    def __init__(self, Buffer_nb_Features):  #Buffer_nb_Features =gc.Buffer_nb_Features
-        self.train_queue = [[] for _ in range(Buffer_nb_Features + 2 * 2)]  # each state have 3 substate so add 2
+    def __init__(self, lc):
+        self.lc=lc
+        self.train_queue = [[] for _ in range(lc.Buffer_nb_Features + 2 * 2)]  # each state have 3 substate so add 2
     def train_get(self, size):
         if len(self.train_queue[0]) < size:
             return False, None, None , None, None, None, None  , None, None, None, None
@@ -66,11 +59,12 @@ class brain_buffer:
 
 
 class brain_buffer_reuse:
-    def __init__(self, Buffer_nb_Features):  #Buffer_nb_Features =gc.Buffer_nb_Features
-        self.tq_numb_col        =   Buffer_nb_Features + 2 * 2+1
+    def __init__(self, lc):
+        self.lc=lc
+        self.tq_numb_col        =   lc.Buffer_nb_Features + 2 * 2+1
         self.tq_count_idx       =   self.tq_numb_col-1
         self.tq_out_numb_col    =   self.tq_numb_col-1
-        self.reuse_times        =   lgc.brain_buffer_reuse_times
+        self.reuse_times        =   lc.brain_buffer_reuse_times
         self.tq = [[] for _ in range(self.tq_numb_col)]
 
     def train_get(self, size):
@@ -138,14 +132,13 @@ class brain_buffer_reuse:
 
 #worker with eval / worker with eval prepare data send to server
 class buffer_to_train:
-    def __init__(self, num_stocks_in_one_group):
+    def __init__(self, lc,num_stocks_in_one_group):
+        self.lc=lc
         self.num_stocks_in_one_group = num_stocks_in_one_group
-        self.Brain_FDn = lgc.TDn
-        self.Brain_gamma = lgc.Brain_gamma
         self.train_buffer_to_server = []
         self.fd_buffer = []
         for _ in range(num_stocks_in_one_group):
-            self.fd_buffer.append(Cmemory(self.Brain_gamma, self.Brain_FDn,self.train_buffer_to_server))
+            self.fd_buffer.append(self.lc.CLN_TDmemory(self.lc,self.train_buffer_to_server))
 
     def add_one_record(self, group_idx, s, a_onehot, np_r, s_, done, support_view_dic):
         self.fd_buffer[group_idx].add_to_train_buffer_to_server(s, a_onehot, np_r, s_, done, support_view_dic)
@@ -183,17 +176,23 @@ class buffer_series:
     def valify(self,bs_to_varify):
         return  bs_to_varify ==self.bs+1 if self.bs<self.max else bs_to_varify==0
 
-
 class TD_memory_integrated:
-    def __init__(self, Brain_gamma, Brain_FDn, output_buffer):
+    def __init__(self, lc, output_buffer):
         self.memory = []  # used for n_step return
-        self.FDn = Brain_FDn
-        self.gamma = Brain_gamma
+        self.lc=lc
+        self.FDn = self.lc.TDn
+        self.gamma = self.lc.Brain_gamma
         self.output_buffer = output_buffer
-        self.i_actionOBOS=actionOBOS(lgc.train_action_type)
-        self.get_verified_record =getattr(self,lgc.TD_get_verified_record)
-        self.get_after_buy_accumulate_R=getattr(self,lgc.TD_get_after_buy_accumulate_R)
-
+        self.i_actionOBOS=actionOBOS(self.lc.train_action_type)
+        #self.get_verified_record =getattr(self,lgc.TD_get_verified_record)
+        #self.get_after_buy_accumulate_R=getattr(self,lgc.TD_get_after_buy_accumulate_R)
+        #TODO remove TD_get_after_buy_accumulate_R,TD_get_verified_record from config
+        if "V2" in self.lc.system_type:
+            self.get_verified_record=self.V2_verified_train_record
+        elif "V3" in self.lc.system_type:
+            self.get_verified_record = self.V3_verified_train_record
+        else:
+            assert False, "{0} only support V2 V3".format(self.__class__.__name__)
 
     def get_sample(self, memory, n):
         s, a, _, _, done, support_view_dic = memory[0]
@@ -206,59 +205,37 @@ class TD_memory_integrated:
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
 
-    def get_after_buy_accumulate_R_discounted(self):
-        AccR=0
-        success_buy_idx=0
+    def V2_verified_train_record(self):
+        Ls, La, _, _, Ldone, Lsupport_view_dic = self.memory[-1]
+        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic["action_taken"] == "Sell"):
+            del self.memory[:]
+            return False
+        success_buy_idx, _ = self.Get_Buy_Idx_AccR()
+        del self.memory[: success_buy_idx + 1]
+        return True
+
+    def V3_verified_train_record(self):
+        _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
+        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
+            "action_taken"] == "Sell"):
+            self.memory[-1][2] = -1  # punish unsuccess final sell reward for buy training
+            #TODO punish reward value in config
+        success_buy_idx, buy_R = self.Get_Buy_Idx_AccR()
+        self.memory[success_buy_idx][2] = buy_R
+        del self.memory[success_buy_idx + 1:]
+        return True
+
+    def Get_Buy_Idx_AccR(self):
+        AccR = 0
+        success_buy_idx = 0
         for idx in list(reversed(list(range(len(self.memory))))):
             on_sv_dic = self.memory[idx][5]
             AccR = self.memory[idx][2] + AccR * self.gamma
             if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
-                success_buy_idx=idx
+                success_buy_idx = idx
                 assert self.memory[idx][1][0, 0] == 1, "{0} {1}".format(on_sv_dic, self.memory[idx][1])
                 break
         return success_buy_idx, AccR
-
-    def get_after_buy_accumulate_R_not_discounted(self):
-        AccR=0
-        success_buy_idx=0
-        flag_last=True
-        for idx in list(reversed(list(range(len(self.memory))))):
-            on_sv_dic = self.memory[idx][5]
-            if flag_last:
-                AccR = self.memory[idx][2]  # sell result
-                flag_last=False
-            else:
-                if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
-                    success_buy_idx=idx
-                    assert self.memory[idx][1][0, 0]==1, "{0} {1}".format(on_sv_dic, self.memory[idx][1])
-                    break
-        return success_buy_idx, AccR
-
-
-    def get_OS_verified_record(self):
-        Ls, La, _, _, Ldone, Lsupport_view_dic = self.memory[-1]
-        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-            "action_taken"] == "Sell"):
-            del self.memory[:]
-            return False
-        success_buy_idx, _ = self.get_after_buy_accumulate_R()
-        del self.memory[: success_buy_idx + 1]
-        return True
-
-    def get_OB_verified_record(self):
-        _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
-        #if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-        #    "action_taken"] == "Sell"):
-        #    del self.memory[:]
-        #    return False
-        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-                "action_taken"] == "Sell"):
-            self.memory[-1][2]=-1   #punish unsuccess final sell reward for buy training
-
-        success_buy_idx, buy_R = self.get_after_buy_accumulate_R()
-        self.memory[success_buy_idx][2]=buy_R
-        del self.memory[success_buy_idx + 1:]
-        return True
 
     def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
         self.memory.append([si, aa04, r, si_, done, support_view_dic])

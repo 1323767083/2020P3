@@ -46,7 +46,7 @@ class client_datas:
         self.l_i_episode_init_flag = [True for _ in range(num_stock)]  # for log purpose
 
         for stock in self.stock_list:
-            i_env = globals()[lc.CLN_simulator](self.data_name,stock,StartI, EndI,CLN_get_data,self.called_by)
+            i_env = globals()[lc.CLN_simulator](self.data_name,stock,StartI, EndI,CLN_get_data,lc,self.called_by)
             self.l_i_env.append(i_env)
 
     def eval_reset_data(self):

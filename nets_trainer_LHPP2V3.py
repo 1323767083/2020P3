@@ -21,12 +21,8 @@ class LHPP2V3_PPO_trainer(base_trainer):
                                         "M_advent_high":self.M_advent_high,"lc":lc}
 
         self.ac_reward_fun = getattr(self, lc.Optimize_accumulate_reward_method)
-        if  hasattr(lc,"CLN_AV_state"):
-            i_cav=globals()[lc.CLN_AV_state]()
-            self.get_OB_AV = i_cav.get_OB_av
-        else:
-            assert False, "CLN_AV_state is mandatory param"
-            self.get_OB_AV = Train_Buy_get_AV_2
+        i_cav=globals()[lc.CLN_AV_state]()
+        self.get_OB_AV = i_cav.get_OB_av
 
 
     def build_train_model(self, name="T"):

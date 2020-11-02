@@ -104,7 +104,6 @@ class LHPP2V3_Agent:
 
     def choose_action(self,state,calledby="Eval"):
         assert lc.P2_current_phase == "Train_Buy"
-        assert not lc.flag_multi_buy
         lv, sv, av = state
         buy_probs, buy_SVs = self.predict([lv, sv,av])
         if not hasattr(self, "OS_agent"):
@@ -126,7 +125,9 @@ class LHPP2V3_Agent:
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 if calledby=="Explore":
+                    #TODO need to find whether configure in config needed
                     Flag_random_explore=np.random.choice([0, 1], p=[0.5,0.5])
+
                     if Flag_random_explore:
                         action=0
                     else:
@@ -140,6 +141,4 @@ class LHPP2V3_Agent:
                 l_sv.append(buy_sv[0])
         return l_a, l_ap,l_sv
 
-#LHPP2V32_Agent=LHPP2V3_Agent
-#LHPP2V33_Agent=LHPP2V3_Agent
 

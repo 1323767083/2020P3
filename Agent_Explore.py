@@ -8,15 +8,14 @@ class AgentMain(Process):
             lc,LL_output, D_share, E_Stop_Agent_Explore, E_Update_Weight, \
             L_E_Weight_Updated_Agent ,L_Agent2GPU,LL_GPU2Agent
         self.process_name=self.lc.client_process_name_seed
-        self.logger= lcom.setup_logger(self.process_name,flag_file_log=True, flag_screen_show=True)
-        self.inp = pcom.name_pipe_cmd(self.process_name)
+        self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=True, flag_screen_show=True)
+        self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
 
     def run(self):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))
         self.logger.info("{0} start".format(self.process_name))
         import tensorflow as tf
         from nets import Explore_Brain, init_gc,init_virtual_GPU
-        #lcom.setup_tf_logger(self.lc.client_process_name_seed)
         tf.random.set_seed(2)
         random.seed(2)
         np.random.seed(2)
@@ -80,14 +79,14 @@ class Agent_Sub(Process):
         self.process_name = "{0}_{1}".format(self.lc.client_process_name_seed,self.process_idx)
         self.process_working_dir = os.path.join(lc.system_working_dir, self.process_name)
         if not os.path.exists(self.process_working_dir): os.mkdir(self.process_working_dir)
-        self.inp = pcom.name_pipe_cmd(self.process_name)
+        self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
 
-        self.logger= lcom.setup_logger(self.process_name,flag_file_log=self.lc.l_flag_worker_log_file[self.process_idx],
+        self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=self.lc.l_flag_worker_log_file[self.process_idx],
                                        flag_screen_show=self.lc.l_flag_worker_log_screen[self.process_idx])
 
         self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                     self.SL_EndI, self.logger, self.lc.CLN_env_get_data_train, called_by="Explore")
-        self.i_train_buffer_to_server = globals()[self.lc.CLN_buffer_to_train](len(self.stock_list))
+        self.i_train_buffer_to_server = globals()[self.lc.CLN_buffer_to_train](self.lc,len(self.stock_list))
         self.i_bs = buffer_series()
 
         '''modify move_get actula to action common '''

@@ -29,7 +29,8 @@ class Train_Brain:
         keras.backend.set_learning_phase(1)  # add by john for error solved by
         self.mc=Ctrainer()
         #self.tb = train_buffer(lc.Buffer_nb_Features)
-        self.tb = globals()[lc.CLN_brain_buffer](lc.Buffer_nb_Features)
+        #self.tb = globals()[lc.CLN_brain_buffer](lc.Buffer_nb_Features)
+        self.tb = globals()[lc.CLN_brain_buffer](lc)
         self.train_push_many = self.tb.train_push_many
         self.get_buffer_size = self.tb.get_buffer_size
         if len(load_fnwps) == 0:

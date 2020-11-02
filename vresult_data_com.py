@@ -3,26 +3,11 @@ import os,re,collections
 import pandas as pd
 import numpy as np
 import config as sc
-#from data_common import API_trade_date,API_HFQ_from_file,hfq_toolbox,API_qz_data_source_related
 
 def get_data_start_end(lgc, process_name):
     eval_process_idx = int(re.findall(r"{0}_(\d)".format(lgc.eval_process_seed), process_name)[0])
     _, StartI, EndI=lgc.l_eval_SL_param[eval_process_idx]
-    #eval_process_idx = int(re.findall(r"{0}_(\d)".format(lgc.eval_process_seed), process_name)[0])
-    #eval_stocklist_idx=eval_process_idx//lgc.eval_num_process_per_group
-    #_, StartI, EndI = lgc.l_eval_SL_param[eval_stocklist_idx]
     return str(StartI), str(EndI)
-    '''
-    eval_data_name = lgc.l_eval_data_name[eval_process_idx]
-
-    if eval_data_name == "T5":
-        data_start_s, data_end_s = API_qz_data_source_related().get_data_state_end_time_s("T5", "SH")
-    elif eval_data_name == "T5_V2_":
-        data_start_s, data_end_s = API_qz_data_source_related().get_data_state_end_time_s("T5_V2_", "SH")
-    else:
-        raise ValueError("ARE_1stock1EvalT only support T5 or T5_V2_ in get_reward_on_date")
-    return data_start_s, data_end_s
-    '''
 
 def get_addon_setting(system_name,process_name):
     def Month_list(Start_YM, End_YM):
@@ -59,13 +44,6 @@ def get_addon_setting(system_name,process_name):
     src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
     Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
 
-    #LETs = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
-    #        if fn.startswith("train_model_AIO_")]
-    #LETs.sort()
-    #LETs.pop(-1)
-    #LEvalT = [idx * lgc.num_train_to_save_model for idx in range(LETs[-1] // lgc.num_train_to_save_model + 1)]
-    #LEvalT.pop(0)
-    #print (LEvalT,LETs)
     LEvalT = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
             if fn.startswith("train_model_AIO_")]
     LEvalT.sort()

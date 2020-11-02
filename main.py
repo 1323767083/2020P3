@@ -4,11 +4,8 @@ import numpy as np
 import config as sc
 import logger_comm  as lcom
 import pipe_comm as pcom
-#import Stocklist_comm as scom
 import DBI_Base as  DBI_Base
-import Buffer_comm as bcom
 import av_state as av_state
-import env as env
 import logging
 import setproctitle
 from miscellaneous import getselected_item_name, create_system,remove_system_sub_dirs,start_tensorboard,copy_between_two_machine
@@ -16,21 +13,6 @@ from Agent_Explore import AgentMain, Agent_Sub
 from Agent_Eval import EvalMain,EvalSub
 from Brain import Train_Process
 import DB_main
-'''
-def learn_remove_DNs_FNs(system_name,SubDirs, SubDir_tag,name_pipefn_tags,log_fn_tags,fun_label):
-    system_dir = os.path.join(sc.base_dir_RL_system, system_name)
-    ToRemove_SubDirs=SubDirs
-    ToRemove_SubDirs.extend( [dn for dn in os.listdir(system_dir) if SubDir_tag in dn])
-    #remove_system_sub_dirs(system_dir, SubDirs)
-    ToRemove_fnwps=[]
-    #for sub_dir, Tags in zip(["name_pipe","log"],[["ExploreAgent", "TrainBrain"], ["ExploreAgent","TrainBrain"]]):
-    for sub_dir, Tags in zip(["name_pipe", "log"], [name_pipefn_tags, log_fn_tags]):
-        dnwp = os.path.join(system_dir, sub_dir)
-        for Tag in Tags:
-            ToRemove_fnwps.extend([os.path.join(dnwp,fn) for fn in os.listdir(dnwp) if Tag in fn])
-    dnwp=os.path.join(system_dir,"log")
-    ToRemove_fnwps.extend([os.path.join(dnwp, fn) for fn in os.listdir(dnwp) if fun_label in fn])
-'''
 
 class Remove_DNFN:
     SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=[],[],[],[]
@@ -123,21 +105,21 @@ class main(Process):
     def run(self):
         assert self.fun_label in ["learn", "eval","learneval"],"fun_label received is {0}".format(self.fun_label)
 
-        for pack in [env, pcom, lcom, bcom, av_state]:
+        for pack in [av_state]:
             pack.init_gc(self.lc)
 
         logging.getLogger().setLevel(logging.INFO)
         #set root level to Debug, other wise, no matter the setting on sub level, it will only show waring and error
         self.Manager = Manager()
         self.process_name = self.fun_label
-        self.logger = lcom.setup_logger(self.process_name, flag_file_log=True, flag_screen_show=True)
+        self.logger = lcom.setup_logger(self.lc,self.process_name, flag_file_log=True, flag_screen_show=True)
         #set multiprocess logging
         log_to_stderr()
         logger = get_logger()
         logger.setLevel(logging.INFO)
 
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name, self.process_name))
-        inp = pcom.name_pipe_cmd(self.process_name)
+        inp = pcom.name_pipe_cmd(self.lc,self.process_name)
         getattr(self,"{0}_init".format(self.fun_label))()
         while True:
             cmd_list = inp.check_input_immediate_return()

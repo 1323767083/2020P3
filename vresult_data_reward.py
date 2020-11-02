@@ -8,7 +8,7 @@ import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import progressbar
 import pickle
-from env import env_reward_basic#, env_reward_10,env_reward_100,env_reward_1000,env_reward_1000_shift10
+from env import env_reward
 from vresult_data_com import get_data_start_end,are_esi_reader
 from DBI_Base import DBI_init,DBI_Base,StockList
 import config as sc
@@ -29,13 +29,93 @@ class ana_reward_data(are_esi_reader, DBI_init):
             self.ET_Summary_des_dir =os.path.join(self.ET_Summary_des_dir,sub_dir)
             if not os.path.exists(self.ET_Summary_des_dir): os.mkdir(self.ET_Summary_des_dir)
 
+        if "V2" in self.lgc.system_type:
+            self._get_verified_record=self._get_verified_record_V2
+        elif "V3" in self.lgc.system_type:
+            self._get_verified_record = self._get_verified_record_V3
+        else:
+            assert False, "{0} only support V2 V3".format(self.__class__.__name__)
+
     def _get_are_summary_1stock_1ET(self, stock, evalT):
         flag_file_found,df = self._read_stock_are(stock, evalT)
         if not flag_file_found:
             return False, "",df  # in False situation df is a string message
-        return self._get_verified_are_summary_1stock_1ET(stock, evalT,df)
+        return self._get_verified_record(stock, evalT,df)
 
-    def _get_verified_are_summary_1stock_1ET(self,stock, evalT,df):
+    def _get_verified_record_Comm(self,df):
+        # remove not in trans summary
+        idx_Not_in_trans = df["trans_id"] == "Not_in_trans"
+        df = df[~idx_Not_in_trans]
+        idx_pre_fail_buy = (df["action"] == 0) & (df["action_result"] != "Success")
+        if any(idx_pre_fail_buy):
+            df.loc[idx_pre_fail_buy, "action"] = 1
+            df.loc[idx_pre_fail_buy, "action_result"] = "No_action"
+        idx_pre_fail_sell = (df["action"] == 2) & (df["action_result"] != "Success")
+        if any(idx_pre_fail_sell):
+            df.loc[idx_pre_fail_sell, "action"] = 3
+            df.loc[idx_pre_fail_sell, "action_result"] = "No_action"
+
+        df = df[["action", "reward", "day", "trans_id", "action_result", "trade_Nprice"]]
+
+        df = df.groupby(["trans_id", "action", "action_result"]).\
+            agg(reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+                duration=pd.NamedAgg(column='day', aggfunc='count'),
+                trans_start=pd.NamedAgg(column='day', aggfunc='first'),
+                trans_end=pd.NamedAgg(column='day', aggfunc='last'),
+                price=pd.NamedAgg(column='trade_Nprice', aggfunc='mean') # mean for price because (buy success) (sell sucess) only have one record
+                )
+
+        df.reset_index(inplace=True)
+        df.loc[df.action == 3, 'action'] = 1
+        df.sort_values(by=["trans_id", "action"],inplace=True) # new added
+        dfr = df.groupby(["trans_id"]).agg(
+            trans_start=pd.NamedAgg(column="trans_start", aggfunc="first"),
+            trans_end=pd.NamedAgg(column="trans_end", aggfunc="last"),
+            reward=pd.NamedAgg(column="reward", aggfunc="sum"),
+            duration=pd.NamedAgg(column="duration", aggfunc="sum"),
+            buy_price=pd.NamedAgg(column="price", aggfunc="first"),
+            sell_price=pd.NamedAgg(column="price", aggfunc="last"),
+            valid_trans_kpi=pd.NamedAgg(column="action", aggfunc="mean")
+        )
+        #dfr.columns = dfr.columns.droplevel(0)
+        # action senario  0,2 valid_trans_cpi=1
+        # action senario  0,1,2 valid_trans_cpi=1
+        # action senario  0,1,1 valid_trans_cpi=0.666  # this is unfinished trans becouse originally has 3 "no_action  and 3 "Success" (forcesell)
+        return dfr
+
+    def _get_verified_record_V2(self, stock, evalT, df):
+        dfr=self._get_verified_record_Comm(df)
+        dfrr = dfr[dfr["valid_trans_kpi"] == 1]
+        dfrr.reset_index(inplace=True)
+        if len(dfrr)==0:
+            return False, "", "no_valid_transaction"
+        dfrr=pd.DataFrame(dfrr)
+        dfrr.loc[:, "buy_count"] = 1
+        dfrr.loc[:, "flag_trans_valid"] = True
+        dfrr.loc[:, "stock"] = stock
+        dfrr.loc[:, "EvalT"] = evalT
+        Dic_effective = {"effective_buy": len(dfr), "effective_sell": len(dfrr), "effective_trans": len(dfrr)}
+        return True, dfrr, Dic_effective
+
+    def _get_verified_record_V3(self, stock, evalT, df):
+        dfr=self._get_verified_record_Comm(df)
+        dfrr = pd.DataFrame(dfr)
+        dfrr.reset_index(inplace=True)
+        if len(dfrr)==0:
+            return False, "", "no_valid_transaction"
+        un_finished_tran_idxs=dfrr["valid_trans_kpi"] != 1
+        dfrr.loc[un_finished_tran_idxs,"reward"]=-0.1 #TODO set punishment a constant
+        dfrr.loc[:, "buy_count"] = 1
+        dfrr.loc[:, "flag_trans_valid"] = True
+        dfrr.loc[:, "stock"] = stock
+        dfrr.loc[:, "EvalT"] = evalT
+        Effective_Sell_Count=len(df[~un_finished_tran_idxs])
+        Dic_effective = {"effective_buy": len(dfr),
+                         "effective_sell": Effective_Sell_Count,
+                         "effective_trans": Effective_Sell_Count}
+        return True, dfrr, Dic_effective
+
+    def _get_verified_are_summary_1stock_1ET_old(self,stock, evalT,df):
         # remove not in trans summary
         idx_Not_in_trans = df["trans_id"] == "Not_in_trans"
         df = df[~idx_Not_in_trans]
@@ -85,6 +165,7 @@ class ana_reward_data(are_esi_reader, DBI_init):
         dfrr.loc[:, "EvalT"] = evalT
         Dic_effective = {"effective_buy": len(dfr), "effective_sell": len(dfrr), "effective_trans": len(dfrr)}
         return True, dfrr, Dic_effective
+
 
     def _check_exists__are_summary_1ET1G(self,fnwps):
         return all([True if os.path.exists(fnwp) else False for fnwp in fnwps])
@@ -409,8 +490,7 @@ class ana_reward_plot:
 
     def hist_reward(self, ax, EvalT,hist_param):
         if len(hist_param)==0:
-            #min_, max_, show_step = env_reward_basic(self.i_ana_data.lgc.eval_reward_scaler_factor,self.i_ana_data.lgc.eval_reward_type,self.i_ana_data.lgc).hist_scale()
-            min_, max_, show_step  = env_reward_basic(self.i_ana_data.lgc.eval_scale_factor,
+            min_, max_, show_step  = env_reward(self.i_ana_data.lgc.eval_scale_factor,
                                                       self.i_ana_data.lgc.eval_shift_factor,
                                                       self.i_ana_data.lgc.eval_flag_clip,
                                                       self.i_ana_data.lgc.eval_flag_punish_no_action).hist_scale()

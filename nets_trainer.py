@@ -1,12 +1,5 @@
 from nets_trainer_LHPP2V2 import *
 from nets_trainer_LHPP2V3 import *
-#from nets_trainer_LHPP2V32 import *
-#from nets_trainer_LHPP2V33 import *
-#from nets_trainer_LHPP2V4 import *
-#from nets_trainer_LHPP2V5 import *
-#from nets_trainer_LHPP2V6 import *
-#from nets_trainer_LHPP2V61 import *
-#from nets_trainer_LHPP2V7 import *
 from nets_trainer_LHPP2V8 import *
 class nets_conf:
     def __init__(self):
