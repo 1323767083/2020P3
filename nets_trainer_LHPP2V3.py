@@ -20,9 +20,9 @@ class LHPP2V3_PPO_trainer(base_trainer):
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
 
-        self.ac_reward_fun = getattr(self, lc.Optimize_accumulate_reward_method)
-        i_cav=globals()[lc.CLN_AV_state]()
-        self.get_OB_AV = i_cav.get_OB_av
+        #i_cav=globals()[lc.CLN_AV_state]()
+        self.i_cav = globals()[lc.CLN_AV_Handler](lc)
+        #self.get_OB_AV = i_cav.get_OB_av
 
 
     def build_train_model(self, name="T"):
@@ -51,18 +51,13 @@ class LHPP2V3_PPO_trainer(base_trainer):
 
         fake_y = np.ones((lc.batch_size, 1))
         n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
-        #assert not any(n_old_ap==-1.0)," -1 add in a3c_worker should be removed at TD_buffer" # sanity check -1 which added in A3C_worker have been removed in TD_buffer
-        #float can not use ==
-
 
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == lc.batch_size
-        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, "P_input_av": self.get_OB_AV(n_s__av)})
+        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, "P_input_av": self.i_cav.get_OB_AV(n_s__av)})
 
-
-        #rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
-        rg=self.ac_reward_fun([n_r, n_a,train_sv, n_s_av,l_support_view])
-        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.get_OB_AV(n_s_av),
+        rg=self.get_accumulate_r([n_r, train_sv, n_s_av,l_support_view])
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.i_cav.get_OB_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
         if lc.flag_record_state:
@@ -70,33 +65,16 @@ class LHPP2V3_PPO_trainer(base_trainer):
             self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
         return num_record_to_train,loss_this_round
 
-
-    def get_accumulate_r_old(self,inputs):
-        n_r, n_a,train_sv, n_s_av,l_support_view = inputs
+    def get_accumulate_r(self,inputs):
+        n_r, train_sv, n_s_av,l_support_view = inputs
         l_adjr=[]
-        for item_a,item_r, item_train_sv, support_view_dic, av_item in zip(n_a,n_r, train_sv, l_support_view,n_s_av):
-            if item_a[0]==1:  # buy
+        for item_r, item_train_sv, support_view_dic, av_item in zip(n_r, train_sv, l_support_view,n_s_av):
+            if self.i_cav.set_final_record_AV(av_item):
                 l_adjr.append(item_r[0])
-            elif item_a[1]==1: # no_action
-                l_adjr.append(item_r[0] + lc.Brain_gamma ** support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])
             else:
-                assert False, "action {0} support_view {1}".format(item_a, support_view_dic)
+                l_adjr.append(item_r[0] + lc.Brain_gamma ** support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])
         rg=np.expand_dims(np.array(l_adjr),-1)
         return rg
-
-    def optimize_get_accumulate_r(self,inputs):
-        n_r, n_a,train_sv, n_s_av,l_support_view = inputs
-        l_adjr=[]
-        for item_a,item_r, item_train_sv, support_view_dic, av_item in zip(n_a,n_r, train_sv, l_support_view,n_s_av):
-            if item_a[0]==1:  # buy
-                l_adjr.append(item_r[0])
-            elif item_a[1]==1: # no_action
-                l_adjr.append(item_r[0] + lc.Brain_gamma ** support_view_dic[0, 0]["SdisS_"] * item_train_sv[0])
-            else:
-                assert False, "action {0} support_view {1}".format(item_a, support_view_dic)
-        rg=np.expand_dims(np.array(l_adjr),-1)
-        return rg
-
 
     def extract_y(self, y):
         prob =          y[:, : lc.train_num_action]

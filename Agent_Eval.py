@@ -1,5 +1,5 @@
 from Agent_Comm import *
-
+from State import AV_Handler
 class EvalMain(Process):
     def __init__(self,lc,E_Stop_Agent_Eval, L_E_Start1Round,L_Eval2GPU,LL_GPU2Eval,Share_eval_loop_count):
         Process.__init__(self)
@@ -75,8 +75,8 @@ class EvalMain(Process):
         if cmd_list is not None:
             if cmd_list[0][:-1] == "status":
                 print ("{0} has {1} record in L_Eval2GPU".format(self.process_name, len(self.L_Eval2GPU)))
-                print ("{0} current phase is {1} amd flag_validate_current_eval_count is {2}").\
-                    format(self.process_name,self.current_phase,self.flag_validate_current_eval_count)
+                print ("{0} current phase is {1} amd flag_validate_current_eval_count is {2}".\
+                    format(self.process_name,self.current_phase,self.flag_validate_current_eval_count))
                 print ("{0} eval subs E_Start1Round are {1}".format(self.process_name,[E_Start1Round.is_set() for E_Start1Round in self.L_E_Start1Round]))
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
@@ -119,7 +119,7 @@ class EvalSub(Process):
         self.i_are_ssdi = are_ssdi_handler(self.lc, self.process_name, self.process_working_dir, self.logger)
         self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
         self.i_ac = actionOBOS(self.lc.train_action_type)
-
+        self.i_av_handler=AV_Handler(self.lc)
         self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name, self.process_group_name,self.process_idx,self.stock_list,lc)
 
     def run(self):
@@ -199,15 +199,14 @@ class EvalSub(Process):
                 #s = self.data.l_s[idx]
                 a = self.data.l_a[idx]
                 ap =self.data.l_ap[idx]
-                s_, r, done, support_view_dic = i_env.step(a)
+                s_, r, done, support_view_dic, actual_action = i_env.step(a)
                 self.data.l_done_flag[idx] = done
                 self.data.l_s[idx] = s_
                 self.data.l_t[idx] += 1
                 self.data.l_r[idx].append(r)
-                trans_id = self.l_i_tran_id[idx].get_transaction_id(
-                    flag_new_holding=True if support_view_dic["holding"] > 0 else False)
-                actual_action = self.i_ac.I_A3C_worker_eval(support_view_dic)
-                self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id)
+                flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
+                trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
+                self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
         #stacted_state = self.stack_l_state(self.data.l_s)
         #self.data.l_a, self.data.l_ap,self.data.l_sv = self.i_eb.choose_action(stacted_state,"Eval")
 

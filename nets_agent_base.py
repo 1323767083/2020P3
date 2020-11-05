@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import os,re
 import config as sc
-from av_state import Phase_State_V8,Phase_State_V3__1,Phase_State_V3__2,Phase_State_V2
+from State import AV_Handler
 def init_nets_agent_base(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
     global lc,nc
     lc,nc = ilc, inc
@@ -167,9 +167,7 @@ class LV_SV_joint_component:
 class V2OS_4_OB_agent:
     def __init__(self,ob_system_name, Ob_model_tc):
         self._load_model(ob_system_name, Ob_model_tc)
-        self.get_OS_AV =globals()[lc.CLN_AV_state]().get_OS_av
-
-
+        self.i_cav=globals()[lc.CLN_AV_Handler](lc)
     def _load_model(self, ob_system_name, Ob_model_tc):
         OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
         model_config_fnwp=os.path.join(OB_model_dir, "config.json")
@@ -187,7 +185,7 @@ class V2OS_4_OB_agent:
     def predict(self, state):
         lv, sv, av = state
         #p, v = model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': av})
-        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_AV(av)})
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
         return p,v
 
 

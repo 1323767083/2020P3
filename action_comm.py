@@ -21,12 +21,6 @@ class actionOBOS:
 
 
     #used in nets choose action
-    '''
-    def I_nets_choose_action(self,prob):
-        if self.action_type in ["OB", "OS"]:
-            assert len(prob)==2
-            return np.random.choice([0, 1], p=prob) if self.action_type == "OB" else np.random.choice([2, 3], p=prob)
-    '''
     def I_nets_choose_action(self,inputs):
         assert self.action_type in ["OB", "OS","B32"]
         if self.action_type=="OS":
@@ -54,20 +48,7 @@ class actionOBOS:
             assert  False, "Only support OB OS B32 in I_nets_choose_action not support {0}".format(self.action_type)
 
 
-    #integrated with I_nets_choose_action
-    '''
-    def I_nets_choose_action_V8(self,inputs):
-        prob, av_item,lc_LNB=inputs
-        assert self.action_type == "B32"
-        if av_item[-lc_LNB-1]!=1:
-            #action = np.random.choice([0, 1], p=prob[:2])
-            psum=sum(prob[:2])
-            adj_prob=[pi/psum for pi in prob[:2]]
-            action = np.random.choice([0, 1], p=adj_prob)
-        else:
-            action = np.random.choice([0, 1, 4], p=prob)
-        return action
-    '''
+
     #used in TD_buffer,  from TD_buffer to train
     def I_TD_buffer(self,actionarray):
         if self.action_type in ["OB", "OS"]:
@@ -108,46 +89,16 @@ class actionOBOS:
         else:
             assert False
 
-    def _get_actual_action(self,support_view_dic):
-        if self.action_type in ["OB", "OS"]:
-            if support_view_dic["action_taken"]=="Sell" and support_view_dic["action_return_message"]=="Success":
-                return 2 #"Sell"
-            elif support_view_dic["action_taken"]=="Buy" and support_view_dic["action_return_message"]=="Success":
-                return 0  #"Buy"
-            else:  # this is for unsuccessful buy or sell and no action
-                return 3 if support_view_dic["holding"] != 0 else 1  # "No_action"  # Failed buy and sell for simulator is not action
-        elif self.action_type in ["B32"]:
-            if support_view_dic["action_taken"]=="Sell" and support_view_dic["action_return_message"]=="Success":
-                return 2 #"Sell"
-            elif support_view_dic["action_taken"]=="Buy" and support_view_dic["action_return_message"]=="Success":
-                return 0  #"Buy"
-            elif support_view_dic["action_taken"]=="No_trans" and support_view_dic["action_return_message"]=="No_trans":
-                return 4  #"No Trans"
-            else:  # this is for unsuccessful buy or sell and no action
-                return 3 if support_view_dic["holding"] != 0 else 1  # "No_action"  # Failed buy and sell for simulator is not action
-        else:
-            assert False
-
-    def I_A3C_worker_explorer(self,support_view_dic, ap):
-        actual_action = self._get_actual_action(support_view_dic)
+    def I_A3C_worker_explorer(self, actual_action,ap):
         a_onehot = self._action_2_actionarray(actual_action)
         old_ap = self._get_prob_from_AParray(ap, actual_action)
         if self.action_type in ["OB", "OS"]:
             assert a_onehot.shape==(1,4)
-            assert type(old_ap) is np.float32 or type(old_ap) is int,support_view_dic
+            assert type(old_ap) is np.float32 or type(old_ap) is int
         elif self.action_type in ["B32"]:
 
             assert a_onehot.shape == (1, 5)
-            assert type(old_ap) is np.float32 or type(old_ap) is int,"{0}, {1}, {2}".format(support_view_dic,type(old_ap),old_ap)
+            assert type(old_ap) is np.float32 or type(old_ap) is int,"{0}, {1}".format(type(old_ap),old_ap)
         else:
             assert False
         return a_onehot, old_ap
-
-
-    def I_A3C_worker_eval(self,support_view_dic):
-        actual_action = self._get_actual_action(support_view_dic)
-        return actual_action
-
-
-    #def I_env(self, support_view_dic):
-    #    return self._get_actual_action(support_view_dic)

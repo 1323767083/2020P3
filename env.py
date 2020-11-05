@@ -1,7 +1,7 @@
 import os
 import config as sc
 from recorder import record_sim_stock_data
-from av_state import Phase_State_V8,Phase_State_V3__1,Phase_State_V3__2,Phase_State_V2
+from State import Phase_State, AV_Handler
 from action_comm import actionOBOS
 from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader
 from DBI_Base import hfq_toolbox
@@ -96,8 +96,8 @@ class Simulator_intergrated:
     def __init__(self, data_name, stock,StartI, EndI,CLN_get_data,lc,calledby):
         self.lc=lc
         self.calledby=calledby
-        self.i_PSS = globals()[lc.CLN_AV_state]()
-        self.i_account = globals()[lc.CLN_env_account](lc)
+        self.i_PSS = globals()[lc.CLN_AV_state](self.lc,self.calledby)
+        self.i_account = globals()[lc.CLN_env_account](self.lc)
         if self.calledby == "Explore":
             assert CLN_get_data == "DBTP_Train_Reader"
             self.i_reward = env_reward(lc.train_scale_factor, lc.train_shift_factor, lc.train_flag_clip,
@@ -114,21 +114,21 @@ class Simulator_intergrated:
             self.i_record_sim_stock_data=record_sim_stock_data(os.path.join(sc.base_dir_RL_system,
                                                         lc.RL_system_name,"record_sim"), stock,lc.flag_record_sim)
     def reset(self):
-        self.i_PSS.reset()
         self.i_account.reset()  # clear account inform if last period not sold out finally
         state, support_view_dic = self.i_get_data.reset_get_data()
         support_view_dic["action"] = "Reset"  # True?
         support_view_dic["action_return_message"] = "from reset"  # True?
-        self.i_PSS.fabricate_av_and_update_support_view(state, support_view_dic)
-        #support_view_dic["holding"] = 0
+        raw_av=self.i_PSS.reset_phase_state()
+        state.append(raw_av)
         if self.lc.flag_record_sim:
             self.i_record_sim_stock_data.saver([state, support_view_dic],str(support_view_dic["DateI"]))
         return state, support_view_dic
 
-    def step_comm(self, action_str):
+    def step_comm(self, adj_action):
+        action_str = self.lc.action_type_dict[adj_action]
         state, support_view_dic, _ = self.i_get_data.next_get_data()
-
         support_view_dic["action_taken"] = action_str
+
         if not support_view_dic["Flag_Tradable"]:
             reward = self.i_reward.Tinpai
             return_message="Tinpai"
@@ -184,13 +184,8 @@ class Simulator_intergrated:
 
     def step(self,action):
         adj_action = self.i_PSS.check_need_force_state(action)
-        if self.calledby=="Eval":
-            if adj_action==0 and action!=0: # if force buy happen in eval, keep original action
-                adj_action=action
-        #TODO check this check should included in the state param setting
-        adj_action_str = self.lc.action_type_dict[adj_action]
-        return_message,reward,state, support_view_dic=self.step_comm(adj_action_str)
+        return_message,reward,state, support_view_dic=self.step_comm(adj_action)
         support_view_dic["action_return_message"]=return_message
-        Done_flag=self.i_PSS.update_phase_state(support_view_dic,adj_action,return_message)
-        self.i_PSS.fabricate_av_and_update_support_view(state, support_view_dic)
-        return state, reward,Done_flag,support_view_dic
+        Done_flag, raw_av,actual_action=self.i_PSS.update_phase_state(adj_action, return_message)
+        state.append(raw_av)
+        return state, reward,Done_flag,support_view_dic,actual_action

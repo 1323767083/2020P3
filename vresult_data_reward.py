@@ -109,7 +109,7 @@ class ana_reward_data(are_esi_reader, DBI_init):
         dfrr.loc[:, "flag_trans_valid"] = True
         dfrr.loc[:, "stock"] = stock
         dfrr.loc[:, "EvalT"] = evalT
-        Effective_Sell_Count=len(df[~un_finished_tran_idxs])
+        Effective_Sell_Count=len(dfrr[~un_finished_tran_idxs])
         Dic_effective = {"effective_buy": len(dfr),
                          "effective_sell": Effective_Sell_Count,
                          "effective_trans": Effective_Sell_Count}

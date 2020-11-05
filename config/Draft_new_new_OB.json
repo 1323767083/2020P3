@@ -8,7 +8,8 @@
     "CLN_brain_explore": "Explore_Brain",
     "CLN_buffer_to_train": "buffer_to_train",
     "CLN_env_account": "env_account",
-    "CLN_AV_state":"Phase_State_V3__2",
+    "CLN_AV_state": "Phase_State",
+    "CLN_AV_Handler": "AV_Handler",
     "CLN_GenStockList": "StockList",
     "=======system type related=": "=======================",
     "CLN_simulator": "Simulator_intergrated",
@@ -25,10 +26,6 @@
         "2": "Sell",
         "3": "No_action"
     },
-    "=======Train_record_realted=======": "=======================",
-    "TD_get_verified_record": "get_OB_verified_record",
-    "TD_get_after_buy_accumulate_R":"get_after_buy_accumulate_R_discounted",
-    "Optimize_accumulate_reward_method": "optimize_get_accumulate_r",
     "=======Class_eval_train=======": "=======================",
     "train_scale_factor":20,
     "train_shift_factor":0.01,
@@ -139,13 +136,13 @@
     "tensorboard_port": 6002,
     "=======LHP=": "=======================",
     "LHP": 5,
+    "LNB": 1,
     "=======P2=======": "=======================",
     "P2_current_phase": "Train_Buy",
-    "P2_sell_system_name": "Sell300",
-    "P2_sell_model_tc": 7250,
+    "P2_sell_system_name": "Sell300_2",
+    "P2_sell_model_tc": 9000,
     "=======trial=======": "=======================",
     "Dict_specifc_param": {
-        "LNB": 5
     },
     "=======Net=======": "=======================",
     "net_config": {

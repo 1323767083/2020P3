@@ -18,9 +18,7 @@ class LHPP2V2_Agent:
             "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
         }
         self.i_action = actionOBOS(lc.train_action_type)
-        i_cav = globals()[lc.CLN_AV_state]()
-        self.check_holding_fun = i_cav.check_holding_item
-        self.get_OS_av = i_cav.get_OS_av
+        self.i_cav = globals()[lc.CLN_AV_Handler](lc)
 
 
     def build_predict_model(self, name):
@@ -117,7 +115,7 @@ class LHPP2V2_Agent:
     def predict(self, state):
         assert lc.P2_current_phase=="Train_Sell"
         lv, sv, av = state
-        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_OS_av(av)})
+        p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
         return p,v
 
     def choose_action(self, state, calledby="Eval"):
@@ -129,7 +127,7 @@ class LHPP2V2_Agent:
         l_sv = []
         for sell_prob, SV, av_item in zip(actions_probs, SVs, av):
             assert len(sell_prob) == 2, sell_prob
-            flag_holding=self.check_holding_fun(av_item)
+            flag_holding=self.i_cav.Is_Holding_Item(av_item)
             if flag_holding:
                 #action = np.random.choice([2, 3], p=action_probs)
                 action =self.i_action.I_nets_choose_action(sell_prob)

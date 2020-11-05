@@ -11,40 +11,11 @@ else:
     raise ValueError( "not support run program in {0}".format(cwd))
 
 #Directory
-#-- rar base dir
 qz_rar_dir="/home/rdchujf/rar_quanzheng"
-#--data source_base dir
-#base_dir_source_trade_by_trade              = os.path.join(base_dir, "Stk_TradeByTrade")
-#base_dir_qz_1                               = os.path.join(base_dir, "Stk_qz")
-#base_dir_qz_2                               = os.path.join(base_dir, "Stk_qz_2")
-
 base_dir_RL_data                            = os.path.join(base_dir,"n_workspace","data/RL_data")
 base_dir_RL_system                          = os.path.join(base_dir,"n_workspace","RL")
-#for dir in [base_dir_source_trade_by_trade,base_dir_qz_1,base_dir_qz_2,base_dir_RL_data,base_dir_RL_system]:
 for dir in [base_dir_RL_data,base_dir_RL_system]:
     if not os.path.exists(dir): raise ValueError("{0} not exists".format(dir))
-
-'''----data_comm parameter obsolete
-#Param
-#--qz
-qz_sh_avail_start = "20130415"
-qz_sz_avail_start = "20130104"
-qz_avail_end = "20171229"
-
-V2_start_tims_s = "20180101"
-V2_end_tims_s = "20190731"
-
-#qz data fils
-missing_data_fnwp = os.path.join(base_dir_qz_1,"missingdate.csv")
-zero_len_data_fnwp = os.path.join(base_dir_qz_1,"zero_data.csv")
-
-
-#data set param
-RL_data_skip_days = 100
-RL_data_least_length = 23
-RL_da_dan_threadhold = 1000000
-RL_xiao_dan_threadhold = 100000
-'''
 
 
 l_GPU_size=[11019,12196]
@@ -61,7 +32,8 @@ l_GPU_size=[11019,12196]
     #"CLN_env_read_data": "R_T5_skipSwh_balance",
     #"CLN_env_get_data_train": "DBTP_Train_Reader",
     #"CLN_env_get_data_eval": "DBTP_Eval_Reader",
-    "CLN_AV_state":"Phase_State_V2",
+    "CLN_AV_state":"Phase_State",
+    "CLN_AV_Handler": "AV_Handler",
     "CLN_GenStockList": "StockList",
     "=======system type related=": "=======================",
     "CLN_simulator": "Simulator_intergrated",
@@ -78,10 +50,6 @@ l_GPU_size=[11019,12196]
         "2": "Sell",
         "3": "No_action"
     },
-    "=======Train_record_realted=======": "=======================",
-    "Optimize_accumulate_reward_method": "OS_ForceSell_accumulate_reward",
-	"TD_get_verified_record":"get_OS_verified_record",
-    "TD_get_after_buy_accumulate_R":"get_after_buy_accumulate_R_discounted",
     "=======Class_eval_train=======": "=======================",
     "train_scale_factor":20,
     "train_shift_factor":0.01,
@@ -113,7 +81,6 @@ l_GPU_size=[11019,12196]
     "l_flag_worker_log_screen": [
         True
     ],
-
     "num_workers": 1,
     "=======Old_explore========":"========================",
     "l_work_core": [
@@ -180,6 +147,7 @@ l_GPU_size=[11019,12196]
     "tensorboard_port": 6002,
     "=======LHP=": "=======================",
     "LHP": 5,
+    "LNB": 1,
     "=======P2=======": "=======================",
     "P2_current_phase": "Train_Sell",
     "P2_sell_system_name": "",
@@ -309,8 +277,6 @@ class gconfig_data:
         self.eval_flag_punish_no_action=float("nan")
 
         self.CLN_env_read_data = float("nan") #"R_T5"
-        #self.CLN_env_get_data_train = float("nan") #"env_get_data_base"
-        #self.CLN_env_get_data_eval = float("nan") #"env_get_data_base"
         self.CLN_TDmemory = float("nan") #"TD_memory"
         self.CLN_GenStockList = float("nan") #"API_SH_sl"
 
@@ -347,11 +313,6 @@ class gconfig_data:
 
 
         self.num_workers = float("nan") #3
-        #old_explore
-        #self.l_train_SL_param = [[0, 20000000, 20000000]]
-        #self.l_work_core = ["",""] #["GPU_0", "GPU_0", "GPU_0"]
-        #self.l_percent_gpu_core_for_work = [float("nan")] #[0.2, 0.2, 0.2]
-        #self.l_CLN_env_get_data_train = [""]
         #new_explore
         self.work_core = "" #"GPU_0"
         self.percent_gpu_core_for_work = float("nan") #0.2
@@ -366,10 +327,6 @@ class gconfig_data:
         self.l_CLN_env_get_data_eval=""
         self.start_eval_count = float("nan") #0
 
-        #old eval
-        #self.eval_num_process = float("nan")  # 2
-        #self.l_eval_core = ["",""] #["GPU_1", "GPU_1"]
-        #self.l_percent_gpu_core_for_eva = [float("nan")] #[0.2, 0.2]
         #new eval
         self.eval_core = "" #"GPU_1"
         self.percent_gpu_core_for_eva = float("nan") #0.2
@@ -406,30 +363,23 @@ class gconfig_data:
         self.eval_num_stock_per_process = float("nan") #100
         # action realted
         self.action_type_dict = float("nan") #{0: "buy", 1: "sell", 2: "no_action"}
-        # self.num_action=3
-        #self.method_name_of_choose_action_for_train = float("nan") #""
-        #self.method_name_of_choose_action_for_eval = float("nan") #""
         # debug
-        # self.flag_recorder=True
-        # "flag_recorder": True,
         self.flag_record_state = float("nan") #True
         self.flag_record_buffer_to_server = float("nan") #False
         self.flag_record_sim = float("nan") #False
 
         self.CLN_record_variable = float("nan") #"record_variable"
-        #self.record_checked_threahold = float("nan") #0
         self.tensorboard_port = float("nan") #6006
         # LHF
         self.LHP = float("nan") #0
+        self.LNB = float("nan")  # 0
         # P2
         self.P2_current_phase = float("nan") #""
         self.P2_sell_system_name = float("nan") #""
         self.P2_sell_model_tc = float("nan") #-1
         # reward related
-        self.TD_get_verified_record = ""
-        self.TD_get_after_buy_accumulate_R = ""
-        self.Optimize_accumulate_reward_method = ""
         self.CLN_AV_state = ""
+        self.CLN_AV_Handler=""
 
         # value set by config
         self.Dict_specifc_param = {} #{}
@@ -470,25 +420,8 @@ class gconfig(gconfig_data):
         self.sanity_check_convert_enhance()
 
     def sanity_check_convert_enhance(self):
-        #sanity check
-        #assert len(self.l_work_core) == self.num_workers
-        #assert len(self.l_percent_gpu_core_for_work) == self.num_workers
-        #assert len(self.l_flag_worker_log_file) == self.num_workers
-        #assert len(self.l_flag_worker_log_screen) == self.num_workers
-
-        #assert len(self.l_eval_core)==self.eval_num_process
-        #assert len(self.l_percent_gpu_core_for_eva) == self.eval_num_process
-        #assert len(self.l_flag_eval_log_file) == self.eval_num_process
-        #assert len(self.l_flag_eval_log_screen) == self.eval_num_process
-
 
         self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
-
-        #self.l_percent_gpu_core_for_work = [l_GPU_size[int(work_core[-1])]*percent_gpu_core
-        #                    for work_core,percent_gpu_core in zip(self.l_work_core,self.l_percent_gpu_core_for_work)]
-
-        #self.l_percent_gpu_core_for_eva =  [l_GPU_size[int(eval_core[-1])]*percent_gpu_core
-        #                    for eval_core,percent_gpu_core in zip(self.l_eval_core,self.l_percent_gpu_core_for_eva)]
 
         self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
         self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
@@ -545,8 +478,6 @@ class gconfig(gconfig_data):
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
         l_specific_param_title=[]
         # 1.Simulator get data
-        #assert self.CLN_env_get_data_train == "DBTP_Train_Reader"
-        #assert self.CLN_env_get_data_eval == "DBTP_Eval_Reader"
 
         # 2.Simulator
         assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"
@@ -562,6 +493,11 @@ class gconfig(gconfig_data):
 
         self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
             if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
+        assert self.CLN_AV_state == "Phase_State"
+        self.OS_AV_shape = (self.LHP + 1,)
+        self.OB_AV_shape = (self.LNB + 1,)
+        self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1,)
+        self.PLen = self.LHP + self.LNB
 
         if self.system_type == "LHPP2V2":    #V2 means reuse to multibuy part av to encode signle buy holding duration
             # 0.Train Phase
@@ -577,10 +513,7 @@ class gconfig(gconfig_data):
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-            assert self.CLN_AV_state == "Phase_State_V2"
-            self.OS_AV_shape = (self.LHP + 1,)
-            self.raw_AV_shape =(self.LHP + 1,)
-            self.PLen=self.LHP
+
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
@@ -592,20 +525,12 @@ class gconfig(gconfig_data):
             assert self.net_config["dense_prob"][-1] == self.train_num_action
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
             # 8.specific param
-            assert self.CLN_AV_state in ["Phase_State_V3__1","Phase_State_V3__2"]
-            l_specific_param_title.append("LNB")
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
 
-            if self.CLN_AV_state =="Phase_State_V3__1":
-                self.OB_AV_shape = (self.specific_param.LNB + 1,)
-            else:
-                self.OB_AV_shape = (1,)
-            self.OS_AV_shape =(self.LHP + 1,)
-            self.raw_AV_shape = (self.specific_param.LNB + 1 + self.LHP + 1,)
-            self.PLen = self.LHP+self.specific_param.LNB
         elif self.system_type in ["LHPP2V8"]:
+            #TODO V8 need to fully check
             # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
             # 6.net_trainer  # this is to include support for V3 V32 and V33
@@ -617,7 +542,8 @@ class gconfig(gconfig_data):
             assert self.net_config["dense_advent"][-1] == 1
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
             # 8.specific param
-            assert self.CLN_AV_state == "Phase_State_V8"
+            #assert self.CLN_AV_state == "Phase_State_V8"
+            #TODO "Phase_State" not support V8 yet
             l_specific_param_title.append("LNB")
             l_specific_param_title.append("LNT")
             for item_title in l_specific_param_title:

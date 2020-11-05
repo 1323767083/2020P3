@@ -184,9 +184,9 @@ class Agent_Sub(Process):
                 s = self.data.l_s[idx]
                 a = self.data.l_a[idx]
                 #ap =self.data.l_ap[idx]
-                s_, r, done, support_view_dic = i_env.step(a)
+                s_, r, done, support_view_dic, actual_action = i_env.step(a)
                 self.data.l_done_flag[idx] = done
-                a_onehot04,support_view_dic["old_ap"]=self.i_ac.I_A3C_worker_explorer(support_view_dic, self.data.l_ap[idx])
+                a_onehot04,support_view_dic["old_ap"]=self.i_ac.I_A3C_worker_explorer(actual_action, self.data.l_ap[idx])
                 self.clean_support_view_from_worker_to_server(support_view_dic)
                 self.i_train_buffer_to_server.add_one_record(idx, s, a_onehot04, r, s_, done, support_view_dic)
                 self.data.l_s[idx] = s_
@@ -201,10 +201,9 @@ class Agent_Sub(Process):
         #support_view_dic.pop("Stock")  # add by Env need use by revorder state
         #support_view_dic.pop("DateI")  # add by Env need use by revorder state
 
-
+        #not change following due to record need modified accordingly
         #support_view_dic.pop("action_return_message") #env
         #support_view_dic.pop("action_taken") #env
-        #support_view_dic.pop("holding")    #av_state
         #remove "flag_force_sell" #support_view_dic.pop("flag_force_sell")    #av_state
         #support_view_dic.pop("old_ap")   #Explore_process
 
@@ -212,7 +211,7 @@ class Agent_Sub(Process):
         #support_view_dic.pop(""SdisS_"")
         # support_view_dic.pop("_support_view_dic")   #TD_intergrated
 
-        assert len(support_view_dic.keys())==6,support_view_dic.keys()
+        assert len(support_view_dic.keys())==5,support_view_dic.keys()
 
     def worker_send_buffer_brain(self):
         if self.i_train_buffer_to_server.get_len_train_buffer_to_server() > self.lc.num_train_record_to_brain:

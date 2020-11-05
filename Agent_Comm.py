@@ -147,14 +147,13 @@ class are_ssdi_handler:
     def start_round(self, save_count):
         self.ongoing_save_count=save_count
 
-    def in_round(self, data, idx, a, ap, r, sv_dic, trans_id):
+    def in_round(self, data, idx, a, ap, r, sv_dic, trans_id,holding_flag):
         item=[a, r, data.l_i_episode[idx], sv_dic["DateI"], sv_dic["action_return_message"]]
         #for ap_idx in range(lc.num_action):### remove .num_action
         for ap_idx in range(self.lc.train_num_action):
             item.append(ap[ap_idx])
         item.append(data.l_sv[idx])
-        #item.extend([sv_dic["holding"], sv_dic["this_trade_day_Nprice"], trans_id])
-        item.extend([sv_dic["holding"], sv_dic["Nprice"], trans_id])
+        item.extend([holding_flag, sv_dic["Nprice"], trans_id])
         data.l_log_a_r_e[idx].append(item)
 
 class transaction_id:

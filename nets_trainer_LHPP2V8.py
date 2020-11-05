@@ -6,7 +6,6 @@ def init_nets_trainer_LHPP2V8(lc_in,nc_in):
     nc=nc_in
     init_nets_trainer_base(lc_in, nc_in)
 
-#LHPP2V5_PPO_trainer is same as LHPP2V3_PPO_trainer except  get_accumulate_r
 class LHPP2V8_PPO_trainer(base_trainer):
     def __init__(self):
         base_trainer.__init__(self)
@@ -19,9 +18,7 @@ class LHPP2V8_PPO_trainer(base_trainer):
                                         "M_entropy":self.M_entropy_loss,"M_state_value":self.M_state_value,
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
-        self.ac_reward_fun=getattr(self,lc.Optimize_accumulate_reward_method)
-        i_cav=globals()[lc.CLN_AV_state]()
-        self.get_OB_AV = i_cav.get_OB_av
+        self.i_cav = globals()[lc.CLN_AV_Handler](lc)
 
 
     def build_train_model(self, name="T"):
@@ -56,11 +53,11 @@ class LHPP2V8_PPO_trainer(base_trainer):
 
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == lc.batch_size
-        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv,"P_input_av": self.get_OB_AV(n_s__av)})
+        _, train_sv = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv,"P_input_av": self.i_cav.get_OB_AV(n_s__av)})
 
 
-        rg=self.ac_reward_fun([n_r, n_a,train_sv, n_s_av,l_support_view])
-        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.get_OB_AV(n_s_av),
+        rg=self.get_accumulate_r([n_r, n_a,train_sv, n_s_av,l_support_view])
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,"input_av_view":self.i_cav.get_OB_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
         if lc.flag_record_state:

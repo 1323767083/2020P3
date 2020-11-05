@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import random
 from action_comm import actionOBOS
+from State import AV_Handler
 
 # brain train buffer/ worker eval loss buffer
 class brain_buffer:
@@ -138,7 +139,7 @@ class buffer_to_train:
         self.train_buffer_to_server = []
         self.fd_buffer = []
         for _ in range(num_stocks_in_one_group):
-            self.fd_buffer.append(self.lc.CLN_TDmemory(self.lc,self.train_buffer_to_server))
+            self.fd_buffer.append(globals()[self.lc.CLN_TDmemory](self.lc,self.train_buffer_to_server))
 
     def add_one_record(self, group_idx, s, a_onehot, np_r, s_, done, support_view_dic):
         self.fd_buffer[group_idx].add_to_train_buffer_to_server(s, a_onehot, np_r, s_, done, support_view_dic)
@@ -184,9 +185,8 @@ class TD_memory_integrated:
         self.gamma = self.lc.Brain_gamma
         self.output_buffer = output_buffer
         self.i_actionOBOS=actionOBOS(self.lc.train_action_type)
+        self.iavh=AV_Handler(self.lc)
         #self.get_verified_record =getattr(self,lgc.TD_get_verified_record)
-        #self.get_after_buy_accumulate_R=getattr(self,lgc.TD_get_after_buy_accumulate_R)
-        #TODO remove TD_get_after_buy_accumulate_R,TD_get_verified_record from config
         if "V2" in self.lc.system_type:
             self.get_verified_record=self.V2_verified_train_record
         elif "V3" in self.lc.system_type:
@@ -206,36 +206,42 @@ class TD_memory_integrated:
         return AccR
 
     def V2_verified_train_record(self):
-        Ls, La, _, _, Ldone, Lsupport_view_dic = self.memory[-1]
-        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic["action_taken"] == "Sell"):
+        _, _, _, Ls_, Ldone, Lsupport_view_dic = self.memory[-1]
+        flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
+        if not flag_in_HP:
+            if idx_HP == -1:       #NB phase not finished
+                del self.memory[:]
+                return False
+            else:
+                assert idx_HP>=0,  idx_HP  #HP phase finished
+                del self.memory[:-(idx_HP+1)]
+                self.iavh.set_final_record_AV(self.memory[-1][0][2][0])  #-1 last record 0 means state in memory 2 means AV 0 means av item has shape (0,13)
+                return True
+        else:                       #HP phase not finished
             del self.memory[:]
             return False
-        success_buy_idx, _ = self.Get_Buy_Idx_AccR()
-        del self.memory[: success_buy_idx + 1]
-        return True
+
 
     def V3_verified_train_record(self):
-        _, _, _, _, _, Lsupport_view_dic = self.memory[-1]
-        if not (Lsupport_view_dic["action_return_message"] == "Success" and Lsupport_view_dic[
-            "action_taken"] == "Sell"):
-            self.memory[-1][2] = -1  # punish unsuccess final sell reward for buy training
-            #TODO punish reward value in config
-        success_buy_idx, buy_R = self.Get_Buy_Idx_AccR()
-        self.memory[success_buy_idx][2] = buy_R
-        del self.memory[success_buy_idx + 1:]
-        return True
-
-    def Get_Buy_Idx_AccR(self):
-        AccR = 0
-        success_buy_idx = 0
-        for idx in list(reversed(list(range(len(self.memory))))):
-            on_sv_dic = self.memory[idx][5]
-            AccR = self.memory[idx][2] + AccR * self.gamma
-            if on_sv_dic["action_taken"] == "Buy" and on_sv_dic["action_return_message"] == "Success":
-                success_buy_idx = idx
-                assert self.memory[idx][1][0, 0] == 1, "{0} {1}".format(on_sv_dic, self.memory[idx][1])
-                break
-        return success_buy_idx, AccR
+        _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
+        flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
+        if not flag_in_HP:
+            if idx_HP==-1:                  #NB phase not finished
+                del self.memory[:]
+                return False
+            else:
+                assert idx_HP>=0            #HP phase finished
+                raw_reward = self.memory[-1][2]
+                del self.memory[-(idx_HP + 1):]
+                self.memory[-1][2] = raw_reward * self.gamma ** (idx_HP + 1)
+                self.iavh.set_final_record_AV(self.memory[-1][0][2][0])
+                return True
+        else:                               #HP phase not finished
+            assert idx_HP==self.lc.LHP
+            del self.memory[-(idx_HP + 1):]
+            self.memory[-1][2] = -1         ##TODO punish unsuccessful sell
+            self.iavh.set_final_record_AV(self.memory[-1][0][2])
+            return True
 
     def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
         self.memory.append([si, aa04, r, si_, done, support_view_dic])

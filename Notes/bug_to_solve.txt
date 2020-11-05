@@ -61,3 +61,18 @@ echo "status">EvalAgent_pipe.command
     cmd_list = self.inp.check_input_immediate_return()
   File "/home/rdchujf/remote_sw/pipe_comm.py", line 58, in check_input_immediate_return
 TypeError: a bytes-like object is required, not 'str'
+
+
+Process Train_Process-3:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/Brain.py", line 56, in run
+    optimized_flag=self.train_brain(i_brain, Ds)
+  File "/home/rdchujf/remote_sw/Brain.py", line 122, in train_brain
+    numb_record_trained, _ = i_brain.optimize()
+  File "/home/rdchujf/remote_sw/nets.py", line 88, in optimize
+    num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
+  File "/home/rdchujf/remote_sw/nets_trainer_LHPP2V2.py", line 209, in optimize_com
+    assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer"
+AssertionError:  -1 add in a3c_worker should be removed at TD_buffer

@@ -5,7 +5,6 @@ import config as sc
 import logger_comm  as lcom
 import pipe_comm as pcom
 import DBI_Base as  DBI_Base
-import av_state as av_state
 import logging
 import setproctitle
 from miscellaneous import getselected_item_name, create_system,remove_system_sub_dirs,start_tensorboard,copy_between_two_machine
@@ -104,10 +103,6 @@ class main(Process):
         return
     def run(self):
         assert self.fun_label in ["learn", "eval","learneval"],"fun_label received is {0}".format(self.fun_label)
-
-        for pack in [av_state]:
-            pack.init_gc(self.lc)
-
         logging.getLogger().setLevel(logging.INFO)
         #set root level to Debug, other wise, no matter the setting on sub level, it will only show waring and error
         self.Manager = Manager()
@@ -179,7 +174,6 @@ class main(Process):
         self.L_E_Start1Round = [self.Manager.Event() for _ in range(total_num_eval_process)]
         self.L_Eval2GPU = self.Manager.list()
         self.LL_GPU2Eval = [self.Manager.list() for _ in range(total_num_eval_process)]
-        # self.Share_eval_loop_count = self.Manager.Value('i', self.lc.start_eval_count // self.lc.num_train_to_save_model * self.lc.num_train_to_save_model)
         self.Share_eval_loop_count = self.Manager.Value('i', self.lc.start_eval_count)
         self.E_stop_EvalMain = self.Manager.Event()
         self.EvalMainP = EvalMain(self.lc, self.E_stop_EvalMain, self.L_E_Start1Round, self.L_Eval2GPU,
@@ -191,7 +185,6 @@ class main(Process):
         self.L_E_Stop_Evalsub = [self.Manager.Event() for _ in range(total_num_eval_process)]
 
         process_idx=0
-        #for process_group_idx in list(range(self.lc.eval_num_process_group)):
         for process_group_idx in self.lc.l_eval_num_process_group:
             for _ in range(self.lc.eval_num_process_per_group):
                 print ("Start Eval Process Group {0} Process idx {1}".format(process_group_idx,process_idx))
