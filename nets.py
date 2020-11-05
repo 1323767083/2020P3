@@ -1,16 +1,13 @@
 #from tensorflow import keras
+import os
 import tensorflow as tf
 from tensorflow import keras
 from File_comm import check_model_save_finish_write
 from Buffer_comm import brain_buffer, brain_buffer_reuse
-from nets_trainer import *
 from action_comm import actionOBOS
-def init_gc(lgc):
-    global Ctrainer,Cagent, nc,lc
-    lc=lgc
-    init_agent_config(lc)
-    init_trainer_config(lc)
-    Ctrainer = globals()[lc.CLN_trainer]
+from nets_trainer_LHPP2V2 import *
+from nets_trainer_LHPP2V3 import *
+from nets_trainer_LHPP2V8 import *
 
 def init_virtual_GPU(memory_limit):
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -24,10 +21,12 @@ def init_virtual_GPU(memory_limit):
     return logical_gpus[0]
 
 
+
 class Train_Brain:
-    def __init__(self, GPU_per_program, load_fnwps,train_count_init):
+    def __init__(self, lc, GPU_per_program, load_fnwps,train_count_init):
         keras.backend.set_learning_phase(1)  # add by john for error solved by
-        self.mc=Ctrainer()
+        self.lc=lc
+        self.mc=globals()[lc.CLN_trainer](lc)
         #self.tb = train_buffer(lc.Buffer_nb_Features)
         #self.tb = globals()[lc.CLN_brain_buffer](lc.Buffer_nb_Features)
         self.tb = globals()[lc.CLN_brain_buffer](lc)
@@ -90,33 +89,16 @@ class Train_Brain:
             self.tensorboard.on_epoch_end(self.tensorboard_batch_id,
                                           self.named_loss(self.Tmodel, loss_this_round))
             self.tensorboard_batch_id += 1
-            if lc.flag_record_state:
+            if self.lc.flag_record_state:
                 self.mc.rv.recorder_brainer([self.Tmodel.metrics_names, loss_this_round])
         return num_record_to_train, loss_this_round
 
 
 class Explore_Brain:
-    def __init__(self):
-        self.mc = globals()[lc.system_type+"_Agent"]()
+    def __init__(self,lc):
+        self.mc = globals()[lc.system_type+"_Agent"](lc)
         self.mc.build_predict_model("P")
         self.choose_action=self.mc.choose_action
         self.load_weight=self.mc.load_weight
 
-
-class visual_Explore_Brain(Explore_Brain):
-    def __init__(self, GPU_per_program, layer_name):
-        Explore_Brain.__init__(self, GPU_per_program)
-        #self.debug_fun=K.function(self.Pmodel.input + [K.learning_phase()],
-        #                     self.Pmodel.output + [self.Pmodel.get_layer("P_state").output])
-        m=self.Pmodel
-        self.get_state_fun = K.function(m.input + [K.learning_phase()], m.output + [m.get_layer(layer_name).output])
-
-    def debug_choose_action(self, inputs):
-        #lv, sv, av = input
-        #with self.default_graph.as_default():
-        #    with self.session.as_default():
-        action_probs, v, state = self.get_state_fun(inputs)
-        #print action_probs.shape, action_probs
-        action = np.random.choice(np.arange(action_probs[0].shape[0]), p=action_probs[0].ravel())
-        return action, action_probs[0],  v[0], state[0]
 

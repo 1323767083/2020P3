@@ -2,21 +2,41 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow.keras as keras
 import numpy as np
-from nets_agent import *
+from nets_agent_LHPP2V3 import *
+from nets_agent_LHPP2V2 import *
+from nets_agent_LHPP2V8 import *
 from recorder import *
+class nets_conf:
+    """
+    @DynamicAttrs
+    """
+    LNM_LV_SV_joint = "State_LSV"
+    LNM_P = "Act_prob"
+    LNM_V = "State_value"
 
-def init_nets_trainer_base(lc_in,nc_in):
-    global lc, nc
-    lc=lc_in
-    nc=nc_in
+
+def get_trainer_nc(lc):
+    N_item_list = ["lv_shape", "sv_shape"]
+    nc_item_list =[]
+    nc_item_list +=N_item_list
+    nc=nets_conf()
+    for item_title in nc_item_list:
+        assert item_title in list(lc.net_config.keys())
+        setattr(nc, item_title, lc.net_config[item_title])
+
+    #for key in list(nc.__dict__.keys()):
+    #    nc.__dict__[key] = lc.net_config[key]
+    nc.lv_shape = tuple(nc.lv_shape)
+    nc.sv_shape = tuple(nc.sv_shape)
+    return nc
 
 #########################################################################################################
 # Base trainer and basic training methods
 #########################################################################################################
 class base_trainer:
-    def __init__(self):
+    def __init__(self,lc):
         self.gammaN = lc.Brain_gamma ** lc.TDn
-        self.i_policy_agent = globals()[lc.system_type+"_Agent"]()
+        self.i_policy_agent = globals()[lc.system_type+"_Agent"](lc)
         self.build_predict_model=self.i_policy_agent.build_predict_model
         if lc.flag_record_state:
             self.rv = globals()[lc.CLN_record_variable](lc)
@@ -24,7 +44,8 @@ class base_trainer:
         self.comile_metrics = []
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
         self.load_model_custom_objects = {"tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
-
+        self.lc=lc
+        self.nc=get_trainer_nc(lc)
     def select_optimizer(self, name, learning_rate):
         assert name in ["Adam", "SGD", "Adagrad", "Adadelta"]
         if name == "Adam":
@@ -51,7 +72,7 @@ class base_trainer:
         return L_Tmodel, syncronize_predict_model
 
     def _vstack_states(self,i_train_buffer):
-        flag_got, s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = i_train_buffer.train_get(lc.batch_size)
+        flag_got, s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = i_train_buffer.train_get(self.lc.batch_size)
         if not flag_got:
             return False, [],[]
 

@@ -15,15 +15,14 @@ class AgentMain(Process):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))
         self.logger.info("{0} start".format(self.process_name))
         import tensorflow as tf
-        from nets import Explore_Brain, init_gc,init_virtual_GPU
+        from nets import Explore_Brain,init_virtual_GPU
         tf.random.set_seed(2)
         random.seed(2)
         np.random.seed(2)
-        init_gc(self.lc)
         assert self.lc.percent_gpu_core_for_work!= 0.0, "Only Support GPU"
         virtual_GPU = init_virtual_GPU(self.lc.percent_gpu_core_for_work)
         with tf.device(virtual_GPU):
-            self.i_wb = locals()[self.lc.CLN_brain_explore]()
+            self.i_wb = locals()[self.lc.CLN_brain_explore](self.lc)
             self.logger.info("Wait for init Agent GPU Weight Updat")
 
             while not self.E_Update_Weight.is_set():

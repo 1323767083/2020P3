@@ -17,13 +17,12 @@ class EvalMain(Process):
         self.logger.info("{0} start".format(self.process_name))
         self.logger.info("All Eval Subs start")
         import tensorflow as tf
-        from nets import Explore_Brain, init_gc, init_virtual_GPU
-        init_gc(self.lc)
+        from nets import Explore_Brain, init_virtual_GPU
         assert self.lc.percent_gpu_core_for_eva!= 0.0, "Only Support GPU"
         virtual_GPU = init_virtual_GPU(self.lc.percent_gpu_core_for_eva)
 
         with tf.device(virtual_GPU):
-            self.i_eb = locals()[self.lc.CLN_brain_explore]()
+            self.i_eb = locals()[self.lc.CLN_brain_explore](self.lc)
             self.current_phase = 0
             self.flag_validate_current_eval_count = False
             while not self.E_Stop_Agent_Eval.is_set():

@@ -4,14 +4,56 @@ import numpy as np
 import os,re
 import config as sc
 from State import AV_Handler
-def init_nets_agent_base(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
-    global lc,nc
-    lc,nc = ilc, inc
-    global LNM_LV_SV_joint,LNM_P,LNM_V, cc
-    LNM_LV_SV_joint = iLNM_LV_SV_joint
-    LNM_P = iLNM_P
-    LNM_V = iLNM_V
-    cc = common_component()
+class nets_conf:
+    """
+    @DynamicAttrs
+    """
+    LNM_LV_SV_joint = "State_LSV"
+    LNM_P = "Act_prob"
+    LNM_V = "State_value"
+
+def get_agent_nc(lc):
+    nc=nets_conf()
+    N_item_list=["lv_shape","sv_shape"]
+
+    CNN_sv_list=["flag_s_level","s_kernel_l","s_filter_l","s_maxpool_l"]
+    RNN_sv_list=["ms_param_TimeDistributed"]
+
+    CNN_lv_list=["flag_l_level","l_kernel_l","l_filter_l","l_maxpool_l"]
+    RNN_lv_list=["ms_param_CuDNNLSTM"]
+
+    D_list=["dense_l","dense_prob","dense_advent"]
+
+    nc_item_list=[]
+    nc_item_list += N_item_list
+    nc_item_list += D_list
+    if lc.agent_method_sv=="RNN":
+        nc_item_list += RNN_sv_list
+    elif lc.agent_method_sv=="CNN":
+        nc_item_list += CNN_sv_list
+    else:
+        assert lc.agent_method_sv=="RCN"
+        nc_item_list += RNN_sv_list
+        nc_item_list += CNN_sv_list
+
+    if lc.agent_method_joint_lvsv=="RNN":
+        nc_item_list += RNN_lv_list
+    elif lc.agent_method_joint_lvsv=="CNN":
+        nc_item_list += CNN_lv_list
+    else:
+        assert lc.agent_method_joint_lvsv=="RCN"
+        nc_item_list += RNN_lv_list
+        nc_item_list += CNN_lv_list
+
+
+    for item_title in nc_item_list:
+        assert item_title in list(lc.net_config.keys())
+        setattr(nc, item_title, lc.net_config[item_title])
+
+    nc.lv_shape = tuple(nc.lv_shape)
+    nc.sv_shape = tuple(nc.sv_shape)
+    return nc
+
 
 class common_component:
     def construct_conv_branch(self, cov_kernel_list, cov_filter_list, max_pool_list, input_tensor):
@@ -74,10 +116,12 @@ class common_component:
 
 
 class SV_component:
+    def __init__(self,nc):
+        self.nc=nc
     def CNN_get_SV_state(self, input, name):
         input_sv = input
         immediate_sv = input_sv
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(nc.s_kernel_l, nc.s_filter_l,nc.s_maxpool_l, nc.flag_s_level)):
+        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(self.nc.s_kernel_l, self.nc.s_filter_l,self.nc.s_maxpool_l, self.nc.flag_s_level)):
             assert flag == "C", "sv only support flag ==C"
             prefix = name + "_sv{0}".format(idx)
             conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
@@ -94,10 +138,10 @@ class SV_component:
 
     def RNN_get_SV_state(self, input, name="SV"):
         input_sv = input
-        last_index = len(nc.ms_param_TimeDistributed) - 1
+        last_index = len(self.nc.ms_param_TimeDistributed) - 1
         assert last_index > 0
         immediate_sv = input_sv
-        for idx, param in enumerate(nc.ms_param_TimeDistributed):
+        for idx, param in enumerate(self.nc.ms_param_TimeDistributed):
             if idx != last_index:
                 immediate_sv = keras.layers.TimeDistributed(keras.layers.LSTM(param, return_sequences=True, name="{0}_SV_LSTM_{1}".format(name, idx)),
                                     name="TD_{0}".format(idx))(immediate_sv)
@@ -113,11 +157,14 @@ class SV_component:
         return immediate_sv
 
 class LV_SV_joint_component:
+    def __init__(self, nc,cc):
+        self.nc=nc
+        self.cc=cc
     def _RNN_LV_Sved(self,LV_SVed, name):
         immediate_lv=LV_SVed
-        last_index = len(nc.ms_param_CuDNNLSTM) - 1
+        last_index = len(self.nc.ms_param_CuDNNLSTM) - 1
         assert last_index > 0
-        for idx, param in enumerate(nc.ms_param_CuDNNLSTM):
+        for idx, param in enumerate(self.nc.ms_param_CuDNNLSTM):
             if idx != last_index:
                 immediate_lv = keras.layers.LSTM(param, return_sequences=True, name="{0}_LVSV_LSTM_{1}".format(name, idx))(immediate_lv)
             else:
@@ -125,26 +172,26 @@ class LV_SV_joint_component:
         return immediate_lv
 
     def _CNN_LV_SVed(self,LV_SVed, name):
-        inception_fn = getattr(cc, "Inception_1D_module")
+        inception_fn = getattr(self.cc, "Inception_1D_module")
         immediate_lv = LV_SVed
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(nc.l_kernel_l, nc.l_filter_l,
-                                                                  nc.l_maxpool_l, nc.flag_l_level)):
+        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(self.nc.l_kernel_l, self.nc.l_filter_l,
+                                                                  self.nc.l_maxpool_l, self.nc.flag_l_level)):
             conv_name, pool_name = name + "_LVSV_branch{0}".format(idx), name + "_LVSV_pool{0}".format(idx)
             if flag == "C":
-                immediate_lv = cc.Cov_1D_module(kernel, filter, maxpool, immediate_lv,name=conv_name)
+                immediate_lv = self.cc.Cov_1D_module(kernel, filter, maxpool, immediate_lv,name=conv_name)
             else:
                 assert flag == "I"
                 assert kernel == 0
                 immediate_lv_t = inception_fn(filter, immediate_lv, name=conv_name)
                 immediate_lv = keras.layers.MaxPooling1D(pool_size=maxpool, padding='valid', name=pool_name)(immediate_lv_t)
-        immediate_lv = keras.layers.Reshape((nc.l_filter_l[-1],), name=name+"_LVSV_reshaped")(immediate_lv)
+        immediate_lv = keras.layers.Reshape((self.nc.l_filter_l[-1],), name=name+"_LVSV_reshaped")(immediate_lv)
         return immediate_lv
 
     def RNN_get_LV_SV_joint_state(self, inputs, name):
         input_lv, SV_state = inputs
         LV_SVed = keras.layers.Concatenate(axis=2, name=name + "_LV_SVed")([input_lv, SV_state])
         immediate_lv = self._RNN_LV_Sved(LV_SVed, name)
-        lv_sv_joint_state= keras.layers.Lambda(lambda  x: x, name=name + LNM_LV_SV_joint)(immediate_lv)
+        lv_sv_joint_state= keras.layers.Lambda(lambda  x: x, name=name + self.nc.LNM_LV_SV_joint)(immediate_lv)
         return lv_sv_joint_state
 
 
@@ -153,7 +200,7 @@ class LV_SV_joint_component:
         LV_SVed = keras.layers.Concatenate(axis=2, name=name + "_LV_SVed")([input_lv, SV_state])
         immediate_lv=self._CNN_LV_SVed(LV_SVed, name)
         #lv_sv_joint_state = Reshape((nc.l_filter_l[-1],), name=LNM_LV_SV_joint)(immediate_lv)
-        lv_sv_joint_state = keras.layers.Lambda(lambda x: x, name=name + LNM_LV_SV_joint)(immediate_lv)
+        lv_sv_joint_state = keras.layers.Lambda(lambda x: x, name=name + self.nc.LNM_LV_SV_joint)(immediate_lv)
         return lv_sv_joint_state
 
     def RCN_get_LV_SV_joint_state(self, inputs, name):
@@ -161,13 +208,14 @@ class LV_SV_joint_component:
         LV_SVed = keras.layers.Concatenate(axis=2, name=name + "_LV_SVed")([input_lv, SV_state])
         immediate_rnn_lv = self._RNN_LV_Sved(LV_SVed, name)
         immediate_cnn_lv = self._CNN_LV_SVed(LV_SVed, name)
-        lv_sv_joint_state = keras.layers.Concatenate(axis=1, name=name + LNM_LV_SV_joint)([immediate_rnn_lv, immediate_cnn_lv])
+        lv_sv_joint_state = keras.layers.Concatenate(axis=1, name=name + self.nc.LNM_LV_SV_joint)([immediate_rnn_lv, immediate_cnn_lv])
         return lv_sv_joint_state
 
 class V2OS_4_OB_agent:
-    def __init__(self,ob_system_name, Ob_model_tc):
+    def __init__(self,lc,ob_system_name, Ob_model_tc):
+        self.lc=lc
         self._load_model(ob_system_name, Ob_model_tc)
-        self.i_cav=globals()[lc.CLN_AV_Handler](lc)
+        self.i_cav=globals()[self.lc.CLN_AV_Handler](lc)
     def _load_model(self, ob_system_name, Ob_model_tc):
         OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
         model_config_fnwp=os.path.join(OB_model_dir, "config.json")
@@ -175,7 +223,7 @@ class V2OS_4_OB_agent:
         lfn=[fn for fn in os.listdir(OB_model_dir) if re.findall(regex, fn)]
         assert len(lfn)==1, "{0} model with train count {1} not found".format(ob_system_name,Ob_model_tc)
         weight_fnwp=os.path.join(OB_model_dir, lfn[0])
-        load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
+        load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":self.lc}
         model = keras.models.model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
         model.load_weights(weight_fnwp)
         print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))

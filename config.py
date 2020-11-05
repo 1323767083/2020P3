@@ -19,231 +19,6 @@ for dir in [base_dir_RL_data,base_dir_RL_system]:
 
 
 l_GPU_size=[11019,12196]
-{
-    "=======General=======": "=======================",
-    "data_name": "TPVTest1",
-    "system_type": "LHPP2V2",
-    "SLName":"SLV1",
-    "=======Class=========": "=======================",
-    "CLN_brain_train": "Train_Brain",
-    "CLN_brain_explore": "Explore_Brain",
-    "CLN_buffer_to_train": "buffer_to_train",
-    "CLN_env_account": "env_account",
-    #"CLN_env_read_data": "R_T5_skipSwh_balance",
-    #"CLN_env_get_data_train": "DBTP_Train_Reader",
-    #"CLN_env_get_data_eval": "DBTP_Eval_Reader",
-    "CLN_AV_state":"Phase_State",
-    "CLN_AV_Handler": "AV_Handler",
-    "CLN_GenStockList": "StockList",
-    "=======system type related=": "=======================",
-    "CLN_simulator": "Simulator_intergrated",
-    "CLN_trainer": "LHPP2V2_PPO_trainer",
-    "CLN_TDmemory": "TD_memory_integrated",
-    "=======CLN_agent detailed===": "=======================",
-    "agent_method_sv": "CNN",
-    "agent_method_joint_lvsv": "CNN",
-    "agent_method_apsv": "HP",
-    "=======action related====": "=======================",
-    "action_type_dict": {
-        "0": "Buy",
-        "1": "No_action",
-        "2": "Sell",
-        "3": "No_action"
-    },
-    "=======Class_eval_train=======": "=======================",
-    "train_scale_factor":20,
-    "train_shift_factor":0.01,
-    "train_flag_clip":True,
-    "train_flag_punish_no_action":False,
-    "eval_scale_factor": 1,
-    "eval_shift_factor": 0,
-    "eval_flag_clip": False,
-    "eval_flag_punish_no_action": False,
-    "=======Train_brain=======": "=======================",
-    "Brian_core": "GPU_1",
-    "Brian_gpu_percent": 0.4,
-    "flag_brain_log_file": False,
-    "flag_brain_log_screen": True,
-    "start_train_count": 0,
-    "num_train_to_save_model": 250,
-    "load_AIO_fnwp": "",
-    "load_config_fnwp": "",
-    "load_weight_fnwp": "",
-    "=======Buffer=======": "=======================",
-    "num_train_record_to_brain": 100,
-    "TDn": 1,
-    "Buffer_nb_Features": 6,
-    "brain_buffer_reuse_times": 4,
-    "=======Explore Procee=====": "=======================",
-    "l_flag_worker_log_file": [
-        False
-    ],
-    "l_flag_worker_log_screen": [
-        True
-    ],
-    "num_workers": 1,
-    "=======Old_explore========":"========================",
-    "l_work_core": [
-        "GPU_1"
-    ],
-    "l_train_SL_param": [
-        [0, 20180101, 20191231]
-    ],
-    "l_percent_gpu_core_for_work": [0.2],
-    "l_CLN_env_get_data_train": ["DBTP_Train_Reader"],
-    "=======New_explore========":"========================",
-    "work_core": "GPU_1",
-    "percent_gpu_core_for_work": 0.2,
-    "CLN_env_get_data_train": "DBTP_Train_Reader",
-    "train_SL_param": [0, 20180101, 20191231],
-    "=======Eval process=======": "=======================",
-    "l_flag_eval_log_file": [
-        True, True,True
-    ],
-    "l_flag_eval_log_screen": [
-        False,False,False
-    ],
-    "l_eval_SL_param": [
-        [0,20180101, 20191231],
-        [1,20180101, 20191231],
-        [1,20200101, 20200531]
-    ],
-    "l_CLN_env_get_data_eval": [
-        "DBTP_Eval_Reader",
-        "DBTP_Eval_Reader"
-    ],
-    "start_eval_count": 0,
-    "=======Old_Eval========":"========================",
-    "l_eval_core": [
-        "GPU_1", "GPU_0", "GPU_1"
-    ],
-    "l_percent_gpu_core_for_eva": [0.2, 0.2, 0.2],
-    "eval_num_process": 3,
-    "=======New_Eval========":"========================",
-    "eval_core": "GPU_1",
-    "percent_gpu_core_for_eva": 0.2,
-    "eval_num_process_group": 3,
-    "eval_num_process_each_group":3,
-    "=======LOSS=======": "=======================",
-    "LOSS_POLICY": 1.0,
-    "LOSS_V": 0.5,
-    "LOSS_ENTROPY": 0.01,
-    "LOSS_clip": 0.2,
-    "LOSS_sqr_threadhold": 0,
-    "=======Optimizer=====": "=======================",
-    "Brain_optimizer": "Adam",
-    "Brain_leanring_rate": 0.0001,
-    "Brain_gamma": 0.95,
-    "batch_size": 150,
-    "=======Simulator=======": "=======================",
-    "env_min_invest_per_round": 100000,
-    "env_max_invest_per_round": 100000,
-    "evn_eval_rest_total_times": 200,
-    "=======debug=======": "=======================",
-    "flag_record_state": True,
-    "flag_record_buffer_to_server": False,
-    "flag_record_sim": False,
-    "CLN_record_variable": "record_variable_DBTP",
-    "tensorboard_port": 6002,
-    "=======LHP=": "=======================",
-    "LHP": 5,
-    "LNB": 1,
-    "=======P2=======": "=======================",
-    "P2_current_phase": "Train_Sell",
-    "P2_sell_system_name": "",
-    "P2_sell_model_tc": "",
-    "=======trial=======": "=======================",
-    "Dict_specifc_param": {
-    },
-    "=======Net=======": "=======================",
-    "net_config": {
-        "lv_shape": [
-            20,
-            16
-        ],
-        "sv_shape": [
-            20,
-            25,
-            2
-        ],
-        "flag_l_level": [
-            "C",
-            "I",
-            "I",
-            "C"
-        ],
-        "l_kernel_l": [
-            3,
-            0,
-            0,
-            3
-        ],
-        "l_filter_l": [
-            64,
-            128,
-            256,
-            512
-        ],
-        "l_maxpool_l": [
-            2,
-            2,
-            2,
-            2
-        ],
-        "flag_s_level": [
-            "C",
-            "C",
-            "C",
-            "C"
-        ],
-        "s_kernel_l": [
-            3,
-            3,
-            3,
-            3
-        ],
-        "s_filter_l": [
-            32,
-            64,
-            128,
-            256
-        ],
-        "s_maxpool_l": [
-            2,
-            2,
-            2,
-            2
-        ],
-        "dense_l": [
-            512
-        ],
-        "dense_prob": [
-            256,
-            128,
-            64,
-            32,
-            2
-        ],
-        "dense_advent": [
-            256,
-            128,
-            64,
-            32,
-            1
-        ],
-        #only for "agent_method_sv" "agent_method_joint_lvsv" : "RNN","RCN"
-        "ms_param_TimeDistributed": [
-            100,
-            256
-        ],
-        "ms_param_CuDNNLSTM": [
-            100,
-            200
-        ]
-    },
-    "===========Tunning_Param=======":"=======================",
-    "Flag_Delete_Train_Brain_Buffer_After_Weight_Update":True
-}
 
 class gconfig_specific:
     """
@@ -251,7 +26,6 @@ class gconfig_specific:
     """
 class gconfig_data:
     def __init__(self):
-
         ###general input
         self.RL_system_name =  float("nan") #"RL_try"
         self.SLName= ""
@@ -260,12 +34,13 @@ class gconfig_data:
         ###class name
         self.CLN_brain_train = float("nan") #"Train_Brian"
         self.CLN_brain_explore = float("nan") #"Explore_Brain"
-        #self.CLN_brain_buffer = float("nan") #"brain_buffer"
         self.CLN_buffer_to_train = float("nan") #"buffer_to_train"
         self.CLN_simulator = float("nan") #"Simulator"
         self.CLN_trainer = float("nan") #"PG_trainer",
-
         self.CLN_env_account = float("nan") #"env_account"
+        self.CLN_env_read_data = float("nan") #"R_T5"
+        self.CLN_TDmemory = float("nan") #"TD_memory"
+        self.CLN_GenStockList = float("nan") #"API_SH_sl"
 
         self.train_scale_factor= float("nan")
         self.train_shift_factor= float("nan")
@@ -276,31 +51,22 @@ class gconfig_data:
         self.eval_flag_clip=float("nan")
         self.eval_flag_punish_no_action=float("nan")
 
-        self.CLN_env_read_data = float("nan") #"R_T5"
-        self.CLN_TDmemory = float("nan") #"TD_memory"
-        self.CLN_GenStockList = float("nan") #"API_SH_sl"
-
-
         self.agent_method_sv= float("nan") #"CNN"
         self.agent_method_joint_lvsv= float("nan") #"CNN"
         self.agent_method_apsv= float("nan") #"HP"
 
 
         ###train_brain
-        ##core
         self.Brian_core = ""
         self.Brian_gpu_percent = float("nan") #0.8
-        ##log
         self.flag_brain_log_file = float("nan") #True
         self.flag_brain_log_screen = float("nan") #True
-        # other
         self.start_train_count = float("nan") #0
         self.num_train_to_save_model = float("nan") #1000
-
         self.load_AIO_fnwp = ""
         self.load_config_fnwp = ""
         self.load_weight_fnwp = ""
-        #
+
         ###BUFFER
         self.num_train_record_to_brain = float("nan") #100
         self.TDn = float("nan") #5
@@ -310,27 +76,20 @@ class gconfig_data:
         # explore class
         self.l_flag_worker_log_file = [float("nan")] #[True, True, True]
         self.l_flag_worker_log_screen = [float("nan")] #[False, False, False]
-
-
         self.num_workers = float("nan") #3
-        #new_explore
         self.work_core = "" #"GPU_0"
         self.percent_gpu_core_for_work = float("nan") #0.2
         self.CLN_env_get_data_train = ""
         self.train_SL_param=[]
 
         # eval class
-
         self.l_flag_eval_log_file = [float("nan")] #[True, True]
         self.l_flag_eval_log_screen = [float("nan")] #[False, False]
         self.l_eval_SL_param = [[0, 20000000, 20000000]]
         self.l_CLN_env_get_data_eval=""
         self.start_eval_count = float("nan") #0
-
-        #new eval
         self.eval_core = "" #"GPU_1"
         self.percent_gpu_core_for_eva = float("nan") #0.2
-        #self.eval_num_process_group=3
         self.l_eval_num_process_group=[2]
         self.eval_num_process_per_group=3
 
@@ -420,17 +179,11 @@ class gconfig(gconfig_data):
         self.sanity_check_convert_enhance()
 
     def sanity_check_convert_enhance(self):
-
         self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
-
         self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
         self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
-
-        assert self.env_max_invest_per_round>=self.env_min_invest_per_round
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
-
         assert self.env_max_invest_per_round==self.env_min_invest_per_round,"Only support single buy"
-        self.times_to_buy =self.env_max_invest_per_round/self.env_min_invest_per_round
 
         if self.load_AIO_fnwp!="" and self.load_config_fnwp!="" and self.load_weight_fnwp!="":
             fn = os.path.basename(self.load_AIO_fnwp)
@@ -476,50 +229,36 @@ class gconfig(gconfig_data):
             setattr(self, "CLN_brain_buffer", "brain_buffer")
         else:
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
-        l_specific_param_title=[]
-        # 1.Simulator get data
 
-        # 2.Simulator
-        assert self.CLN_simulator == "Simulator_intergrated"  # "Simulator_LHPP2V8"#"Simulator_LHPP2V2"
-        assert self.LHP != 0
 
-        # 3.TD_buffer
-        assert self.CLN_TDmemory == "TD_memory_integrated"
-
-        # 5.net_agent
         assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
         assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
         assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
-
         self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
             if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-        assert self.CLN_AV_state == "Phase_State"
+
         self.OS_AV_shape = (self.LHP + 1,)
         self.OB_AV_shape = (self.LNB + 1,)
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1,)
         self.PLen = self.LHP + self.LNB
 
-        if self.system_type == "LHPP2V2":    #V2 means reuse to multibuy part av to encode signle buy holding duration
-            # 0.Train Phase
+        l_specific_param_title=[]
+
+        if self.system_type == "LHPP2V2":
             assert self.P2_current_phase == "Train_Sell"
-            # 6.net_trainer
             assert "LHPP2V2_" in self.CLN_trainer
-            # 7.action
             self.train_action_type = "OS"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
-            # 8.specific parm
+            # specific parm
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
 
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
-            # 0.Train Phase
             assert self.P2_current_phase == "Train_Buy"
-            # 6.net_trainer  # this is to include support for V3 V32 and V33
             assert "LHPP2V3" in self.CLN_trainer
-            # 7.action
             self.train_action_type = "OB"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action

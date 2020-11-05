@@ -1,18 +1,11 @@
 import numpy as np
 from nets_agent_base import *
 from action_comm import actionOBOS
-
-def init_nets_agent_LHPP2V3(ilc, inc,iLNM_LV_SV_joint,iLNM_P, iLNM_V):
-    global lc,nc
-    lc,nc = ilc, inc
-    global LNM_LV_SV_joint,LNM_P,LNM_V, cc
-    LNM_LV_SV_joint = iLNM_LV_SV_joint
-    LNM_P = iLNM_P
-    LNM_V = iLNM_V
-    cc = common_component()
-
 class LHPP2V3_Agent:
-    def __init__(self):
+    def __init__(self,lc):
+        self.lc=lc
+        self.nc = get_agent_nc(lc)
+        self.cc= common_component()
         keras.backend.set_learning_phase(0)  # add by john for error solved by
         self.DC = {
             "method_SV_state": "{0}_get_SV_state".format(lc.agent_method_sv),  # "RNN_get_SV_state",
@@ -24,16 +17,16 @@ class LHPP2V3_Agent:
 
 
     def build_predict_model(self, name):
-        input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
-        input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
-        input_av = keras.Input(shape=lc.OB_AV_shape, dtype='float32', name="{0}_input_av".format(name))
-        i_SV = SV_component()
-        i_LV_SV = LV_SV_joint_component()
+        input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
+        input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
+        input_av = keras.Input(shape=self.lc.OB_AV_shape, dtype='float32', name="{0}_input_av".format(name))
+        i_SV = SV_component(self.nc)
+        i_LV_SV = LV_SV_joint_component(self.nc, self.cc)
 
         sv_state = getattr(i_SV, self.DC["method_SV_state"])(input_sv, name)
         lv_sv_state = getattr(i_LV_SV, self.DC["method_LV_SV_joint_state"])([input_lv, sv_state], name + "for_ap")
 
-        if not lc.flag_sv_joint_state_stop_gradient:
+        if not self.lc.flag_sv_joint_state_stop_gradient:
             input_method_ap_sv = [lv_sv_state,input_av]
         else:
             sv_state_stop_gradient = keras.layers.Lambda(lambda x: tf.stop_gradient(x), name="stop_gradiant_SV_state")(sv_state)
@@ -57,17 +50,17 @@ class LHPP2V3_Agent:
         input_state = keras.layers.Concatenate(axis=-1, name=label + "_input_state")([lv_sv_state, input_av])
 
 
-        state = cc.construct_denses(nc.dense_l, input_state,            name=label + "_commonD")
+        state = self.cc.construct_denses(self.nc.dense_l, input_state,            name=label + "_commonD")
 
-        Pre_aBuy = cc.construct_denses(nc.dense_prob[:-1], state,       name=label + "_Pre_aBuy")
-        ap = keras.layers.Dense(nc.dense_prob[-1], activation='softmax',name=label + LNM_P)(Pre_aBuy)
+        Pre_aBuy = self.cc.construct_denses(self.nc.dense_prob[:-1], state,       name=label + "_Pre_aBuy")
+        ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',name=label + self.nc.LNM_P)(Pre_aBuy)
 
-        if lc.flag_sv_stop_gradient:
+        if self.lc.flag_sv_stop_gradient:
             sv_state=keras.layers.Lambda(lambda x: tf.stop_gradient(x),              name=label + "_stop_gradiant_sv")(state)
         else:
             sv_state = keras.layers.Lambda(lambda x: x,                              name=label + "_not_stop_gradiant_sv")(state)
-        Pre_sv = cc.construct_denses(nc.dense_advent[:-1], sv_state,    name=label + "_Pre_sv")
-        sv = keras.layers.Dense(nc.dense_advent[-1], activation='linear', name=label + LNM_V)(Pre_sv)
+        Pre_sv = self.cc.construct_denses(self.nc.dense_advent[:-1], sv_state,    name=label + "_Pre_sv")
+        sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='linear', name=label + self.nc.LNM_V)(Pre_sv)
         return ap, sv
 
 
@@ -82,18 +75,18 @@ class LHPP2V3_Agent:
         ap_input_state = keras.layers.Concatenate(axis=-1, name=aplabel + "_input_state")([ap_input, input_av])
 
 
-        ap_state = cc.construct_denses(nc.dense_l, ap_input_state,      name=aplabel + "_commonD")
-        Pre_aBuy = cc.construct_denses(nc.dense_prob[:-1], ap_state,    name=aplabel + "_Pre_aBuy")
-        ap = keras.layers.Dense(nc.dense_prob[-1], activation='softmax',name=aplabel + LNM_P)(Pre_aBuy)
+        ap_state = self.cc.construct_denses(self.nc.dense_l, ap_input_state,      name=aplabel + "_commonD")
+        Pre_aBuy = self.cc.construct_denses(self.nc.dense_prob[:-1], ap_state,    name=aplabel + "_Pre_aBuy")
+        ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',name=aplabel + self.nc.LNM_P)(Pre_aBuy)
 
         sv_input_state = keras.layers.Concatenate(axis=-1, name=svlabel + "_input_state")([sv_input, input_av])
-        sv_state_com = cc.construct_denses(nc.dense_l, sv_input_state,  name=svlabel + "_commonD")
-        Pre_sv = cc.construct_denses(nc.dense_advent[:-1], sv_state_com,name=svlabel + "_Pre_sv")
-        sv = keras.layers.Dense(nc.dense_advent[-1], activation='linear',name=svlabel + LNM_V)(Pre_sv)
+        sv_state_com = self.cc.construct_denses(self.nc.dense_l, sv_input_state,  name=svlabel + "_commonD")
+        Pre_sv = self.cc.construct_denses(self.nc.dense_advent[:-1], sv_state_com,name=svlabel + "_Pre_sv")
+        sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='linear',name=svlabel + self.nc.LNM_V)(Pre_sv)
         return ap, sv
 
     def predict(self,state):
-        assert lc.P2_current_phase == "Train_Buy"
+        assert self.lc.P2_current_phase == "Train_Buy"
         lv, sv,av = state
         if not hasattr(self, "OB_model"):
             assert False, "should build or load model before"
@@ -101,11 +94,11 @@ class LHPP2V3_Agent:
         return p, v
 
     def choose_action(self,state,calledby="Eval"):
-        assert lc.P2_current_phase == "Train_Buy"
+        assert self.lc.P2_current_phase == "Train_Buy"
         lv, sv, av = state
         buy_probs, buy_SVs = self.predict([lv, sv,av])
         if not hasattr(self, "OS_agent"):
-            self.OS_agent = V2OS_4_OB_agent(lc.P2_sell_system_name, lc.P2_sell_model_tc)
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
             self.i_OS_action=actionOBOS("OS")
         sel_probs, sell_SVs = self.OS_agent.predict(state)
         l_a = []

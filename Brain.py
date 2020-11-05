@@ -16,9 +16,8 @@ class Train_Process(Process):
         self.l_i_bs=[buffer_series() for _ in range (lc.num_workers)]
     def run(self):
         import tensorflow as tf
-        from nets import Train_Brain, init_gc,init_virtual_GPU
+        from nets import Train_Brain, init_virtual_GPU
         tf.random.set_seed(2)
-        init_gc(self.lc)
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))
         assert self.lc.Brian_gpu_percent != 0.0, "Only support GPU"
         virtual_GPU = init_virtual_GPU(self.lc.Brian_gpu_percent)
@@ -35,7 +34,7 @@ class Train_Process(Process):
                     shutil.rmtree(self.lc.brain_model_dir)  ## otherwise the eval process might not start due to more than 2 _T0 found
                 os.makedirs(self.lc.brain_model_dir)
                 self.logger.info("clean model directory and create new brain")
-            i_brain=locals()[self.lc.CLN_brain_train](GPU_per_program=self.lc.Brian_gpu_percent, load_fnwps=l_load_fnwp,train_count_init=train_count_init)
+            i_brain=locals()[self.lc.CLN_brain_train](self.lc,GPU_per_program=self.lc.Brian_gpu_percent, load_fnwps=l_load_fnwp,train_count_init=train_count_init)
 
             #flag_weight_ready = False
             Ds={"train_count":                          train_count_init,

@@ -1,14 +1,7 @@
 from nets_trainer_base import *
-
-def init_nets_trainer_LHPP2V2(lc_in,nc_in):
-    global lc, nc
-    lc=lc_in
-    nc=nc_in
-    init_nets_trainer_base(lc_in, nc_in)
-
 class LHPP2V2_trainer_base(base_trainer):
-    def __init__(self):
-        base_trainer.__init__(self)
+    def __init__(self,lc):
+        base_trainer.__init__(self,lc)
 
     #fake
     def extract_y(self, y):
@@ -23,15 +16,15 @@ class LHPP2V2_trainer_base(base_trainer):
 
     def join_loss_entropy_part(self, y_true, y_pred):
         prob, v, input_a, advent,oldAP  = self.extract_y(y_pred)
-        entropy = lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
+        entropy = self.lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
         return tf.reduce_mean(-entropy)
 
     def join_loss_sv_part(self, y_true, y_pred):
         prob, v, input_a, advent,oldAP = self.extract_y(y_pred)
-        if lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
-            loss_value = lc.LOSS_V * tf.square(advent)
+        if self.lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
+            loss_value = self.lc.LOSS_V * tf.square(advent)
         else:
-            loss_value = lc.LOSS_V * keras.backend.minimum (tf.square(advent),lc.LOSS_sqr_threadhold)
+            loss_value = self.lc.LOSS_V * keras.backend.minimum (tf.square(advent),self.lc.LOSS_sqr_threadhold)
         return tf.reduce_mean(loss_value)
 
     def join_loss(self,y_true, y_pred):
@@ -69,8 +62,8 @@ class LHPP2V2_trainer_base(base_trainer):
 
 
 class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
-    def __init__(self):
-        LHPP2V2_trainer_base.__init__(self)
+    def __init__(self,lc):
+        LHPP2V2_trainer_base.__init__(self,lc)
         assert lc.P2_current_phase == "Train_Sell"
         self.join_loss_policy_part=self.join_loss_policy_part_new
         self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent,
@@ -89,20 +82,20 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
             if self.i_cav.check_final_record_AV(item_av):
                 l_adjR.append(item_r)
             else:
-                l_adjR.append(item_r + lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
+                l_adjR.append(item_r + self.lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
         return np.array(l_adjR)
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
-        input_lv = keras.Input(shape=nc.lv_shape, dtype='float32', name='input_l_view')
-        input_sv = keras.Input(shape=nc.sv_shape, dtype='float32', name='input_s_view')
-        input_av = keras.Input(shape=lc.OS_AV_shape, dtype='float32', name='input_account')
-        input_a = keras.Input(shape=(lc.train_num_action,), dtype='float32', name='input_action')
+        input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name='input_l_view')
+        input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name='input_s_view')
+        input_av = keras.Input(shape=self.lc.OS_AV_shape, dtype='float32', name='input_account')
+        input_a = keras.Input(shape=(self.lc.train_num_action,), dtype='float32', name='input_action')
         input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
         p, v = Pmodel([input_lv, input_sv, input_av])
         advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
-        Optimizer = self.select_optimizer(lc.Brain_optimizer, lc.Brain_leanring_rate)
+        Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
         con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
         Tmodel = keras.Model(inputs=[input_lv, input_sv, input_av, input_a,input_r,input_oldAP], outputs=[con_out], name=name)
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
@@ -114,34 +107,34 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
             return 0, None
         s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
         n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
-        fake_y = np.ones((lc.batch_size, 1))
+        fake_y = np.ones((self.lc.batch_size, 1))
         n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
         assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer"
         num_record_to_train = len(n_s_lv)
-        assert num_record_to_train == lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,lc.batch_size,n_s_lv)
+        assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
         _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.i_cav.get_OS_AV(n_s__av)})
         rg = self.get_reward(n_r, v, n_s__av,l_support_view)
         loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,'input_account': self.i_cav.get_OS_AV(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
-        if lc.flag_record_state:
+        if self.lc.flag_record_state:
             self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
             self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
         return num_record_to_train,loss_this_round
 
     def extract_y(self, y):
-        prob =          y[:, : lc.train_num_action]
-        v=              y[:, lc.train_num_action     :  lc.train_num_action+1]
-        input_a =       y[:, lc.train_num_action+1   :  2*lc.train_num_action+1]
-        advent =        y[:, 2*lc.train_num_action+1 :  2*lc.train_num_action+2]
-        oldAP =   y[:, 2*lc.train_num_action+2:   2*lc.train_num_action+2+1]
+        prob =          y[:, : self.lc.train_num_action]
+        v=              y[:, self.lc.train_num_action     :  self.lc.train_num_action+1]
+        input_a =       y[:, self.lc.train_num_action+1   :  2*self.lc.train_num_action+1]
+        advent =        y[:, 2*self.lc.train_num_action+1 :  2*self.lc.train_num_action+2]
+        oldAP =   y[:, 2*self.lc.train_num_action+2:   2*self.lc.train_num_action+2+1]
         return prob, v, input_a, advent,oldAP
 
     def join_loss_policy_part_old(self,y_true,y_pred):
         prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
-        loss_policy = lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
-                        tf.clip_by_value(prob_ratio,clip_value_min=1 - lc.LOSS_clip, clip_value_max=1 + lc.LOSS_clip) * tf.stop_gradient(advent))
+        loss_policy = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
+                        tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
 
         return tf.reduce_mean(-loss_policy)
 
@@ -150,8 +143,8 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
 
-        loss_policy_origin = lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
-                        tf.clip_by_value(prob_ratio,clip_value_min=1 - lc.LOSS_clip, clip_value_max=1 + lc.LOSS_clip) * tf.stop_gradient(advent))
+        loss_policy_origin = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
+                        tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
 
         loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-1, clip_value_max=1)
         return tf.reduce_mean(-loss_policy)
