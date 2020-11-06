@@ -15,37 +15,30 @@ class Phase_State(Phase_Data):
     def __init__(self,lc,calledby):
         Phase_Data.__init__(self,lc)
         assert calledby in ["Explore", "Eval"]
-        self.Flag_Calledby_Explore = True if calledby =="Explore" else False
         self.i_av=globals()[lc.CLN_AV_Handler](lc)
         for tag in ["V2","V3"]:
             if tag in self.lc.system_type :
-                getattr(self,"Init_Phase_State_{0}_OS_{1}".format("V2",calledby))()
+                getattr(self,"Init_Phase_State_{0}_{1}".format(tag,calledby))()
                 break
         else:
             assert False, "{0} only support V2 V3".format(self.__class__.__name__)
 
-    def Init_Phase_State_V2_OS_Explore(self):
+    def Init_Phase_State_V2_Explore(self):
         self.CuPs_force_flag = [True, True]
         assert self.lc.LNB==1
 
-    def Init_Phase_State_V2_OS_Eval(self):
+    def Init_Phase_State_V2_Eval(self):
         self.CuPs_force_flag = [True, False]
         assert self.lc.LNB==1
 
-    def Init_Phase_State_V3_OB_Explore(self):
+    def Init_Phase_State_V3_Explore(self):
         self.CuPs_force_flag = [True, True]
         assert self.lc.LNB == 1
-    def Init_Phase_State_V3_OB_Eval(self):
+    def Init_Phase_State_V3_Eval(self):
         self.CuPs_force_flag = [False, False]
         assert self.lc.LNB == 1
         # TODO this is avoid the buy action always on the same day, especially for DBTP_DayByDay_reader
         #TODO here is set alwas LNB==1 and train buy like a binary classification
-
-    '''
-    def reset(self):
-        self.CuP=self.P_init
-        self.CuPs_idx = [0 for _ in range(self.P_Num)]
-    '''
 
     def check_need_force_state(self, action):
         if self.Is_Phase_Last_Step() and self.CuPs_force_flag[self.CuP]:

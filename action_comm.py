@@ -29,11 +29,6 @@ class actionOBOS:
         elif self.action_type=="OB":
             prob = inputs
             return np.random.choice([0, 1], p=prob)
-            #Flag_Random_Explore=np.random.choice([0, 1], p=[0.8,0.2])
-            #if Flag_Random_Explore:
-            #    return 0
-            #else:
-            #    return np.random.choice([0, 1], p=prob)
         elif self.action_type == "B32":
             prob, av_item, lc_LNB = inputs
             if av_item[-lc_LNB-1]!=1:

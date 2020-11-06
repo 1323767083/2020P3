@@ -167,20 +167,6 @@ class Simulator_intergrated:
             self.i_record_sim_stock_data.saver([state, support_view_dic],str(support_view_dic["DateI"]))
         return return_message,reward,state, support_view_dic
 
-    '''
-    def step(self,action):
-        adj_action = self.i_PSS.check_need_force_state(action)
-        if self.calledby=="Eval":
-            if adj_action==0 and action!=0: # if force buy happen in eval, keep original action
-                adj_action=action
-        #TODO check this check should included in the state param setting
-        adj_action_str = self.lc.action_type_dict[adj_action]
-        return_message,reward,state, support_view_dic=self.step_comm(adj_action_str)
-        support_view_dic["action_return_message"]=return_message
-        Done_flag=self.i_PSS.update_phase_state(support_view_dic,adj_action,return_message)
-        self.i_PSS.fabricate_av_and_update_support_view(state, support_view_dic)
-        return state, reward,Done_flag,support_view_dic
-    '''
 
     def step(self,action):
         adj_action = self.i_PSS.check_need_force_state(action)

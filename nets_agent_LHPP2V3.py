@@ -93,7 +93,7 @@ class LHPP2V3_Agent:
         p, v = self.OB_model.predict({'P_input_lv': lv, 'P_input_sv': sv,"P_input_av":self.i_cav.get_OB_AV(av)})
         return p, v
 
-    def choose_action(self,state,calledby="Eval"):
+    def choose_action(self,state,calledby):
         assert self.lc.P2_current_phase == "Train_Buy"
         lv, sv, av = state
         buy_probs, buy_SVs = self.predict([lv, sv,av])

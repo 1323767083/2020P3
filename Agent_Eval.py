@@ -8,8 +8,6 @@ class EvalMain(Process):
         self.process_name=self.lc.eval_process_seed
         self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=True, flag_screen_show=True)
         self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
-
-        #self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model + 1
         self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model
 
     def run(self):
@@ -50,7 +48,7 @@ class EvalMain(Process):
                 elif self.current_phase ==1: # wait all subs finish this round
                     if len(self.L_Eval2GPU) != 0:
                         process_idx, stacted_state = self.L_Eval2GPU.pop()
-                        result = self.i_eb.choose_action(stacted_state, "Explore")
+                        result = self.i_eb.choose_action(stacted_state, "Eval")
                         self.LL_GPU2Eval[process_idx].append(result)
                     if all([not E_Start1Round.is_set() for E_Start1Round in self.L_E_Start1Round])and len(self.L_Eval2GPU) == 0:
                         self.logger.info("Eval GPU finish eval count {0}".format(eval_loop_count))
@@ -150,8 +148,6 @@ class EvalSub(Process):
                         self.data.l_a, self.data.l_ap, self.data.l_sv = result
                         self.Flag_Wait_GPU_Response= False
                         if not any(self.data.l_idx_valid_flag):
-                            #self.data.eval_reset_data()
-                            #self.i_prepare_summary_are_1ET._get_are_summary_1ET(self.Share_eval_loop_count.value)
                             fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(self.Share_eval_loop_count.value, self.process_idx_left)
                             return_flag,_,Summery_count__mess,_=self.i_prepare_summary_are_1ET._generate_data__are_summary_1ET1G(self.Share_eval_loop_count.value,fnwps)
                             if return_flag:
