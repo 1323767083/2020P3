@@ -4,7 +4,7 @@ import tensorflow.keras as keras
 import numpy as np
 from nets_agent_LHPP2V3 import *
 from nets_agent_LHPP2V2 import *
-from nets_agent_LHPP2V8 import *
+
 from recorder import *
 class nets_conf:
     """

@@ -267,31 +267,6 @@ class gconfig(gconfig_data):
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-
-        elif self.system_type in ["LHPP2V8"]:
-            #TODO V8 need to fully check
-            # 0.Train Phase
-            assert self.P2_current_phase == "Train_Buy"
-            # 6.net_trainer  # this is to include support for V3 V32 and V33
-            assert self.system_type in self.CLN_trainer
-            # 7.action
-            self.train_action_type = "B32"
-            self.train_num_action = 3
-            assert self.net_config["dense_prob"][-1] == self.train_num_action
-            assert self.net_config["dense_advent"][-1] == 1
-            actionOBOS(self.train_action_type).sanity_check_action_config(self)
-            # 8.specific param
-            #assert self.CLN_AV_state == "Phase_State_V8"
-            #TODO "Phase_State" not support V8 yet
-            l_specific_param_title.append("LNB")
-            l_specific_param_title.append("LNT")
-            for item_title in l_specific_param_title:
-                assert item_title in list(self.Dict_specifc_param.keys())
-                setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
-            self.OS_AV_shape = (self.LHP + 1,)
-            self.OB_AV_shape = (self.specific_param.LNT+1+self.specific_param.LNB+1+1,)
-            self.raw_AV_shape = (self.specific_param.LNT + 1 + self.specific_param.LNB + 1 + self.LHP + 1,)
-            self.PLen = self.LHP + self.specific_param.LNB+self.specific_param.LNT
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

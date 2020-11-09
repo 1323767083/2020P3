@@ -53,3 +53,7 @@ homeserver
 
 http://b.oray.com
 rdchujf, pass same as linux
+
+
+keep the RL system untouched
+chmod -R ug-w Buy300_2
