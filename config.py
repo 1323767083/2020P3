@@ -61,7 +61,7 @@ class gconfig_data:
         self.Brian_gpu_percent = float("nan") #0.8
         self.flag_brain_log_file = float("nan") #True
         self.flag_brain_log_screen = float("nan") #True
-        self.start_train_count = float("nan") #0
+        #self.start_train_count = float("nan") #0
         self.num_train_to_save_model = float("nan") #1000
         self.load_AIO_fnwp = ""
         self.load_config_fnwp = ""
@@ -187,11 +187,11 @@ class gconfig(gconfig_data):
 
         if self.load_AIO_fnwp!="" and self.load_config_fnwp!="" and self.load_weight_fnwp!="":
             fn = os.path.basename(self.load_AIO_fnwp)
-            start_train_count_indication1=int(re.findall(r'\w+T(\d+).h5py', fn)[0])
+            start_train_count_indication1=int(re.findall(r'\w+T(\d+).h5', fn)[0])
             fn = os.path.basename(self.load_weight_fnwp)
-            start_train_count_indication2=int(re.findall(r'\w+T(\d+).h5py', fn)[0])
+            start_train_count_indication2=int(re.findall(r'\w+T(\d+).h5', fn)[0])
             assert start_train_count_indication1==start_train_count_indication2
-            self.start_train_count=start_train_count_indication1
+            #self.start_train_count=start_train_count_indication1
 
         new_action_type_dict={}
         for item in list(self.action_type_dict.keys()):

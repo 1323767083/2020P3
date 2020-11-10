@@ -35,7 +35,6 @@
     "Brian_gpu_percent": 0.7,
     "flag_brain_log_file": false,
     "flag_brain_log_screen": true,
-    "start_train_count": 0,
     "num_train_to_save_model": 250,
     "load_AIO_fnwp": "",
     "load_config_fnwp": "",

@@ -111,3 +111,6 @@ https://www.jetbrains.com/help/pycharm/2018.3/using-git-integration.html?utm_cam
 pycharm branching/merging/pushing
 https://www.youtube.com/watch?v=AHkiCKG-JhM
 branching:
+
+github
+pass ford festas  no capital

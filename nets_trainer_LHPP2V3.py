@@ -9,13 +9,13 @@ class LHPP2V3_PPO_trainer(base_trainer):
         self.load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":lc}
         self.load_model_custom_objects={"join_loss": self.join_loss, "tf":tf,"concatenate":keras.backend.concatenate,
                                         "M_policy_loss":self.M_policy_loss,"M_value_loss":self.M_value_loss,
-                                        "M_entropy":self.M_entropy_loss,"M_state_value":self.M_state_value,
+                                        "M_entropy_loss":self.M_entropy_loss,"M_state_value":self.M_state_value,
                                         "M_advent":self.M_advent,"M_advent_low":self.M_advent_low,
                                         "M_advent_high":self.M_advent_high,"lc":lc}
 
-        #i_cav=globals()[lc.CLN_AV_state]()
+
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
-        #self.get_OB_AV = i_cav.get_OB_av
+
 
 
     def build_train_model(self, name="T"):

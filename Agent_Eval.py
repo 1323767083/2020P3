@@ -58,7 +58,6 @@ class EvalMain(Process):
                 self.name_pipe_cmd()
 
     def EvaMain_Init_Round(self,eval_loop_count):
-        #found_model_surfix = self.find_model_surfix(eval_loop_count)
         found_model_surfix = find_model_surfix(self.lc.brain_model_dir,eval_loop_count)
 
         if found_model_surfix is None:
