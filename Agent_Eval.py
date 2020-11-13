@@ -90,7 +90,6 @@ class EvalSub(Process):
 
         assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lc.SLName, self.process_group_idx)
 
-        #self.process_idx_left = self.process_idx % len(self.lc.l_eval_num_process_group)
         self.process_idx_left = self.process_idx %self.lc.eval_num_process_per_group
         mod=len(group_stock_list)//self.lc.eval_num_process_per_group
         left=len(group_stock_list)%self.lc.eval_num_process_per_group
@@ -109,7 +108,7 @@ class EvalSub(Process):
 
         self.inp=pcom.name_pipe_cmd(self.lc,self.process_name)
 
-        self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
+        self.data = Client_Datas_Eval(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],
                                  called_by="Eval")
         self.i_are_ssdi = are_ssdi_handler(self.lc, self.process_name, self.process_working_dir, self.logger)
@@ -174,7 +173,6 @@ class EvalSub(Process):
                     self.data.l_idx_valid_flag[idx]=False
                     self.logger.error("idx {0} {1} {2} at reset".format(idx,self.data.stock_list[idx],e))
                     continue
-                #self.__env_done_fun(idx,s, support_view_dic)
                 self.data.l_s[idx] = s
                 self.data.l_done_flag[idx] = False
                 if support_view_dic["flag_all_period_explored"]:
@@ -211,6 +209,8 @@ class EvalSub(Process):
             if cmd_list[0][:-1] == "status":
                 print("{0} CurrentPhase={1} Flag_Wait_GPU_Response={2} E_Start1Round.is_set={3} ".
                     format(self.process_name,self.CurrentPhase, self.Flag_Wait_GPU_Response, self.E_Start1Round.is_set()))
+                print("|||Eval:{0} |||l_idx_valid_flag: {1}|||".format(self.process_idx,self.data.l_idx_valid_flag))
+                print("are length {0}  ".format([len(self.data.l_log_a_r_e[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 

@@ -76,15 +76,14 @@ class Agent_Sub(Process):
             self.stock_list.append(total_stock_list[-(process_idx+1)])
 
         self.process_name = "{0}_{1}".format(self.lc.client_process_name_seed,self.process_idx)
-        self.process_working_dir = os.path.join(lc.system_working_dir, self.process_name)
-        if not os.path.exists(self.process_working_dir): os.mkdir(self.process_working_dir)
         self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
 
         self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=self.lc.l_flag_worker_log_file[self.process_idx],
                                        flag_screen_show=self.lc.l_flag_worker_log_screen[self.process_idx])
 
-        self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
+        self.data = Client_Datas_Explore(self.lc, self.lc.data_name, self.stock_list, self.SL_StartI,
                     self.SL_EndI, self.logger, self.lc.CLN_env_get_data_train, called_by="Explore")
+
         self.i_train_buffer_to_server = globals()[self.lc.CLN_buffer_to_train](self.lc,len(self.stock_list))
         self.i_bs = buffer_series()
 
@@ -129,26 +128,6 @@ class Agent_Sub(Process):
                     else:
                         assert buf_len== 0, "L_GPU2Agent only can have length 0 or 1 , not get {0} {1}".format(buf_len,self.L_GPU2Agent)
 
-                '''
-                Ds["worker_loop_count"] +=1
-                self.run_env_one_step(Ds["worker_loop_count"])
-                stacted_state = self.data.stack_l_state(self.data.l_s)
-                self.L_Agent2GPU.append([self.process_idx, stacted_state])
-                flag_received,result=False,[]
-                while not flag_received and not self.E_stop.is_set():
-                    buf_len = len(self.L_GPU2Agent)
-                    assert buf_len in [0, 1]
-                    if buf_len == 1:
-                        flag_received,result=True, self.L_GPU2Agent.pop()
-                    else:
-                        time.sleep(0.1)
-                else:
-                    assert len(result)!=0
-                    self.data.l_a, self.data.l_ap, self.data.l_sv=result
-                num_record_sent=self.worker_send_buffer_brain()
-                Ds["accumulate_record_sent_per_print"] +=num_record_sent
-                Ds["accumulate_record_sent_per_update"] +=num_record_sent
-                '''
             else:
                 if not Ds["flag_sent_enough_item"]:
                     Ds["flag_sent_enough_item"]=True
@@ -229,11 +208,7 @@ class Agent_Sub(Process):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:
             if cmd_list[0][:-1] == "status":
-                print("|||worker:{0} loop_count:{1} |||l_idx_valid_flag: {2}|||" \
-                    .format(self.process_idx, Ds["worker_loop_count"],self.data.l_idx_valid_flag))
                 print(Ds)
-                print("are length {0}  ".format([len(self.data.l_log_a_r_e[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
-                print("ssdi length {0}  ".format([len(self.data.l_log_stock_episode[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
             elif cmd_list[0][:-1] == "send_more":
                 self.logger.info("{0}".format(Ds))
                 Ds["accumulate_record_sent_per_update"] =self.max_record_sent_per_update_weight-1000

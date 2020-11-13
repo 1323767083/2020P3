@@ -1,71 +1,11 @@
 from nets_trainer_base import *
-class LHPP2V2_trainer_base(base_trainer):
+
+class LHPP2V2_PPO_trainer(base_trainer):
     def __init__(self,lc):
-        base_trainer.__init__(self,lc)
-
-    #fake
-    def extract_y(self, y):
-        prob, v, input_a, advent, oldAP=0,0,0,0,0
-        return prob, v, input_a, advent, oldAP
-
-    # fake
-    def join_loss_policy_part(self,y_true,y_pred):
-        assert False
-        loss_policy=0
-        return -loss_policy
-
-    def join_loss_entropy_part(self, y_true, y_pred):
-        prob, v, input_a, advent,oldAP  = self.extract_y(y_pred)
-        entropy = self.lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
-        return tf.reduce_mean(-entropy)
-
-    def join_loss_sv_part(self, y_true, y_pred):
-        prob, v, input_a, advent,oldAP = self.extract_y(y_pred)
-        if self.lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
-            loss_value = self.lc.LOSS_V * tf.square(advent)
-        else:
-            loss_value = self.lc.LOSS_V * keras.backend.minimum (tf.square(advent),self.lc.LOSS_sqr_threadhold)
-        return tf.reduce_mean(loss_value)
-
-    def join_loss(self,y_true, y_pred):
-        loss_p = self.join_loss_policy_part(y_true, y_pred)
-        loss_e = self.join_loss_entropy_part(y_true, y_pred)
-        loss_v = self.join_loss_sv_part(y_true, y_pred)
-        return loss_p + loss_v + loss_e
-
-    def M_policy_loss(self, y_true, y_pred):
-        loss_p = self.join_loss_policy_part(y_true, y_pred)
-        return tf.reduce_mean(loss_p)
-
-    def M_entropy_loss(self,y_true, y_pred):
-        return self.join_loss_entropy_part(y_true, y_pred)
-
-    def M_value_loss(self,y_true, y_pred):
-        return self.join_loss_sv_part(y_true, y_pred)
-
-    def M_state_value(self,y_true, y_pred):
-        _, v, _, _,  _= self.extract_y(y_pred)
-        return tf.reduce_mean(v)
-
-    def M_advent(self,y_true, y_pred):
-        _, _, _, advent,  _= self.extract_y(y_pred)
-        return tf.reduce_mean(advent)
-
-    def M_advent_low(self,y_true, y_pred):
-        _, _, _, advent,  _= self.extract_y(y_pred)
-        return tfp.stats.percentile(advent, 10., interpolation='lower')
-
-    def M_advent_high(self,y_true, y_pred):
-        _, _, _, advent, _= self.extract_y(y_pred)
-        return tfp.stats.percentile(advent, 90., interpolation='higher')
-
-
-
-class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
-    def __init__(self,lc):
-        LHPP2V2_trainer_base.__init__(self,lc)
+        base_trainer.__init__(self, lc)
         assert lc.P2_current_phase == "Train_Sell"
-        self.join_loss_policy_part=self.join_loss_policy_part_new
+        #self.join_loss_policy_part=self.join_loss_policy_part_new
+        self.join_loss_policy_part = self.join_loss_policy_part_old
         self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent,
                                self.M_advent_low, self.M_advent_high]
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
@@ -151,3 +91,47 @@ class LHPP2V2_PPO_trainer(LHPP2V2_trainer_base):
         return tf.reduce_mean(-loss_policy)
 
 
+    def join_loss_entropy_part(self, y_true, y_pred):
+        prob, v, input_a, advent,oldAP  = self.extract_y(y_pred)
+        entropy = self.lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
+        return tf.reduce_mean(-entropy)
+
+    def join_loss_sv_part(self, y_true, y_pred):
+        prob, v, input_a, advent,oldAP = self.extract_y(y_pred)
+        if self.lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
+            loss_value = self.lc.LOSS_V * tf.square(advent)
+        else:
+            loss_value = self.lc.LOSS_V * keras.backend.minimum (tf.square(advent),self.lc.LOSS_sqr_threadhold)
+        return tf.reduce_mean(loss_value)
+
+    def join_loss(self,y_true, y_pred):
+        loss_p = self.join_loss_policy_part(y_true, y_pred)
+        loss_e = self.join_loss_entropy_part(y_true, y_pred)
+        loss_v = self.join_loss_sv_part(y_true, y_pred)
+        return loss_p + loss_v + loss_e
+
+    def M_policy_loss(self, y_true, y_pred):
+        loss_p = self.join_loss_policy_part(y_true, y_pred)
+        return tf.reduce_mean(loss_p)
+
+    def M_entropy_loss(self,y_true, y_pred):
+        return self.join_loss_entropy_part(y_true, y_pred)
+
+    def M_value_loss(self,y_true, y_pred):
+        return self.join_loss_sv_part(y_true, y_pred)
+
+    def M_state_value(self,y_true, y_pred):
+        _, v, _, _,  _= self.extract_y(y_pred)
+        return tf.reduce_mean(v)
+
+    def M_advent(self,y_true, y_pred):
+        _, _, _, advent,  _= self.extract_y(y_pred)
+        return tf.reduce_mean(advent)
+
+    def M_advent_low(self,y_true, y_pred):
+        _, _, _, advent,  _= self.extract_y(y_pred)
+        return tfp.stats.percentile(advent, 10., interpolation='lower')
+
+    def M_advent_high(self,y_true, y_pred):
+        _, _, _, advent, _= self.extract_y(y_pred)
+        return tfp.stats.percentile(advent, 90., interpolation='higher')

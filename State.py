@@ -35,7 +35,8 @@ class Phase_State(Phase_Data):
         self.CuPs_force_flag = [True, True]
         assert self.lc.LNB == 1
     def Init_Phase_State_V3_Eval(self):
-        self.CuPs_force_flag = [False, False]
+        #self.CuPs_force_flag = [False, False]
+        self.CuPs_force_flag = [False, True]  # V3 is to evaluate buy agent, so need to forece sell all holding if possible
         assert self.lc.LNB == 1
         # TODO this is avoid the buy action always on the same day, especially for DBTP_DayByDay_reader
         #TODO here is set alwas LNB==1 and train buy like a binary classification
@@ -70,6 +71,9 @@ class Phase_State(Phase_Data):
             self.CuPs_idx[self.CuP] += 1
             raw_av = self.i_av.fabricate_av(self.CuPs_idx, self.CuP, flag_CuP_finished=True, flag_CuP_Successed=False)
             Flag_Done = True   #exceed limitation  Error
+            # Following is to ensure while HP forece flag set, only unsuccess finish HP is tinpai
+            if self.CuP==self.P_END and self.CuPs_force_flag[self.P_HP]:
+                assert return_message=="Tinpai"
             action = 3 if self.CuP==self.P_HP else 1
         return Flag_Done, raw_av,action
 
@@ -104,8 +108,7 @@ class AV_Handler(Phase_Data):
         self.PFinal_idx= self.lc.LNB + 1 +2+ self.lc.LHP + 1 +2
     #These two function are batch
     def get_OS_AV(self,raw_av):
-        #return raw_av[self.PAVStart_idx[self.P_HP]:self.PAVStart_idx[self.P_HP]+self.lc.OS_AV_shape[0]]
-        return raw_av[:,self.PAVStart_idx[self.P_HP]:self.PResStart_idx[self.P_HP]]
+       return raw_av[:,self.PAVStart_idx[self.P_HP]:self.PResStart_idx[self.P_HP]]
 
     def get_OB_AV(self,raw_av):
         return raw_av[:,self.PAVStart_idx[self.P_NB]:self.PResStart_idx[self.P_NB]]
