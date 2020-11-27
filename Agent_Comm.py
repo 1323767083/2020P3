@@ -52,11 +52,11 @@ class Client_Datas_Eval(Client_Datas_Common):
     def __init__(self, lc,process_working_dir, data_name,stock_list, StartI, EndI,logger,CLN_get_data, called_by):
         Client_Datas_Common.__init__(self, lc, data_name, stock_list, StartI, EndI, logger, CLN_get_data)
         self.called_by=called_by
-        self.process_working_dir = process_working_dir
-        self.stock_working_dir = []
         for stock in self.stock_list:
             i_env = globals()[lc.CLN_simulator](self.data_name, stock, StartI, EndI, CLN_get_data, lc, self.called_by)
             self.l_i_env.append(i_env)
+        self.process_working_dir = process_working_dir
+        self.stock_working_dir = []
         for stock in self.stock_list:
             one_stock_working_dir = os.path.join(self.process_working_dir, stock)
             if not os.path.exists(one_stock_working_dir): os.mkdir(one_stock_working_dir)
@@ -67,14 +67,15 @@ class Client_Datas_Eval(Client_Datas_Common):
         self.l_t = [0 for _ in self.stock_list]
         self.l_r = [[] for _ in self.stock_list]
         self.l_idx_valid_flag = [True for _ in self.stock_list]  # for eval quiting
+
     def eval_reset_data(self):
+        # this is add to record the state value for are currently only used in eval process
+        self.l_sv = [0.0 for _ in range(len(self.stock_list))]
+        self.l_done_flag = [True for _ in self.stock_list]   # this is ensure after this fun called, the first round will call reset data
         self.l_idx_valid_flag = [True for _ in range(len(self.stock_list))]  # for eval quiting
         self.l_i_episode_init_flag = [True for _ in range(len(self.stock_list))]  # for log purpose
         self.l_i_episode=[0 for _ in range(len(self.stock_list))]
         self.l_t = [0 for _ in self.stock_list]  # as after round save, but worker still work on and l_t will continue to add
-        # this is add to record the state value for are currently only used in eval process
-        self.l_sv = [0.0 for _ in range(len(self.stock_list))]
-        self.l_done_flag = [True for _ in self.stock_list]   # this is ensure after this fun called, the first round will call reset data
         for idx,_ in enumerate(self.stock_list):
             if len (self.l_r[idx])!=0:
                 self.logger.error("len (self.l_r[{0}])!=0".format(idx))
@@ -118,7 +119,10 @@ class are_ssdi_handler:
         self._eval_save(data, idx, self.ongoing_save_count)
 
     def finish_episode(self, data,idx, flag_finished):
-        r_sum = data.l_r[idx][-1]
+        if len(data.l_r[idx])!=0:
+            r_sum = data.l_r[idx][-1]
+        else:
+            r_sum=0
         self.logger.info("stock:{0} episode:{1} period_len:{2} reward:{3:.2f} {4} episode add to record"
                         .format(data.stock_list[idx], data.l_i_episode[idx],data.l_t[idx], r_sum,
                                 "finished" if flag_finished else "unfinished"))

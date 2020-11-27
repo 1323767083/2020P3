@@ -16,12 +16,6 @@ class DBTP_Reader(DBTP_Base):
         assert len(found_idxs)==1, "Fail Found TitleD={0} in self.FT_TitlesD_Flat[2] ={1}".format(TitleD,self.FT_TitlesD_Flat[2])
         return ref[found_idxs[0]]
 
-        #print (self.FT_TitlesD_Flat[2])
-        #print (ref)
-        #print (ref[-1, found_idxs[0]])
-        #assert False
-
-        #return ref[-1,found_idxs[0]]
 
     def Fill_support_view_with_ref(self, ref, Stock,DateI, Flag_last_day):
         assert self._get_ref_value_with_TitleD(ref[-1], "DateI", "Equal")==DateI, "ref={0} DateI={1}".format(ref,DateI)
@@ -48,10 +42,10 @@ class DBTP_Train_Reader(DBTP_Reader):
         self.PLen   =   PLen
         DBTP_log_fnwp=self.get_DBTP_data_log_fnwp(Stock)
         assert os.path.exists(DBTP_log_fnwp),"File Not Exists {0}".format(DBTP_log_fnwp)
-        SD=pd.read_csv(DBTP_log_fnwp, header=0, names=["Result", "Date", "Message"],
-                            dtype={"Result":str,"Date":int,"Message":str})["Date"].values
-        SD.sort()
-        SD= SD[(SD>=SDateI) & (SD<=EDateI)]
+        dfSD=pd.read_csv(DBTP_log_fnwp, header=0, names=["Result", "Date", "Message"],
+                    dtype={"Result": str, "Date": int, "Message": str})
+        dfSD=dfSD[(dfSD["Date"]>=SDateI) & (dfSD["Date"]<=EDateI)]["Date"]
+        SD=dfSD.values
         assert len(self.generate_TD_periods(SD[0],SD[-1]))==len(SD), \
             "{0}  len(self.generate_TD_periods(self.SD[0],self.SD[-1])) = {1} len(self.SD)= {2} ".format(
                 Stock,len(self.generate_TD_periods(SD[0], SD[-1])),len(SD))
@@ -64,6 +58,20 @@ class DBTP_Train_Reader(DBTP_Reader):
         self.CTDidx = self.SDTDSidx
         self.ETDidx = self.SDTDEidx
 
+        flag,dfh,mess = self.get_hfq_df(self.get_DBI_hfq_fnwp(Stock))
+        assert flag, "Fail in read HFQ for {0} {1}".format(Stock, mess)
+        dfh["CloseNPrice"] = dfh["close_price"] / dfh["coefficient_fq"]
+        dfh["date"]=dfh["date"].astype(int)
+        dfh=dfh[(dfh["date"]>= SDateI) & (dfh["date"] <= EDateI)][["date","CloseNPrice"]]
+        dfh.reset_index(inplace=True)
+        df = pd.merge(dfSD, dfh, left_on="Date", right_on="date", how="outer")
+        # this first day if tinpai keep NaN , as it do not have holding the eval result is invalidate
+        if pd.isna(df["CloseNPrice"].loc[0]):
+            df.loc[0,"CloseNPrice"]=0
+        df["CloseNPrice"].ffill(inplace=True)  # if it is tinpai no hfq, use previous close price and Eval purpose.
+
+        assert not df["CloseNPrice"].isnull().any(), " Should not have nan any more {0}".format(df)
+        self.npCloseNPrice=df["CloseNPrice"].values
 
     def reset_get_data(self):
         self.CTDidx = random.randrange(self.SDTDSidx,self.SDTDEidx-self.PLen)
@@ -80,6 +88,9 @@ class DBTP_Train_Reader(DBTP_Reader):
         support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock,self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
         support_view_dic["flag_all_period_explored"]=False
         return [lv,sv], support_view_dic, Flag_Done
+
+    def get_CloseNPrice(self):
+        return self.npCloseNPrice[self.CTDidx-self.SDTDSidx]
 
 class DBTP_Eval_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=5 ):
@@ -114,4 +125,43 @@ class DBTP_DayByDay_reader(DBTP_Train_Reader):
             support_view_dic["flag_all_period_explored"] = True
             self.EvalTillTDidx = self.SDTDSidx
         return [lv,sv],support_view_dic
+
+
+
+class DBTP_Eval_CC_Reader(DBTP_Train_Reader):
+    def __init__(self, DBTP_Name, Stock, SDateI, EDateI, PLen=30,eval_reset_total_times=0):
+        DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
+        self.flag_init=True
+
+    def reset_get_data(self):
+        if self.flag_init:
+            self.flag_init=False
+        else:
+            self.CTDidx += 1
+        lv, sv, ref=self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
+        support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock, self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
+        if self.CTDidx <= self.SDTDEidx - self.PLen:
+            support_view_dic["flag_all_period_explored"] = False
+        else:
+            support_view_dic["flag_all_period_explored"] = True
+            self.flag_init = True
+            self.CTDidx = self.SDTDSidx
+        if self.CTDidx == self.SDTDEidx - self.PLen:  #this is to synchronize the stop for CC Eval
+            support_view_dic["Flag_Force_Next_Reset"] = True
+        else:
+            support_view_dic["Flag_Force_Next_Reset"] = False
+        return [lv,sv],support_view_dic
+
+
+    def next_get_data(self):
+        self.CTDidx+=1
+        Flag_Done=True if self.CTDidx==self.ETDidx else False
+        lv, sv, ref = self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
+        support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock,self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
+        support_view_dic["flag_all_period_explored"]=False
+        if self.CTDidx == self.SDTDEidx - self.PLen:  #this is to synchronize the stop for CC Eval
+            support_view_dic["Flag_Force_Next_Reset"] = True
+        else:
+            support_view_dic["Flag_Force_Next_Reset"] = False
+        return [lv,sv], support_view_dic, Flag_Done
 

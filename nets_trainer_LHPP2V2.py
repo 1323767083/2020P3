@@ -4,8 +4,7 @@ class LHPP2V2_PPO_trainer(base_trainer):
     def __init__(self,lc):
         base_trainer.__init__(self, lc)
         assert lc.P2_current_phase == "Train_Sell"
-        #self.join_loss_policy_part=self.join_loss_policy_part_new
-        self.join_loss_policy_part = self.join_loss_policy_part_old
+        self.join_loss_policy_part=self.join_loss_policy_part_new
         self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent,
                                self.M_advent_low, self.M_advent_high]
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
@@ -76,10 +75,9 @@ class LHPP2V2_PPO_trainer(base_trainer):
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
         loss_policy = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
-
         return tf.reduce_mean(-loss_policy)
-
-
+    #compare with old m new is to avoid policy losss is huge, which is very seldom, but if happen totally distroy the learning
+    #normally loss is at 0.02 scale
     def join_loss_policy_part_new(self,y_true,y_pred):
         prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)

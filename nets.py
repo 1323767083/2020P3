@@ -98,6 +98,8 @@ class Explore_Brain:
         self.mc = globals()[lc.system_type+"_Agent"](lc)
         self.mc.build_predict_model("P")
         self.choose_action=self.mc.choose_action
+        if hasattr(self.mc,"choose_action_CC"):  #TODO find sinmpleway
+            self.choose_action_CC = self.mc.choose_action_CC
         self.load_weight=self.mc.load_weight
 
 

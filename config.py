@@ -164,7 +164,11 @@ class gconfig(gconfig_data):
         self.log_e_s_d_i_fn_seed = "log_s_s_d_i"
         self.command_pipe_seed = "pipe.command"
         self.specific_param=gconfig_specific()
+        self.account_inform_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice",
+                               "Buy_Times", "Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice"]
 
+        self.simulator_inform_titles=["DateI","StockI","Eval_Profit"]
+        self.PSS_inform_titles =["AcutalAction"]
     def read_from_json(self, param_fnwp):
         param = json.load(open(param_fnwp, "r"), object_pairs_hook=OrderedDict)
         for item in list(param.keys()):
@@ -239,7 +243,8 @@ class gconfig(gconfig_data):
 
         self.OS_AV_shape = (self.LHP + 1,)
         self.OB_AV_shape = (self.LNB + 1,)
-        self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1,)
+        len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
+        self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
         self.PLen = self.LHP + self.LNB
 
         l_specific_param_title=[]
@@ -277,4 +282,3 @@ class gconfig(gconfig_data):
             return ""
         else:
             raise ValueError("unkown selected core {0}".format(core_str))
-

@@ -132,4 +132,20 @@ class LHPP2V3_Agent:
                 l_sv.append(buy_sv[0])
         return l_a, l_ap,l_sv
 
+    def choose_action_CC(self,state,calledby):
+        assert self.lc.P2_current_phase == "Train_Buy"
+        lv, sv, av = state
+        buy_probs, buy_SVs = self.predict([lv, sv,av])
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        #TODO check whether need to convert to list and if there is effecient way to convert to list
+        l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
+        l_buy_ap = [buy_prob for buy_prob in buy_probs]
+        l_buy_sv = [buy_SV for buy_SV in buy_SVs]
+        l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
+        l_sell_ap = [sell_prob for sell_prob in sel_probs]
+        l_sell_sv = [sell_SV for sell_SV in sell_SVs]
+        return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
 
