@@ -239,6 +239,8 @@ class Simulator_intergrated:
         else:
             action, PSS_action = Input_action, 0
         adj_action = self.i_PSS.check_need_force_state(action)
+        if adj_action!=action and action==0:
+            PSS_action=0
         return_message,reward,state, support_view_dic=self.step_comm(adj_action)
         support_view_dic["action_return_message"]=return_message
         l_av_inform=self.i_account.get_inform_for_AV()

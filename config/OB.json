@@ -233,5 +233,6 @@
     "Flag_Delete_Train_Brain_Buffer_After_Weight_Update": true,
     "=======CC=======": "=======================",
     "Max_TotalMoney":5000000,
-    "low_profit_threadhold":-0.02
+    "low_profit_threadhold":-0.02,
+    "CC_strategy_fun":"Buy_Strategy_multi_time"
 }

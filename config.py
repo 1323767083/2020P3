@@ -150,6 +150,10 @@ class gconfig_data:
         self.raw_AV_shape=()
 
         self.Plen=float("nan")
+
+        self.Max_TotalMoney=float("nan")
+        self.low_profit_threadhold=float("nan")
+        self.CC_strategy_fun=""
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
