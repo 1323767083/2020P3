@@ -238,14 +238,17 @@ class gconfig(gconfig_data):
         else:
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
 
+        assert self.CLN_trainer == "PPO_trainer",self.CLN_trainer
 
         assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
         assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
         assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
         self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
             if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-
-        self.OS_AV_shape = (self.LHP + 1,)
+        if self.CLN_AV_Handler=="AV_Handler":
+            self.OS_AV_shape = (self.LHP + 1,)
+        elif self.CLN_AV_Handler=="AV_Handler_AV1":
+            self.OS_AV_shape = (1,)
         self.OB_AV_shape = (self.LNB + 1,)
         len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
@@ -255,7 +258,6 @@ class gconfig(gconfig_data):
 
         if self.system_type == "LHPP2V2":
             assert self.P2_current_phase == "Train_Sell"
-            assert "LHPP2V2_" in self.CLN_trainer
             self.train_action_type = "OS"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
@@ -267,7 +269,6 @@ class gconfig(gconfig_data):
 
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
             assert self.P2_current_phase == "Train_Buy"
-            assert "LHPP2V3" in self.CLN_trainer
             self.train_action_type = "OB"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
@@ -276,6 +277,7 @@ class gconfig(gconfig_data):
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
+
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

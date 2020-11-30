@@ -221,3 +221,7 @@ class AV_Handler(Phase_Data):
 
     def Is_Force_Next_Reset(self,raw_av):
         return raw_av[self.PFlag_Force_Next_Reset]
+
+class AV_Handler_AV1(AV_Handler):
+    def get_OS_AV(self,raw_av):
+       return raw_av[:,self.PAVStart_idx[self.P_HP]:self.PAVStart_idx[self.P_HP]+1]

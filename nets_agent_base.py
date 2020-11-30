@@ -3,7 +3,8 @@ import tensorflow as tf
 import numpy as np
 import os,re
 import config as sc
-from State import AV_Handler
+from State import *
+from action_comm import actionOBOS
 class nets_conf:
     """
     @DynamicAttrs
@@ -53,7 +54,6 @@ def get_agent_nc(lc):
     nc.lv_shape = tuple(nc.lv_shape)
     nc.sv_shape = tuple(nc.sv_shape)
     return nc
-
 
 class common_component:
     def construct_conv_branch(self, cov_kernel_list, cov_filter_list, max_pool_list, input_tensor):
@@ -113,7 +113,6 @@ class common_component:
         tower_3 = keras.layers.Conv1D(filters=filters, kernel_size=1, padding='same', activation='relu',name=tower32_name)(tower_3)
         output = keras.layers.Concatenate( axis=2, name=out_name)([tower_1, tower_2, tower_3])  # 2d sampel axis =3
         return output
-
 
 class SV_component:
     def __init__(self,nc):
@@ -236,5 +235,74 @@ class V2OS_4_OB_agent:
         p, v = self.OS_model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
         return p,v
 
+class net_aget_base:
+    def __init__(self, lc):
+        self.lc=lc
+        self.nc = get_agent_nc(lc)
+        self.cc=common_component()
+        keras.backend.set_learning_phase(0)  # add by john for error solved by
+        self.DC = {
+            "method_SV_state": "{0}_get_SV_state".format(lc.agent_method_sv),  # "RNN_get_SV_state",
+            "method_LV_SV_joint_state": "{0}_get_LV_SV_joint_state".format(lc.agent_method_joint_lvsv),
+            "method_ap_sv": "get_ap_av_{0}".format(lc.agent_method_apsv)
+        }
+        self.i_action = actionOBOS(lc.train_action_type)
+        self.i_cav = globals()[lc.CLN_AV_Handler](lc)
+        assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
+        if self.lc.system_type== "LHPP2V2":
+            self.av_shape = self.lc.OS_AV_shape
+            self.get_av = self.i_cav.get_OS_AV
+            self.layer_label = "OS"
+            assert self.lc.P2_current_phase == "Train_Sell"
+        else:
+            self.av_shape = self.lc.OB_AV_shape
+            self.get_av = self.i_cav.get_OB_AV
+            self.layer_label = "OB"
+            assert self.lc.P2_current_phase == "Train_Buy"
 
+    def build_predict_model(self, name):
+        input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
+        input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
+        input_av = keras.Input(shape=self.av_shape, dtype='float32', name="{0}_input_av".format(name))
+        i_SV = SV_component(self.nc)
+        i_LV_SV = LV_SV_joint_component(self.nc, self.cc)
 
+        sv_state = getattr(i_SV, self.DC["method_SV_state"])(input_sv, name)
+        lv_sv_state = getattr(i_LV_SV, self.DC["method_LV_SV_joint_state"])([input_lv, sv_state], name + "for_ap")
+
+        if not self.lc.flag_sv_joint_state_stop_gradient:
+            input_method_ap_sv = [lv_sv_state, input_av]
+        else:
+            sv_state_stop_gradient = keras.layers.Lambda(lambda x: tf.stop_gradient(x), name="stop_gradiant_SV_state")(sv_state)
+            lv_sv_state_stop_gradient = getattr(i_LV_SV, self.DC["method_LV_SV_joint_state"])(
+                [input_lv, sv_state_stop_gradient], name + "for_sv")
+            input_method_ap_sv = [lv_sv_state, lv_sv_state_stop_gradient, input_av]
+
+        l_agent_output = getattr(self, self.DC["method_ap_sv"])(input_method_ap_sv, name)
+        self.model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
+        return self.model
+
+    def load_weight(self, weight_fnwp):
+        self.model.load_weights(weight_fnwp)
+
+    #HP means status include holding period
+    def get_ap_av_HP(self, inputs, name):
+        js, input_av = inputs
+        label = name + "_"+ self.layer_label
+
+        input_state = keras.layers.Concatenate(axis=-1,                          name=label + "_input")([js, input_av])
+        state = self.cc.construct_denses(self.nc.dense_l, input_state,        name=label + "_commonD")
+        Pre_a = self.cc.construct_denses(self.nc.dense_prob[:-1], state,  name=label + "_Pre_a")
+        ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',      name=self.nc.LNM_P)(Pre_a)
+        if self.lc.flag_sv_stop_gradient:
+            sv_state=keras.layers.Lambda(lambda x: tf.stop_gradient(x),          name=label + "_stop_gradiant_sv")(state)
+        else:
+            sv_state = keras.layers.Lambda(lambda x: x,                          name=label + "_not_stop_gradiant_sv")(state)
+        Pre_sv = self.cc.construct_denses(self.nc.dense_advent[:-1], sv_state,name=label + "_Pre_sv")
+        sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='linear',        name=self.nc.LNM_V)(Pre_sv)
+        return ap, sv
+
+    def predict(self, state):
+        lv, sv, av = state
+        p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_av(av)})
+        return p,v

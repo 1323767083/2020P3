@@ -2,7 +2,7 @@ import os, random
 import DBI_Base
 import pandas as pd
 import numpy as np
-from State import AV_Handler
+from State import *
 class Eval_CC:
     #Max_TotalMoney=5000000
     #low_profit_threadhold = -0.02
@@ -221,4 +221,4 @@ class Eval_CC:
 
     def Fabricate_V3EvalCC_MultiplexAction(self,action,PSS_action):
         return PSS_action*10+action
-    #todo check where should gabricate action used
+

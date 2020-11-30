@@ -2,8 +2,7 @@ import numpy as np
 import sys
 import random
 from action_comm import actionOBOS
-from State import AV_Handler
-
+from State import *
 # brain train buffer/ worker eval loss buffer
 class brain_buffer:
     def __init__(self, lc):
@@ -238,13 +237,13 @@ class TD_memory_integrated:
                 return True
         else:                               #HP phase not finished
             assert idx_HP==self.lc.LHP
-            del self.memory[-(idx_HP + 1):]
-            self.memory[-1][2] = -1         ##TODO punish unsuccessful sell
-            assert  Lsupport_view_dic["action_return_message"]=="Tinpai" ,\
-            " V3 has forece sell in Explore so only fail finish HP is Tinpai"
-
-            self.iavh.set_final_record_AV(self.memory[-1][0][2])
-            return True
+            assert Lsupport_view_dic["action_return_message"] == "Tinpai", \
+                " V3 has forece sell in Explore so only fail finish HP is Tinpai"
+            #del self.memory[-(idx_HP + 1):]
+            #self.memory[-1][2] = -1         ##TODO punish unsuccessful sell
+            #self.iavh.set_final_record_AV(self.memory[-1][0][2])
+            del self.memory[:]  # as it is tinpai so can not avoid should not punish
+            return False
 
     def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
         self.memory.append([si, aa04, r, si_, done, support_view_dic])

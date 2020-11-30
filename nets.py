@@ -5,8 +5,7 @@ from tensorflow import keras
 from File_comm import check_model_save_finish_write
 from Buffer_comm import brain_buffer, brain_buffer_reuse
 from action_comm import actionOBOS
-from nets_trainer_LHPP2V2 import *
-from nets_trainer_LHPP2V3 import *
+from nets_trainer_base import *
 
 def init_virtual_GPU(memory_limit):
     gpus = tf.config.experimental.list_physical_devices('GPU')
