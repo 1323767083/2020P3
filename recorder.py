@@ -254,7 +254,7 @@ class get_recorder_OS_losses:
         self.L_tcs.sort()
         self.L_tcs.pop(-1)  # th unfinished trained tcs model
         '''
-        LETs= [int(re.findall(r'\w+T(\d+).h5py', fn)[0]) for fn in os.listdir(self.lgc.brain_model_dir)
+        LETs= [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(self.lgc.brain_model_dir)
            if fn.startswith("train_model_AIO_")]
         LETs.sort()
         LETs.pop(-1)

@@ -1,78 +1,46 @@
-Process8Output.txt:DBTP from DBI SZ002410 20180712 success generated
-Process8Output.txt:DBI SZ002410 20180713 SuccessGenerate
-Process8Output.txt:DBTP from DBI SZ002410 20180713 success generated
-Process8Output.txt:DBI SZ002410 20180717 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180718 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180719 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180720 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180723 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180724 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180725 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180726 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180727 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180730 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180731 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180801 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180802 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180803 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180806 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180807 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180808 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180809 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180810 SuccessGenerate
-Process8Output.txt:DBI SZ002410 20180813 SuccessGenerate
-Process8Output.txt:DBTP from DBI SZ002410 20180813 success generated
-Process8Output.txt:DBI SZ002410 20180814 SuccessGenerate
-Process8Output.txt:DBTP from DBI SZ002410 20180814 success generated
-Process8Output.txt:DBI SZ002410 20180815 SuccessGenerate
-
-
-False,20180716,Decompress File Not Found****/home/rdchujf/DB_raw/Normal/decompress/201807/20180716/SZ002410.csv
-False,20180717,Not Enough Record
-False,20180718,Not Enough Record
-False,20180719,Not Enough Record
-False,20180720,Not Enough Record
-False,20180723,Not Enough Record
-False,20180724,Not Enough Record
-False,20180725,Not Enough Record
-False,20180726,Not Enough Record
-False,20180727,Not Enough Record
-False,20180730,Not Enough Record
-False,20180731,Not Enough Record
-False,20180801,Not Enough Record
-False,20180802,Not Enough Record
-False,20180803,Not Enough Record
-False,20180806,Not Enough Record
-False,20180807,Not Enough Record
-False,20180808,Not Enough Record
-False,20180809,Not Enough Record
-False,20180810,Not Enough Record
-
-
-Debug b'' <class 'bytes'>
-
-echo "status">EvalAgent_pipe.command
-
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
-    self.run()
-  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 62, in run
-    self.name_pipe_cmd()
-  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 75, in name_pipe_cmd
-    cmd_list = self.inp.check_input_immediate_return()
-  File "/home/rdchujf/remote_sw/pipe_comm.py", line 58, in check_input_immediate_return
-TypeError: a bytes-like object is required, not 'str'
-
-
-Process Train_Process-3:
+[INFO/EvalSub-5] process shutting down
+Process EvalSub-5:
 Traceback (most recent call last):
   File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
     self.run()
-  File "/home/rdchujf/remote_sw/Brain.py", line 56, in run
-    optimized_flag=self.train_brain(i_brain, Ds)
-  File "/home/rdchujf/remote_sw/Brain.py", line 122, in train_brain
-    numb_record_trained, _ = i_brain.optimize()
-  File "/home/rdchujf/remote_sw/nets.py", line 88, in optimize
-    num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
-  File "/home/rdchujf/remote_sw/nets_trainer_LHPP2V2.py", line 209, in optimize_com
-    assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer"
-AssertionError:  -1 add in a3c_worker should be removed at TD_buffer
+  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 154, in run
+    self.data.eval_reset_data()
+  File "/home/rdchujf/remote_sw/Agent_Comm.py", line 81, in eval_reset_data
+    assert len(self.l_r[idx]) == 0
+AssertionError
+[INFO/EvalSub-5] process exiting with exitcode 1
+[INFO/EvalSub-4] process shutting down
+[INFO/EvalSub-6] process shutting down
+Process EvalSub-4:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 154, in run
+    self.data.eval_reset_data()
+  File "/home/rdchujf/remote_sw/Agent_Comm.py", line 81, in eval_reset_data
+    assert len(self.l_r[idx]) == 0
+AssertionError
+[INFO/EvalSub-4] process exiting with exitcode 1
+Process EvalSub-6:
+Traceback (most recent call last):
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/home/rdchujf/remote_sw/Agent_Eval.py", line 154, in run
+    self.data.eval_reset_data()
+  File "/home/rdchujf/remote_sw/Agent_Comm.py", line 81, in eval_reset_data
+    assert len(self.l_r[idx]) == 0
+
+
+SZ002410,20180716,
+SZ001979,20180720,
+SZ002008,20180720,
+SZ000333,20180720,
+SH601360,20180102,to 20180214
+SH603019,20171205,
+
+['SZ000001', 'SZ000002', 'SZ000063', 'SZ000066', 'SZ000069', 'SZ000100',
+'SZ000333', 'SZ000425', 'SZ000568', 'SZ000596', 'SZ000625', 'SZ000627',
+'SZ000651', 'SZ000656', 'SZ000661', 'SZ000671', 'SZ000703', 'SZ000708',
+'SZ000709', 'SZ000723', 'SZ000725', 'SZ000728', 'SZ000768', 'SZ000776',
+'SZ000783', 'SZ000786', 'SZ000858', 'SZ000860', 'SZ000876', 'SZ000895', 'SZ000938']
+

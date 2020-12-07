@@ -1,76 +1,124 @@
 import os
 import config as sc
 from recorder import record_sim_stock_data
-from State import Phase_State, AV_Handler
+from State import *
 from action_comm import actionOBOS
-from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader
+from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader,DBTP_Eval_CC_Reader
 from DBI_Base import hfq_toolbox
+from Eval_CC import Eval_CC
+
 class env_account:
-    param_shou_xu_fei = 0.00025
-    param_yin_hua_shui = 0.001
-    param_communicatefei = 1
-    param_guohufei = 1
-    def __init__(self,lc):
+    param_yin_hua_shui          = 0.001
+    param_guo_hu_fei            = 0.0002
+    param_jin_shou_fei          = 0.0000487
+    param_quan_shang_yong_jin   = 0.00025
+    def __init__(self,lc, stock,flag_CC=False):
+        self.lc, self.stock, self.flag_CC=lc, stock,flag_CC
         self.i_hfq_tb = hfq_toolbox()
+        self.TransIDI = -1
         self._account_reset()
         assert lc.env_min_invest_per_round<=lc.env_max_invest_per_round
         self.invest_per_term=lc.env_min_invest_per_round
-        self.max_num_invest=int(lc.env_max_invest_per_round/lc.env_min_invest_per_round)
-    #### common function
-    def _sell_stock_cost(self, volume, price):
-        tmp_total_money = volume * price
-        sell_cost = tmp_total_money * (self.param_shou_xu_fei + self.param_yin_hua_shui) + \
-                    self.param_communicatefei + \
-                    self.param_guohufei * int(volume / 1000.0)
-        return sell_cost
+        self.max_num_invest=int(lc.env_max_invest_per_round//lc.env_min_invest_per_round)
 
-    def _buy_stock_cost(self, volume, price):
-        tmp_total_money = volume * price
-        buy_cost = tmp_total_money * self.param_shou_xu_fei + \
-                   self.param_communicatefei + \
-                   self.param_guohufei * int(volume / 1000.0)
-        return buy_cost
+    #Following is caculated according SH market, SZ market seems no guohufei , as the difference is small so not considered here
+    def _buy_stock_cost(self, gu, Nprice):
+        temp_trans_money = gu * Nprice
+        temp_guo_hu_fei = gu * self.param_guo_hu_fei
+        temp_quan_shang_yong_jin = temp_trans_money*self.param_quan_shang_yong_jin
+
+        yi_hua_sui = 0
+        guo_hu_fei = 1 if temp_guo_hu_fei<1 else temp_guo_hu_fei
+        jin_shou_fei = temp_trans_money*self.param_jin_shou_fei
+        quan_shang_yong_jin = 5 if temp_quan_shang_yong_jin<5 else temp_quan_shang_yong_jin
+
+        return guo_hu_fei+jin_shou_fei+quan_shang_yong_jin
+
+    def _sell_stock_cost(self, gu, Nprice):
+        temp_trans_money = gu * Nprice
+        temp_guo_hu_fei = gu * self.param_guo_hu_fei
+        temp_quan_shang_yong_jin = temp_trans_money * self.param_quan_shang_yong_jin
+
+        yi_hua_sui = temp_trans_money*self.param_yin_hua_shui
+        guo_hu_fei = 1 if temp_guo_hu_fei<1 else temp_guo_hu_fei
+        jin_shou_fei = temp_trans_money*self.param_jin_shou_fei
+        quan_shang_yong_jin = 5 if temp_quan_shang_yong_jin<5 else temp_quan_shang_yong_jin
+
+        return yi_hua_sui + guo_hu_fei + jin_shou_fei + quan_shang_yong_jin
+
 
     def _account_reset(self):
-        self.volume_gu = 0
-        self.total_invest = 0.0
-        self.Hratio = 1.0
-        self.buy_times = 0
+        self._clean_holding()
+        self._clean_step_result()
+        self.TransIDI += 1
 
+    def _clean_holding(self):
+        self.Holding_Gu = 0
+        self.Holding_Invest = 0.0
+        self.Holding_HRatio = 1.0
+        self.Holding_NPrice =0.0
+        self.Buy_Times = 0.0
+
+    def _clean_step_result(self):
+        self.Buy_Invest = 0.0
+        self.Buy_NPrice=0.0
+        self.Sell_Return = 0.0
+        self.Sell_NPrice = 0.0
+        self.Sell_Earn=0.0
     def reset(self):
         self._account_reset()
 
     def buy(self, trade_Nprice, trade_hfq_ratio):
-        if self.buy_times < self.max_num_invest:
-            volume_gu = int(self.invest_per_term * 0.995 / (trade_Nprice * 100)) * 100
-            assert volume_gu != 0, "{0} can not buy one hand".format(self.invest_per_term)
-            buy_cost= self._buy_stock_cost(volume_gu, trade_Nprice)
-            current_holding_volume_gu = self.i_hfq_tb.get_update_volume_on_hfq_ratio_change(old_hfq_ratio=self.Hratio,
-                                                                                new_hfq_ratio=trade_hfq_ratio,
-                                                                                old_volume=self.volume_gu)
-            self.volume_gu = current_holding_volume_gu + volume_gu
-            self.Hratio    = trade_hfq_ratio
-            self.total_invest += volume_gu * trade_Nprice + buy_cost
-            self.buy_times += 1
-            return True, "Success"
-        else:
+        self._clean_step_result()
+        if not self.flag_CC and self.Buy_Times >= self.max_num_invest:
             return False, "Exceed_limit"
+        else:
+            gu = int(self.invest_per_term * 0.999 / (trade_Nprice * 100)) * 100
+            assert gu != 0, "{0} can not buy one hand {1}".format(self.invest_per_term,self.stock)
+            buy_cost= self._buy_stock_cost(gu, trade_Nprice)
+            self.Buy_Invest = gu * trade_Nprice + buy_cost
+            self.Buy_NPrice =trade_Nprice
+
+            current_holding_gu = self.i_hfq_tb.get_update_volume_on_hfq_ratio_change(old_hfq_ratio=self.Holding_HRatio,
+                                                                                new_hfq_ratio=trade_hfq_ratio,
+                                                                                old_volume=self.Holding_Gu)
+            self.Holding_Gu = current_holding_gu + gu
+            self.Holding_Invest += self.Buy_Invest
+            self.Buy_Times += 1
+            self.Holding_HRatio    = trade_hfq_ratio
+            self.Holding_NPrice= trade_Nprice
+            return True, "Success"
 
     def sell(self, trade_Nprice,trade_hfq_ratio):
-        if self.volume_gu != 0:
-            current_holding_volume_gu = self.i_hfq_tb.get_update_volume_on_hfq_ratio_change \
-                (old_hfq_ratio=self.Hratio, new_hfq_ratio=trade_hfq_ratio, old_volume=self.volume_gu)
-            sell_cost = self._sell_stock_cost(current_holding_volume_gu, trade_Nprice)
-            total_money_back = current_holding_volume_gu * trade_Nprice - sell_cost
-            total_money_invest = self.total_invest
-            profit = total_money_back / total_money_invest - 1.0
-            self._account_reset()
+        self._clean_step_result()
+        if self.Holding_Gu != 0:
+            current_holding_gu = self.i_hfq_tb.get_update_volume_on_hfq_ratio_change \
+                (old_hfq_ratio=self.Holding_HRatio, new_hfq_ratio=trade_hfq_ratio, old_volume=self.Holding_Gu)
+            sell_cost = self._sell_stock_cost(current_holding_gu, trade_Nprice)
+            self.Sell_Return = current_holding_gu * trade_Nprice - sell_cost
+            self.Sell_Earn=self.Sell_Return-self.Holding_Invest
+            self.Sell_NPrice =trade_Nprice
+            profit = self.Sell_Earn / self.Holding_Invest
+            self._clean_holding()
             return True, "Success", profit
         else:
             return False, "No_holding", 0.0
 
-    def eval(self):
-        return 1 if self.volume_gu!=0 else 0
+    def no_action(self):
+        self._clean_step_result()
+
+    def eval_profit(self, Close_NPrice):
+        if self.Holding_NPrice==0:
+            return 0
+        else:
+            if Close_NPrice==0:  #only first day or first days
+                assert self.Holding_NPrice==0, "should be the first day of period with out holding in DBTP_reader could set close price is 0"
+                return 0
+            else:
+                return Close_NPrice/self.Holding_NPrice-1
+
+    def get_inform_for_AV(self):
+        return [getattr(self,titles)for titles in self.lc.account_inform_titles]
 
 class env_reward:
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_punish_no_action):
@@ -97,19 +145,28 @@ class Simulator_intergrated:
         self.lc=lc
         self.calledby=calledby
         self.i_PSS = globals()[lc.CLN_AV_state](self.lc,self.calledby)
-        self.i_account = globals()[lc.CLN_env_account](self.lc)
+        self.i_Eval_CC=Eval_CC(self.lc)
         if self.calledby == "Explore":
             assert CLN_get_data == "DBTP_Train_Reader"
+            self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=False)
             self.i_reward = env_reward(lc.train_scale_factor, lc.train_shift_factor, lc.train_flag_clip,
                                              lc.train_flag_punish_no_action)
             self.i_get_data = globals()[CLN_get_data](data_name, stock,StartI, EndI,lc.PLen)
+            self.CC_flag=False
         else:
             assert self.calledby == "Eval"
-            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader"]
+            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader", "DBTP_Eval_CC_Reader"]
             self.i_reward = env_reward(lc.eval_scale_factor, lc.eval_shift_factor, lc.eval_flag_clip,
                                              lc.eval_flag_punish_no_action)
             self.i_get_data = globals()[CLN_get_data](data_name, stock, StartI, EndI, lc.PLen,
                                                               eval_reset_total_times=lc.evn_eval_rest_total_times)
+            if self.i_Eval_CC.Is_V3EvalCC(CLN_get_data,calledby):
+                self.CC_flag = True
+                self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=True)
+            else:
+                self.CC_flag = False
+                self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=False)
+
         if lc.flag_record_sim:
             self.i_record_sim_stock_data=record_sim_stock_data(os.path.join(sc.base_dir_RL_system,
                                                         lc.RL_system_name,"record_sim"), stock,lc.flag_record_sim)
@@ -118,7 +175,15 @@ class Simulator_intergrated:
         state, support_view_dic = self.i_get_data.reset_get_data()
         support_view_dic["action"] = "Reset"  # True?
         support_view_dic["action_return_message"] = "from reset"  # True?
-        raw_av=self.i_PSS.reset_phase_state()
+        l_av_inform=self.i_account.get_inform_for_AV()
+        l_av_inform.append(support_view_dic["DateI"])
+        l_av_inform.append(int(support_view_dic["Stock"][2:]))
+        l_av_inform.append(self.i_account.eval_profit(self.i_get_data.get_CloseNPrice()))
+        if "Flag_Force_Next_Reset" in support_view_dic.keys():
+            Flag_Force_Next_Reset=support_view_dic["Flag_Force_Next_Reset"]
+        else:
+            Flag_Force_Next_Reset=False
+        raw_av=self.i_PSS.reset_phase_state(l_av_inform,Flag_Force_Next_Reset)
         state.append(raw_av)
         if self.lc.flag_record_sim:
             self.i_record_sim_stock_data.saver([state, support_view_dic],str(support_view_dic["DateI"]))
@@ -156,22 +221,37 @@ class Simulator_intergrated:
                 raise ValueError("unexpected sell return message {0}".format(return_message))
         elif action_str == "No_action":
             return_message = "No_action"  # if want no action always no action as result
+            self.i_account.no_action()
             reward = self.i_reward.No_action
         elif action_str == "No_trans":
             return_message = "No_trans"  # if want no action always no action as result
+            self.i_account.no_action()
             reward = self.i_reward.No_action
         else:
             raise ValueError("does not support action {0}".format(action_str))
-
         if self.lc.flag_record_sim:
             self.i_record_sim_stock_data.saver([state, support_view_dic],str(support_view_dic["DateI"]))
         return return_message,reward,state, support_view_dic
 
-
-    def step(self,action):
+    def step(self,Input_action):
+        if self.CC_flag:
+            action, PSS_action = self.i_Eval_CC.Extract_V3EvalCC_MultiplexAction(Input_action)
+        else:
+            action, PSS_action = Input_action, 0
         adj_action = self.i_PSS.check_need_force_state(action)
+        if adj_action!=action and action==0:
+            PSS_action=0
         return_message,reward,state, support_view_dic=self.step_comm(adj_action)
         support_view_dic["action_return_message"]=return_message
-        Done_flag, raw_av,actual_action=self.i_PSS.update_phase_state(adj_action, return_message)
+        l_av_inform=self.i_account.get_inform_for_AV()
+        l_av_inform.append(support_view_dic["DateI"])
+        l_av_inform.append(int(support_view_dic["Stock"][2:]))
+        l_av_inform.append(self.i_account.eval_profit(self.i_get_data.get_CloseNPrice()))
+        if "Flag_Force_Next_Reset" in support_view_dic.keys():
+            Flag_Force_Next_Reset=support_view_dic["Flag_Force_Next_Reset"]
+        else:
+            Flag_Force_Next_Reset=False
+        Done_flag, raw_av, actual_action = self.i_PSS.update_phase_state(adj_action, return_message, l_av_inform, PSS_action,Flag_Force_Next_Reset)
         state.append(raw_av)
         return state, reward,Done_flag,support_view_dic,actual_action
+

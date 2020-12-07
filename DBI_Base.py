@@ -294,11 +294,14 @@ class StockList(DBI_init):
         return os.path.join(self.SL_wdn, "{0}_{1}.csv".format( tag, idx))
 
     def Sanity_Check_SL(self, sl):
-
         adj_fnwp=os.path.join(self.SL_wdn,"Adj_to_Remove.csv")
         if os.path.exists(adj_fnwp):
             sl_remove=pd.read_csv(adj_fnwp,header=0, names=["stock"])["stock"].tolist()
-            return list(set(sl) - set(sl_remove))
+            sl= list(set(sl) - set(sl_remove))
+        Price_adj_fnwp=os.path.join(self.SL_wdn,"Price_to_Remove.csv")
+        if os.path.exists(Price_adj_fnwp):
+            sl_remove=pd.read_csv(Price_adj_fnwp,header=0, names=["Stock","Reason"])["Stock"].tolist()
+            sl= list(set(sl) - set(sl_remove))
         return sl
 
     def TSL_from_caculate(self):
@@ -383,12 +386,6 @@ class StockList(DBI_init):
         return True
 
 
-    def get_sub_sl(self, tag, index):
-        fnwp=self.Sub_fnwp(tag, index)
-        if not os.path.exists(fnwp):
-            return False, ""
-        else:
-            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist())
 
     def Get_Stocks_Error_Generate_DBTP(self):
         logdn=os.path.join(self.SL_wdn,"CreateLog")
@@ -405,6 +402,28 @@ class StockList(DBI_init):
         else:
             print("All Stocks succesfully generate TPDB")
         return
+
+
+    def get_sub_sl(self, tag, index):
+        fnwp=self.Sub_fnwp(tag, index)
+        if not os.path.exists(fnwp):
+            return False, ""
+        else:
+            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist())
+
+    def Get_Eval_SubProcess_SL(self, lc,process_group_idx,process_idx):
+        process_idx_left = process_idx % lc.eval_num_process_per_group
+        SL_idx, self.SL_StartI, self.SL_EndI = lc.l_eval_SL_param[process_group_idx]
+        flag, group_stock_list = self.get_sub_sl("Eval", SL_idx)
+
+        assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.SLName, process_group_idx)
+        mod=len(group_stock_list)//lc.eval_num_process_per_group
+        left=len(group_stock_list)%lc.eval_num_process_per_group
+        stock_list = group_stock_list[process_idx_left * mod:(process_idx_left + 1) * mod]
+        if process_idx_left<left:
+            stock_list.append(group_stock_list[-(process_idx_left+1)])
+        return stock_list
+
 
 class DBI_Base(DBI_init):
     def __init__(self, DBI_name):

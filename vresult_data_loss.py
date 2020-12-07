@@ -79,7 +79,7 @@ class ana_loss_data_tb:
         self.des_dir=des_dir
 
         dir_model=os.path.join(self.lgc.system_working_dir,"model")
-        self.lstc = [int(re.findall(r'\w+T(\d+).h5py', fn)[0]) for fn in os.listdir(dir_model) if "train_model_AIO_" in fn]
+        self.lstc = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(dir_model) if "train_model_AIO_" in fn]
         self.lstc.sort()
         self.lstc.pop(-1)
         if not self.check_loss_from_tb_avalaible(self.lstc):

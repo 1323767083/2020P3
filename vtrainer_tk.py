@@ -276,7 +276,7 @@ class vtrainer_tk(tk.Frame):
         def load_models_in(Event):
             tc = dc["tcs"].get()
             fns = [fn for fn in os.listdir(lgc.brain_model_dir) if
-                   re.match(r'train_model_AIO_\w+T{0}.h5py'.format(tc), fn)]
+                   re.match(r'train_model_AIO_\w+T{0}.h5'.format(tc), fn)]
             assert len(fns) == 1,"{0} train count {1} not have model saved ".format(self.system_name, tc)
             AIO_fnwp = os.path.join(lgc.brain_model_dir, fns[0])
             if AIO_fnwp!="":

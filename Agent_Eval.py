@@ -1,5 +1,6 @@
 from Agent_Comm import *
-from State import AV_Handler
+from State import *
+from Eval_CC import Eval_CC
 class EvalMain(Process):
     def __init__(self,lc,E_Stop_Agent_Eval, L_E_Start1Round,L_Eval2GPU,LL_GPU2Eval,Share_eval_loop_count):
         Process.__init__(self)
@@ -9,7 +10,7 @@ class EvalMain(Process):
         self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=True, flag_screen_show=True)
         self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
         self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model
-
+        self.i_Eval_CC=Eval_CC(lc)
     def run(self):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))
         self.logger.info("{0} start".format(self.process_name))
@@ -38,7 +39,7 @@ class EvalMain(Process):
                         tf.random.set_seed(3)
                         random.seed(3)
                         np.random.seed(3)
-                        #with self.Share_eval_loop_count.get_lock():
+                        #with self.Share_eval_loop_count.get_lock(): #TODO share value
                         self.Share_eval_loop_count.value = eval_loop_count
                         for E_Start1Round in self.L_E_Start1Round:
                             E_Start1Round.set()
@@ -48,17 +49,21 @@ class EvalMain(Process):
                 elif self.current_phase ==1: # wait all subs finish this round
                     if len(self.L_Eval2GPU) != 0:
                         process_idx, stacted_state = self.L_Eval2GPU.pop()
-                        result = self.i_eb.choose_action(stacted_state, "Eval")
-                        self.LL_GPU2Eval[process_idx].append(result)
+                        if self.i_Eval_CC.Is_ProcessIdx_CCProcessIdx(process_idx):
+                            raw_result = self.i_eb.choose_action_CC(stacted_state, "Eval")
+                            self.i_Eval_CC.handler(process_idx, stacted_state,raw_result,self.LL_GPU2Eval)
+                        else:
+                            result = self.i_eb.choose_action(stacted_state, "Eval")
+                            self.LL_GPU2Eval[process_idx].append(result)
                     if all([not E_Start1Round.is_set() for E_Start1Round in self.L_E_Start1Round])and len(self.L_Eval2GPU) == 0:
                         self.logger.info("Eval GPU finish eval count {0}".format(eval_loop_count))
                         self.current_phase = 0
+                        self.i_Eval_CC.Stop_Record_on_ET(eval_loop_count)
                 else:
                     assert False, "only support current phase 0. wait for wait ready 1. wait for round finish bu get {0}".format(self.current_phase)
                 self.name_pipe_cmd()
 
     def EvaMain_Init_Round(self,eval_loop_count):
-        #found_model_surfix = self.find_model_surfix(eval_loop_count)
         found_model_surfix = find_model_surfix(self.lc.brain_model_dir,eval_loop_count)
 
         if found_model_surfix is None:
@@ -81,24 +86,11 @@ class EvalMain(Process):
 class EvalSub(Process):
     def __init__(self, lc,process_group_idx,process_idx,L_Eval2GPU, L_GPU2Eval,E_stop, E_Start1Round,Share_eval_loop_count):
         Process.__init__(self)
-
         self.lc, self.process_group_idx,self.process_idx, self.L_Eval2GPU, self.L_GPU2Eval, self.E_stop, self.E_Start1Round, self.Share_eval_loop_count=\
             lc,process_group_idx,process_idx,L_Eval2GPU, L_GPU2Eval,E_stop, E_Start1Round,Share_eval_loop_count
-
+        _, self.SL_StartI, self.SL_EndI = self.lc.l_eval_SL_param[self.process_group_idx]
         self.iSL = DBI_Base.StockList(self.lc.SLName)
-        SL_idx, self.SL_StartI, self.SL_EndI = self.lc.l_eval_SL_param[self.process_group_idx]
-        flag, group_stock_list = self.iSL.get_sub_sl("Eval", SL_idx)
-
-        assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.lc.SLName, self.process_group_idx)
-
-        #self.process_idx_left = self.process_idx % len(self.lc.l_eval_num_process_group)
-        self.process_idx_left = self.process_idx %self.lc.eval_num_process_per_group
-        mod=len(group_stock_list)//self.lc.eval_num_process_per_group
-        left=len(group_stock_list)%self.lc.eval_num_process_per_group
-        self.stock_list = group_stock_list[self.process_idx_left * mod:(self.process_idx_left + 1) * mod]
-        if self.process_idx_left<left:
-            self.stock_list.append(group_stock_list[-(self.process_idx_left+1)])
-
+        self.stock_list=self.iSL.Get_Eval_SubProcess_SL(lc,process_group_idx,process_idx)
         self.process_name = "{0}_{1}".format(self.lc.eval_process_seed, self.process_idx)
         self.process_group_name="{0}_{1}".format(self.lc.eval_process_seed, self.process_group_idx)
         self.process_working_dir = os.path.join(lc.system_working_dir, self.process_group_name)
@@ -110,14 +102,22 @@ class EvalSub(Process):
 
         self.inp=pcom.name_pipe_cmd(self.lc,self.process_name)
 
-        self.data = client_datas(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
+        self.data = Client_Datas_Eval(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],
                                  called_by="Eval")
-        self.i_are_ssdi = are_ssdi_handler(self.lc, self.process_name, self.process_working_dir, self.logger)
-        self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
+        if self.lc.l_CLN_env_get_data_eval[self.process_group_idx]=="DBTP_Eval_CC_Reader":
+            self.Flag_CC_log=True
+        else:
+            self.Flag_CC_log = False
+
+        if not self.Flag_CC_log:
+            self.i_are_ssdi = are_ssdi_handler(self.lc, self.process_name, self.process_working_dir, self.logger)
+            self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
+            self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name,
+                                                            self.process_group_name,self.process_idx,self.stock_list,lc)
         self.i_ac = actionOBOS(self.lc.train_action_type)
         self.i_av_handler=AV_Handler(self.lc)
-        self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name, self.process_group_name,self.process_idx,self.stock_list,lc)
+
 
     def run(self):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name, self.process_name))
@@ -127,7 +127,8 @@ class EvalSub(Process):
         while not self.E_stop.is_set():
             if self.CurrentPhase==0:  #wait for round start
                 if self.E_Start1Round.is_set():
-                    self.i_are_ssdi.start_round(self.Share_eval_loop_count.value)
+                    if not self.Flag_CC_log:
+                        self.i_are_ssdi.start_round(self.Share_eval_loop_count.value)
                     self.data.eval_reset_data()
                     self.CurrentPhase=1
                     random.seed(3)
@@ -148,12 +149,18 @@ class EvalSub(Process):
                         self.data.l_a, self.data.l_ap, self.data.l_sv = result
                         self.Flag_Wait_GPU_Response= False
                         if not any(self.data.l_idx_valid_flag):
-                            fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(self.Share_eval_loop_count.value, self.process_idx_left)
-                            return_flag,_,Summery_count__mess,_=self.i_prepare_summary_are_1ET._generate_data__are_summary_1ET1G(self.Share_eval_loop_count.value,fnwps)
-                            if return_flag:
-                                self.logger.info("finish eval_loop_count {0} and generate 1ET summary ".format(self.Share_eval_loop_count.value))
-                            else:
-                                self.logger.info("finish eval_loop_count {0} but fail in generate 1ET summary due to {1}".format(self.Share_eval_loop_count.value,Summery_count__mess))
+                            if not self.Flag_CC_log:
+                                fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(
+                                    self.Share_eval_loop_count.value,
+                                    self.process_idx % self.lc.eval_num_process_per_group)
+                                return_flag,_,Summery_count__mess,_=self.i_prepare_summary_are_1ET.\
+                                    _generate_data__are_summary_1ET1G(self.Share_eval_loop_count.value,fnwps)
+                                if return_flag:
+                                    self.logger.info("finish eval_loop_count {0} and generate 1ET summary ".
+                                                     format(self.Share_eval_loop_count.value))
+                                else:
+                                    self.logger.info("finish eval_loop_count {0} but fail in generate 1ET summary due to {1}".
+                                                     format(self.Share_eval_loop_count.value,Summery_count__mess))
                             self.E_Start1Round.clear()
                             self.CurrentPhase = 0
                     else:
@@ -169,42 +176,41 @@ class EvalSub(Process):
             if not self.data.l_idx_valid_flag[idx]:
                 continue
             if self.data.l_done_flag[idx]:
-                try:
-                    s, support_view_dic = i_env.reset()
-                except Exception as e:
-                    self.data.l_idx_valid_flag[idx]=False
-                    self.logger.error("idx {0} {1} {2} at reset".format(idx,self.data.stock_list[idx],e))
-                    continue
-                #self.__env_done_fun(idx,s, support_view_dic)
+                s, support_view_dic = i_env.reset()
                 self.data.l_s[idx] = s
-                self.data.l_done_flag[idx] = False
                 if support_view_dic["flag_all_period_explored"]:
-                    self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
+                    if not self.Flag_CC_log:
+                        self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
+                        self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
                     self.data.l_idx_valid_flag[idx] = False
-                    self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
                 else:
                     if self.data.l_i_episode_init_flag[idx]:
                         self.data.l_i_episode_init_flag[idx] = False
                     else:
-                        # This is to reset trans_id at each reset
-                        # trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
-                        self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
-                        self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
+                        if not self.Flag_CC_log:
+                            self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
+                            self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
+                if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                    self.data.l_done_flag[idx] = True
+                else:
+                    self.data.l_done_flag[idx] = False
+
             else:
                 #s = self.data.l_s[idx]
                 a = self.data.l_a[idx]
                 ap =self.data.l_ap[idx]
                 s_, r, done, support_view_dic, actual_action = i_env.step(a)
-                self.data.l_done_flag[idx] = done
                 self.data.l_s[idx] = s_
-                self.data.l_t[idx] += 1
-                self.data.l_r[idx].append(r)
-                flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
-                trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
-                self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
-        #stacted_state = self.stack_l_state(self.data.l_s)
-        #self.data.l_a, self.data.l_ap,self.data.l_sv = self.i_eb.choose_action(stacted_state,"Eval")
-
+                if not self.Flag_CC_log:
+                    self.data.l_t[idx] += 1
+                    self.data.l_r[idx].append(r)
+                    flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
+                    trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
+                    self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
+                if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                    self.data.l_done_flag[idx] = True
+                else:
+                    self.data.l_done_flag[idx] = done
 
     def name_pipe_cmd(self):
         cmd_list = self.inp.check_input_immediate_return()
@@ -212,6 +218,8 @@ class EvalSub(Process):
             if cmd_list[0][:-1] == "status":
                 print("{0} CurrentPhase={1} Flag_Wait_GPU_Response={2} E_Start1Round.is_set={3} ".
                     format(self.process_name,self.CurrentPhase, self.Flag_Wait_GPU_Response, self.E_Start1Round.is_set()))
+                print("|||Eval:{0} |||l_idx_valid_flag: {1}|||".format(self.process_idx,self.data.l_idx_valid_flag))
+                print("are length {0}  ".format([len(self.data.l_log_a_r_e[idx]) for idx in range(len(self.data.l_idx_valid_flag))]))
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))
 

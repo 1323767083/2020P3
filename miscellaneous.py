@@ -175,32 +175,6 @@ def load_config_from_system(system_name):
     return lgc
 
 
-#from data_T5 import FH_RL_data_1stock
-'''
-def check_correct(stock):
-    i=FH_RL_data_1stock("T5",stock)
-    l_np_date_s, l_np_large_view, l_np_small_view, l_np_support_view=i.load_main_data()
-
-    for idx,np_support_view in enumerate(l_np_support_view):
-        if any(np_support_view[:-2,0]=="True") or (np_support_view[-1, 0]!="True") :
-            np_support_view[:-2,0]= False
-            np_support_view[-1, 0]= True
-            fnwp = i.get_dump_fnwp(stock)
-            os.rename(fnwp, fnwp+"_old")
-            i.save_main_data([l_np_date_s, l_np_large_view, l_np_small_view, l_np_support_view])
-            print("{0} period_idx {1} error found and corrected".format(stock, idx))
-            return True
-    print("{0} no error found".format(stock))
-    return False
-'''
-'''
-lc.Brian_core = float("nan")  # "GPU_0"
-lc.Brian_gpu_percent = float("nan")  # 0.8
-lc.l_work_core = [""]  # ["GPU_0", "GPU_0", "GPU_0"]
-lc.l_percent_gpu_core_for_work = [float("nan")]  # [0.2, 0.2, 0.2]
-lc.l_eval_core = [""]  # ["GPU_1", "GPU_1"]
-lc.l_percent_gpu_core_for_eva = [float("nan")]  # [0.2, 0.2]
-'''
 
 def get_GPU_index(GPU_name_str):
     return int(GPU_name_str[-1])
@@ -219,7 +193,6 @@ def get_VGPU_lists(lc):
         ll_VGPU_process[int(eval_core[-1])].append("eval_{0}".format(idx))
 
 def find_model_surfix(model_dir, eval_loop_count):
-    #l_model_fn = [fn for fn in os.listdir(self.lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
     l_model_fn = [fn for fn in os.listdir(model_dir) if "_T{0}.".format(eval_loop_count) in fn]
     if len(l_model_fn) == 2:
         regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'

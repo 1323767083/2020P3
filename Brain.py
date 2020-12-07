@@ -1,4 +1,4 @@
-import setproctitle,shutil,os,time
+import setproctitle,shutil,os,time,re
 import datetime as dt
 from multiprocessing import Process
 import logger_comm  as lcom
@@ -25,21 +25,23 @@ class Train_Process(Process):
             self.logger.info("{0} started".format(self.process_name))
             if self.lc.load_AIO_fnwp != "" and self.lc.load_config_fnwp != "" and self.lc.load_weight_fnwp != "":
                 l_load_fnwp = [self.lc.load_AIO_fnwp, self.lc.load_config_fnwp, self.lc.load_weight_fnwp]
-                train_count_init = self.lc.start_train_count  # this is a bug should be 0
+                #train_count_init = self.lc.start_train_count
+                self.train_count_init=int(re.findall(r'T(\d+)', self.lc.load_AIO_fnwp)[0])
                 self.logger.info("To load brain from {0}".format(l_load_fnwp))
             else:
                 l_load_fnwp = []
-                train_count_init = 0
+                self.train_count_init = 0
                 if os.path.exists(self.lc.brain_model_dir):
                     shutil.rmtree(self.lc.brain_model_dir)  ## otherwise the eval process might not start due to more than 2 _T0 found
                 os.makedirs(self.lc.brain_model_dir)
                 self.logger.info("clean model directory and create new brain")
-            i_brain=locals()[self.lc.CLN_brain_train](self.lc,GPU_per_program=self.lc.Brian_gpu_percent, load_fnwps=l_load_fnwp,train_count_init=train_count_init)
+            i_brain=locals()[self.lc.CLN_brain_train](self.lc,GPU_per_program=self.lc.Brian_gpu_percent,
+                                                      load_fnwps=l_load_fnwp,train_count_init=self.train_count_init)
 
             #flag_weight_ready = False
-            Ds={"train_count":                          train_count_init,
-                "saved_trc":                            train_count_init,
-                "print_trc":                            train_count_init,
+            Ds={"train_count":                          self.train_count_init,
+                "saved_trc":                            self.train_count_init,
+                "print_trc":                            self.train_count_init,
                 "received_count_sum":                   0,
                 "l_recieved_count":                     [0 for _ in range(11)],
                 "accumulate_item_get_this_train_count": 0,
@@ -67,23 +69,13 @@ class Train_Process(Process):
         i_brain.save_model([AIO_fnwp, config_fnwp,weight_fnwp ])
         return weight_fnwp
 
-    #def find_model_surfix(self, eval_loop_count):
-    #    l_model_fn = [fn for fn in os.listdir(lc.brain_model_dir) if "_T{0}.".format(eval_loop_count) in fn]
-    #    if len(l_model_fn) == 2:
-    #        regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
-    #        match = re.search(regex, l_model_fn[0])
-     #       return match.group(1)
-    #    else:
-    #        return None
 
     def init_weight_update(self, i_brain, Ds):
-        #found_model_surfix=self.find_model_surfix(Ds["train_count"])
         found_model_surfix = find_model_surfix(self.lc.brain_model_dir,Ds["train_count"])
-
         if  found_model_surfix is None:
             last_saved_weights_fnwp=self.save_AIO_model_weight_config(i_brain,Ds["train_count"])
         else:
-            actor_weight_fn = "{0}{1}.h5py".format(self.lc.actor_weight_fn_seed, found_model_surfix)
+            actor_weight_fn = "{0}{1}.h5".format(self.lc.actor_weight_fn_seed, found_model_surfix)
             last_saved_weights_fnwp = os.path.join(self.lc.brain_model_dir, actor_weight_fn)
         Ds["saved_trc"] = Ds["train_count"]
         self.logger.info("init_weights ready at {0} start worker weight update".format(last_saved_weights_fnwp))
@@ -127,7 +119,8 @@ class Train_Process(Process):
 
     def check_save_print(self,i_brain, Ds):
         flag_weight_ready = False
-        if Ds["train_count"] % self.lc.num_train_to_save_model == 0 and Ds["train_count"] != self.lc.start_train_count:  # this need to adjust config setting not same as log
+        #if Ds["train_count"] % self.lc.num_train_to_save_model == 0 and Ds["train_count"] != self.lc.start_train_count:  # this need to adjust config setting not same as log
+        if Ds["train_count"] % self.lc.num_train_to_save_model == 0 and Ds["train_count"] != self.train_count_init:  # this need to adjust config setting not same as log
             if Ds["train_count"] != Ds["saved_trc"]:
                 flag_weight_ready = True
         if Ds["train_count"] % 250 == 0 and Ds["train_count"] != Ds["print_trc"]:
@@ -146,27 +139,6 @@ class Train_Process(Process):
             Ds["l_recieved_count"] = [0 for _ in range(11)]
             Ds["received_count_sum"] = 0
         return flag_weight_ready
-
-    '''
-    def get_train_records(self, fun_buffer_add):
-        accumulate_count_buffer_item_get = 0
-        for idx in range(self.lc.num_workers):
-            while True:
-                if len(self.LL_input[idx])==0:
-                    break
-                input_item=self.LL_input[idx].pop(0)
-                worker_idx, bs, input_buffer=input_item
-                assert worker_idx==idx
-                accumulate_count_buffer_item_get += len(input_buffer)
-                if self.l_i_bs[worker_idx].valify(bs):
-                    self.l_i_bs[worker_idx].set(bs)
-                else:
-                    self.l_i_bs[worker_idx].set(bs)
-                    self.logger.warn("from worker {0} received wrong order last series {1} this serise {2}"
-                                     .format(worker_idx, self.l_i_bs[worker_idx].get_current(), bs))
-                fun_buffer_add(input_buffer)
-        return accumulate_count_buffer_item_get
-    '''
 
     def get_train_records(self, fun_buffer_add):
         accumulate_count_buffer_item_get = 0

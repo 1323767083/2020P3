@@ -61,7 +61,7 @@ class gconfig_data:
         self.Brian_gpu_percent = float("nan") #0.8
         self.flag_brain_log_file = float("nan") #True
         self.flag_brain_log_screen = float("nan") #True
-        self.start_train_count = float("nan") #0
+        #self.start_train_count = float("nan") #0
         self.num_train_to_save_model = float("nan") #1000
         self.load_AIO_fnwp = ""
         self.load_config_fnwp = ""
@@ -150,6 +150,10 @@ class gconfig_data:
         self.raw_AV_shape=()
 
         self.Plen=float("nan")
+
+        self.Max_TotalMoney=float("nan")
+        self.low_profit_threadhold=float("nan")
+        self.CC_strategy_fun=""
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -164,7 +168,11 @@ class gconfig(gconfig_data):
         self.log_e_s_d_i_fn_seed = "log_s_s_d_i"
         self.command_pipe_seed = "pipe.command"
         self.specific_param=gconfig_specific()
+        self.account_inform_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice",
+                               "Buy_Times", "Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice"]
 
+        self.simulator_inform_titles=["DateI","StockI","Eval_Profit"]
+        self.PSS_inform_titles =["AcutalAction"]
     def read_from_json(self, param_fnwp):
         param = json.load(open(param_fnwp, "r"), object_pairs_hook=OrderedDict)
         for item in list(param.keys()):
@@ -187,11 +195,11 @@ class gconfig(gconfig_data):
 
         if self.load_AIO_fnwp!="" and self.load_config_fnwp!="" and self.load_weight_fnwp!="":
             fn = os.path.basename(self.load_AIO_fnwp)
-            start_train_count_indication1=int(re.findall(r'\w+T(\d+).h5py', fn)[0])
+            start_train_count_indication1=int(re.findall(r'\w+T(\d+).h5', fn)[0])
             fn = os.path.basename(self.load_weight_fnwp)
-            start_train_count_indication2=int(re.findall(r'\w+T(\d+).h5py', fn)[0])
+            start_train_count_indication2=int(re.findall(r'\w+T(\d+).h5', fn)[0])
             assert start_train_count_indication1==start_train_count_indication2
-            self.start_train_count=start_train_count_indication1
+            #self.start_train_count=start_train_count_indication1
 
         new_action_type_dict={}
         for item in list(self.action_type_dict.keys()):
@@ -230,23 +238,24 @@ class gconfig(gconfig_data):
         else:
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
 
+        assert self.CLN_trainer == "PPO_trainer",self.CLN_trainer
 
-        assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
-        assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
-        assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
-        self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
-            if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
-
-        self.OS_AV_shape = (self.LHP + 1,)
+        assert self.agent_method_sv in ["CNN","CNN2D"]   #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["CNN","CNN2D"] #remove "RNN","RCN"
+        assert self.agent_method_apsv in ["HP"]
+        if self.CLN_AV_Handler=="AV_Handler":
+            self.OS_AV_shape = (self.LHP + 1,)
+        elif self.CLN_AV_Handler=="AV_Handler_AV1":
+            self.OS_AV_shape = (1,)
         self.OB_AV_shape = (self.LNB + 1,)
-        self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1,)
+        len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
+        self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
         self.PLen = self.LHP + self.LNB
 
         l_specific_param_title=[]
 
         if self.system_type == "LHPP2V2":
             assert self.P2_current_phase == "Train_Sell"
-            assert "LHPP2V2_" in self.CLN_trainer
             self.train_action_type = "OS"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
@@ -258,7 +267,6 @@ class gconfig(gconfig_data):
 
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
             assert self.P2_current_phase == "Train_Buy"
-            assert "LHPP2V3" in self.CLN_trainer
             self.train_action_type = "OB"
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
@@ -267,6 +275,7 @@ class gconfig(gconfig_data):
             for item_title in l_specific_param_title:
                 assert item_title in list(self.Dict_specifc_param.keys())
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
+
         else:
             assert False, "not support type: {0}".format(self.system_type)
 
@@ -277,4 +286,3 @@ class gconfig(gconfig_data):
             return ""
         else:
             raise ValueError("unkown selected core {0}".format(core_str))
-
