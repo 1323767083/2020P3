@@ -239,9 +239,6 @@ class TD_memory_integrated:
             assert idx_HP==self.lc.LHP
             assert Lsupport_view_dic["action_return_message"] == "Tinpai", \
                 " V3 has forece sell in Explore so only fail finish HP is Tinpai"
-            #del self.memory[-(idx_HP + 1):]
-            #self.memory[-1][2] = -1         ##TODO punish unsuccessful sell
-            #self.iavh.set_final_record_AV(self.memory[-1][0][2])
             del self.memory[:]  # as it is tinpai so can not avoid should not punish
             return False
 

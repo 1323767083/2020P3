@@ -240,11 +240,9 @@ class gconfig(gconfig_data):
 
         assert self.CLN_trainer == "PPO_trainer",self.CLN_trainer
 
-        assert self.agent_method_sv in ["RNN", "CNN", "RCN"]
-        assert self.agent_method_joint_lvsv in ["RNN", "CNN", "RCN"]
-        assert self.agent_method_apsv in ["HP", "HP_SP", "HP_DAV"]
-        self.flag_sv_stop_gradient, self.flag_sv_joint_state_stop_gradient = [False, True] \
-            if "_SP" in self.agent_method_apsv else [False, False]  ## can not be [True True] situation
+        assert self.agent_method_sv in ["CNN","CNN2D"]   #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["CNN","CNN2D"] #remove "RNN","RCN"
+        assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
             self.OS_AV_shape = (self.LHP + 1,)
         elif self.CLN_AV_Handler=="AV_Handler_AV1":
