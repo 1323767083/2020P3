@@ -10,11 +10,6 @@ class nets_conf:
     """
     @DynamicAttrs
     """
-    LNM_LV_SV_joint = "State_LSV"
-    LNM_P = "Act_prob"
-    LNM_V = "State_value"
-
-
 def get_trainer_nc(lc):
     N_item_list = ["lv_shape", "sv_shape"]
     nc_item_list =[]
@@ -23,16 +18,10 @@ def get_trainer_nc(lc):
     for item_title in nc_item_list:
         assert item_title in list(lc.net_config.keys())
         setattr(nc, item_title, lc.net_config[item_title])
-
-    #for key in list(nc.__dict__.keys()):
-    #    nc.__dict__[key] = lc.net_config[key]
     nc.lv_shape = tuple(nc.lv_shape)
     nc.sv_shape = tuple(nc.sv_shape)
     return nc
 
-#########################################################################################################
-# Base trainer and basic training methods
-#########################################################################################################
 class PPO_trainer:
     def __init__(self,lc):
         self.gammaN = lc.Brain_gamma ** lc.TDn
@@ -53,7 +42,7 @@ class PPO_trainer:
                                           "M_advent_high": self.M_advent_high, "lc": lc}
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
-        self.i_cav = globals()[lc.CLN_AV_Handler](lc)
+        #self.i_cav = globals()[lc.CLN_AV_Handler](lc)
         assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
         if self.lc.system_type== "LHPP2V2":
             self.av_shape = self.lc.OS_AV_shape
