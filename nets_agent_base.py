@@ -186,7 +186,7 @@ class V2OS_4_OB_agent:
         p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
         return p,v
 
-class net_aget_base:
+class net_agent_base:
     def __init__(self, lc):
         self.lc=lc
         self.nc = get_agent_nc(lc)
@@ -204,12 +204,18 @@ class net_aget_base:
             self.av_shape = self.lc.OS_AV_shape
             self.get_av = self.i_cav.get_OS_AV
             self.layer_label = "OS"
+            self.choose_action=self.V2_choose_action
+            self.choose_action_CC=None
+
             assert self.lc.P2_current_phase == "Train_Sell"
         else:
             self.av_shape = self.lc.OB_AV_shape
             self.get_av = self.i_cav.get_OB_AV
             self.layer_label = "OB"
             assert self.lc.P2_current_phase == "Train_Buy"
+            self.choose_action=self.V3_choose_action
+            self.choose_action_CC=self.V3_choose_action_CC
+
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -230,3 +236,67 @@ class net_aget_base:
         lv, sv, av = state
         p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_av(av)})
         return p,v
+
+    def V2_choose_action(self, state, calledby="Eval"):
+        assert self.lc.P2_current_phase == "Train_Sell"
+        lv, sv, av = state
+        actions_probs, SVs = self.predict(state)
+        l_a,l_ap,l_sv = [],[],[]
+        for sell_prob, SV, av_item in zip(actions_probs, SVs, av):
+            assert len(sell_prob) == 2, sell_prob
+            flag_holding=self.i_cav.Is_Holding_Item(av_item)
+            if flag_holding:
+                action =self.i_action.I_nets_choose_action(sell_prob)
+                l_a.append(action)
+                l_ap.append(sell_prob.ravel())
+            else:  # not have holding
+                action = 0
+                l_a.append(action)
+                l_ap.append(sell_prob.ravel())
+            l_sv.append(SV[0])
+        return l_a, l_ap, l_sv
+
+    def V3_choose_action(self,state,calledby):
+        assert self.lc.P2_current_phase == "Train_Buy"
+        _, _, av = state
+        buy_probs, buy_SVs = self.predict(state)
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        l_a,l_ap,l_sv = [],[],[]
+        for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
+            assert len(buy_prob)==2 and len(sell_prob) == 2
+            if self.i_cav.Is_Holding_Item(av_item):
+                #action = np.random.choice([2, 3], p=sell_prob)
+                action = self.i_OS_action.I_nets_choose_action(sell_prob)
+                l_a.append(action)
+                l_ap.append(np.zeros_like(sell_prob))  # this is add zero and this record will be removed by TD_buffer before send to server for train
+                l_sv.append(sell_sv[0])
+            else: # not have holding
+                if calledby=="Explore":
+                    if np.random.choice([0, 1], p=[0.5,0.5]): #TODO need to find whether configure in config needed:
+                        action=0
+                    else:
+                        action = self.i_action.I_nets_choose_action(buy_prob)
+                elif calledby=="Eval":
+                    action = self.i_action.I_nets_choose_action(buy_prob)
+                else:
+                    assert False, "Only support Explore and Eval as calledby not support {0}".format(calledby)
+                l_a.append(action)
+                l_ap.append(buy_prob)
+                l_sv.append(buy_sv[0])
+        return l_a, l_ap,l_sv
+
+    def V3_choose_action_CC(self,state,calledby):
+        assert self.lc.P2_current_phase == "Train_Buy"
+        buy_probs, buy_SVs = self.predict(state)
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        #TODO check whether need to convert to list and if there is effecient way to convert to list
+        l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
+        l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
+        return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
+

@@ -2,9 +2,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow.keras as keras
 import numpy as np
-from nets_agent_LHPP2V3 import *
-from nets_agent_LHPP2V2 import *
-
+#from nets_agent_LHPP2V3 import *
+#from nets_agent_LHPP2V2 import *
+from nets_agent_base import *
 from recorder import *
 class nets_conf:
     """
@@ -25,7 +25,7 @@ def get_trainer_nc(lc):
 class PPO_trainer:
     def __init__(self,lc):
         self.gammaN = lc.Brain_gamma ** lc.TDn
-        self.i_policy_agent = globals()[lc.system_type+"_Agent"](lc)
+        self.i_policy_agent = net_agent_base(lc)
         self.build_predict_model=self.i_policy_agent.build_predict_model
         if lc.flag_record_state:
             self.rv = globals()[lc.CLN_record_variable](lc)
@@ -42,7 +42,6 @@ class PPO_trainer:
                                           "M_advent_high": self.M_advent_high, "lc": lc}
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
-        #self.i_cav = globals()[lc.CLN_AV_Handler](lc)
         assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
         if self.lc.system_type== "LHPP2V2":
             self.av_shape = self.lc.OS_AV_shape
