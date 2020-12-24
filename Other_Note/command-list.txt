@@ -61,3 +61,7 @@ chmod -R ug-w Buy300_2
 
 tensorboard
  tensorboard --logdir tensorboard --port 6002 --bind_all     #bind_all make it can be access from internet
+
+
+启动 wls ubuntu20.04
+ubuntu2004

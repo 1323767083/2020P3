@@ -27,7 +27,7 @@ Guide to update DBI
 1.python DB_main.py Reset_DBI  #删除 DBI 里的 HFQ 和 index
 
 2.python DB_main.py Initial_DBI  #把raw data 里的 HFQ 和 index 数据录入 DBI  
-    要把DB_base.py 的 def __init__(self,Raw_lumpsum_End_DayI=20201130): 里的Raw_lumpsum_End_DayI 改到现在lumpsum data 的 最后一天
+    要把DB_base.py 的 def __init__(self,Raw_lumpsum_End_DayI=20201130): 里的Raw_lumpsum_End_DayI 改到现在lumpsum data的最后一天
 
     生成 /home/rdchujf/n_workspace/data/RL_data/I_DB/Update_Log_HFQ_Index/lumpsum_HFQ_Inited_log.csv 
     该文件有两个作用
@@ -38,8 +38,8 @@ Guide to update DBI
   第一种是多次启动解压程序引起的
   ERROR: Can't allocate required memory!
   第二种是多次同时解压， 后面解压的output 和前面正在解压生成的文件冲突了 
-  ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/2020$
-6/20200612/000001.csv
+  ERROR: ERROR: Can not delete output file : No such file or directory : /
+  home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csv
 
 3.python DB_main.py Generate_DBTP_Process TPVTest1 SLV1 4 True
   根据
@@ -56,8 +56,10 @@ Guide to update DBI
 4.python DB_main.py Create_List_Stock_Fail_Generate_TPDB SLV1  
    根据 /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/CreateLog里 的 error log 生成
    /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/Adj_to_Remove.csv
-
-5.create stock list 
+   由于格式原因， 这个文件要打开后手工整理， 如有糊涂地方， 把每个error log 打开记下所有出错的股票代码
+   
+关于stock list
+1.create stock list 
     这两个选择只有 stock list 里  SL_Definition.json 定义了TSL_from_caculate 才和Initial_DBI 结果有关， 否则它们是独立的任何时间都能执行
     "Create_Total_SL SLV1",
     "Create_Sub_SL SLV1"
