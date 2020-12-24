@@ -25,19 +25,19 @@ class Phase_State(Phase_Data):
 
     def Init_Phase_State_V2_Explore(self):
         self.CuPs_force_flag = [True, True]
-        assert self.lc.LNB==1
+        #assert self.lc.LNB==1
 
     def Init_Phase_State_V2_Eval(self):
         self.CuPs_force_flag = [True, False]
-        assert self.lc.LNB==1
+        #assert self.lc.LNB==1
 
     def Init_Phase_State_V3_Explore(self):
         self.CuPs_force_flag = [True, True]
-        assert self.lc.LNB == 1
+        #assert self.lc.LNB == 1
     def Init_Phase_State_V3_Eval(self):
         #self.CuPs_force_flag = [False, False]
         self.CuPs_force_flag = [False, True]  # V3 is to evaluate buy agent, so need to forece sell all holding if possible
-        assert self.lc.LNB == 1
+        #assert self.lc.LNB == 1
 
     def check_need_force_state(self, action):
         if self._Is_Phase_Last_Step() and self.CuPs_force_flag[self.CuP]:
@@ -225,3 +225,6 @@ class AV_Handler(Phase_Data):
 class AV_Handler_AV1(AV_Handler):
     def get_OS_AV(self,raw_av):
        return raw_av[:,self.PAVStart_idx[self.P_HP]:self.PAVStart_idx[self.P_HP]+1]
+
+    def get_OB_AV(self,raw_av):
+        return raw_av[:,self.PFinal_idx:self.PFinal_idx+1]

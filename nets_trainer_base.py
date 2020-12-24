@@ -2,14 +2,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow.keras as keras
 import numpy as np
-#from nets_agent_LHPP2V3 import *
-#from nets_agent_LHPP2V2 import *
 from nets_agent_base import *
 from recorder import *
-class nets_conf:
-    """
-    @DynamicAttrs
-    """
 def get_trainer_nc(lc):
     N_item_list = ["lv_shape", "sv_shape"]
     nc_item_list =[]
@@ -62,7 +56,7 @@ class PPO_trainer:
         elif name == "Adagrad":
             # Optimizer = Adagrad(lr=0.01, epsilon=None, decay=0.0)
             Optimizer = keras.optimizers.Adagrad(lr=learning_rate)
-        else:  # name == "AdaDelta":
+        else:  # name == "Adadelta":
             # Optimizer= Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
             Optimizer = keras.optimizers.Adadelta(lr=learning_rate)
         return Optimizer
@@ -96,9 +90,12 @@ class PPO_trainer:
     def get_reward(self, n_r, v, n_s__av, l_support_view):
         l_adjR=[]
         for item_r, item_v, item_av,item_support_view in zip(n_r, v, n_s__av,l_support_view):
+            assert len(item_r)==1
             if self.i_cav.check_final_record_AV(item_av):
                 l_adjR.append(item_r)
-            else:
+            else: #todo more specific assert to check whether following case meet the LNB setting LNB==1 following should not happen
+                #if self.lc.system_type =="LHPP2V3":
+                #    assert False, "{0} {1} ".format("this is for LNB=1",item_support_view)
                 l_adjR.append(item_r + self.lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
         return np.array(l_adjR)
 
@@ -125,7 +122,7 @@ class PPO_trainer:
         loss_policy_origin = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
 
-        loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-1, clip_value_max=1)
+        loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-10, clip_value_max=10)
         return tf.reduce_mean(-loss_policy)
 
     def join_loss_entropy_part(self, y_true, y_pred):

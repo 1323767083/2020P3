@@ -245,9 +245,10 @@ class gconfig(gconfig_data):
         assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
             self.OS_AV_shape = (self.LHP + 1,)
+            self.OB_AV_shape = (self.LNB + 1,)
         elif self.CLN_AV_Handler=="AV_Handler_AV1":
             self.OS_AV_shape = (1,)
-        self.OB_AV_shape = (self.LNB + 1,)
+            self.OB_AV_shape = (1,)
         len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
         self.PLen = self.LHP + self.LNB

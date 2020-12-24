@@ -120,7 +120,7 @@ class env_account:
     def get_inform_for_AV(self):
         return [getattr(self,titles)for titles in self.lc.account_inform_titles]
 
-class env_reward:
+class env_reward_old:
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_punish_no_action):
         self.scale_factor,self.shift_factor, self.flag_clip=scale_factor, shift_factor, flag_clip
         if flag_punish_no_action:
@@ -139,6 +139,38 @@ class env_reward:
 
     def hist_scale(self):
         return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor
+
+
+class env_reward:
+    def __init__(self,scale_factor,shift_factor, flag_clip, flag_new_or_old):  # old reward from -1 to 1  new from -10 to 10
+        self.scale_factor,self.shift_factor, self.flag_clip=scale_factor, shift_factor, flag_clip
+        if flag_new_or_old:
+            self.Sucess_buy = 0.0
+            self.Fail_buy,self.Fail_sell,self.No_action,self.Tinpai   = 0.0,0.0,0.0,0.0
+            self.Success_sell = self.Success_sell_new
+        else:
+            self.Sucess_buy = 0.0
+            self.Fail_buy,self.Fail_sell,self.No_action,self.Tinpai   = 0.0,0.0,0.0,0.0
+            self.Success_sell=self.Success_sell_old
+
+    def Success_sell_old(self,profit):
+        raw_profit = (profit - self.shift_factor) * self.scale_factor
+        if self.flag_clip:
+            return  1 if raw_profit > 1 else -1 if raw_profit < -1 else raw_profit
+        else:
+            return raw_profit
+
+    def Success_sell_new(self,profit):
+        raw_profit = (profit - self.shift_factor) * self.scale_factor
+        if self.flag_clip:
+            return  10 if raw_profit > 10 else -10 if raw_profit < -10 else raw_profit
+        else:
+            return raw_profit
+
+
+    def hist_scale(self):
+        return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor
+
 
 class Simulator_intergrated:
     def __init__(self, data_name, stock,StartI, EndI,CLN_get_data,lc,calledby):

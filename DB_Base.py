@@ -1,4 +1,4 @@
-import os
+import os,sys
 import pandas as pd
 class DB_Base:
     #general param
@@ -72,7 +72,7 @@ class DB_Base:
     title_DBI_HFQ_Inited_flag=    ["operation", "code", "result", "message"]
 
 
-    def __init__(self,Raw_lumpsum_End_DayI=20200529):
+    def __init__(self,Raw_lumpsum_End_DayI=20201130):
         self.TD_StartI = 20100101
         HostName=os.uname()[1]
         if HostName=='Y70':
@@ -101,23 +101,33 @@ class DB_Base:
                     self.Dir_raw_Index_base_addon_decompressed]:
             if not os.path.exists(dir):os.makedirs(dir)
 
+        self.raw_error_log_fnwp=os.path.join(self.Dir_DB_Raw,"list_error_raw_fnwp.csv")
+
     def get_qz_df(self, fnwp):
         try:
             df = pd.read_csv(fnwp, header=0, names=self.title_qz, dtype=self.dtype_qz)
         except ValueError as e:
             # this is to handle 13 in file as 12.99999997 situation
-            if "cannot safely convert passed user dtype of int64 for float64 dtyped data" in str(e):
-                df = pd.read_csv(fnwp, header=0, names=self.title_qz)
-                for item in list(self.dtype_qz.keys()):
-                    df[item] = df[item].astype(self.dtype_qz[item])
-            # 6883,undefined,undefined,NaN,NaN,NaN,undefined,undefined,undefined,undefined,undefined
-            # error message could not convert string to float: undefined
-            elif "undefined" in str(e):
+            if "cannot safely convert passed user dtype of int64 for float64 dtyped data" in str(e) or "undefined" in str(e):
                 df = pd.read_csv(fnwp, header=0, names=self.title_qz)
                 df.dropna(inplace=True)
                 for item in list(self.dtype_qz.keys()):
                     df[item] = df[item].astype(self.dtype_qz[item])
+            # 6883,undefined,undefined,NaN,NaN,NaN,undefined,undefined,undefined,undefined,undefined
+            # error message could not convert string to float: undefined
+            #elif "undefined" in str(e):
+            #    df = pd.read_csv(fnwp, header=0, names=self.title_qz)
+            #    df.dropna(inplace=True)
+            #    for item in list(self.dtype_qz.keys()):
+            #        df[item] = df[item].astype(self.dtype_qz[item])
             else:
+                if os.path.exists(self.raw_error_log_fnwp):
+                    dflog = pd.read_csv(self.raw_error_log_fnwp, header=0, names=["fnwp"], dtype={"fnwp": str})
+                    dflog = dflog.append([fnwp], ignore_index=True)
+                else:
+                    dflog = pd.DataFrame([[fnwp]], columns=["fnwp"])
+                dflog.to_csv(self.raw_error_log_fnwp, index=False)
+
                 return False, "", "Read QZ DF Error**** {0} {1}".format(fnwp,str(e))
 
         df.drop(["TranID"], axis=1, inplace=True)
@@ -133,6 +143,9 @@ class DB_Base:
         df["Money"] = df["Volume"] * df["Price"]
 
         return True, df, "Success"
+
+
+
 
     def get_hfq_df(self,fnwp):
         try:

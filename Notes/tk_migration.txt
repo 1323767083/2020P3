@@ -1,7 +1,0 @@
-What to use instead?
-
-Matplotlib now wants you to use
-
-NavigationToolbar2Tk
-
-https://stackoverflow.com/questions/50330320/what-to-use-instead-of-navigationtoolbar2tkagg

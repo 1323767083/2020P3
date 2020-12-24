@@ -1,4 +1,3 @@
-#from tensorflow import keras
 import os
 import tensorflow as tf
 from tensorflow import keras
@@ -25,8 +24,6 @@ class Train_Brain:
         keras.backend.set_learning_phase(1)  # add by john for error solved by
         self.lc=lc
         self.mc=globals()[lc.CLN_trainer](lc)
-        #self.tb = train_buffer(lc.Buffer_nb_Features)
-        #self.tb = globals()[lc.CLN_brain_buffer](lc.Buffer_nb_Features)
         self.tb = globals()[lc.CLN_brain_buffer](lc)
         self.train_push_many = self.tb.train_push_many
         self.get_buffer_size = self.tb.get_buffer_size

@@ -188,13 +188,16 @@ class DBTP_Creater(DBTP_Base):
 
 
 class Process_Generate_DBTP(Process):
-    def __init__(self, DBTP_Name, SL_Name,Stocks, StartI, EndI, process_id ):
+    def __init__(self, DBTP_Name, SL_Name,Stocks, StartI, EndI, process_id, flag_overwrite, flag_debug=False ):
         Process.__init__(self)
         self.iDBTP_Creater=DBTP_Creater(DBTP_Name)
         self.Stocks=Stocks
         self.StartI= StartI
         self.EndI= EndI
         self.process_id=process_id
+        self.flag_overwrite=flag_overwrite  #overwrite flag是 让 log file 从新开始写
+        self.flag_debug=flag_debug  # debug flag 是 让所有输出都在屏幕上， 不写log
+
         logdn=self.iDBTP_Creater.Dir_IDB
         for sub_dir in ["Stock_List",SL_Name, "CreateLog"]:
             logdn=os.path.join(logdn,sub_dir)
@@ -204,11 +207,17 @@ class Process_Generate_DBTP(Process):
         self.stderrfnwp = os.path.join(logdn, "Process{0}Error.txt".format(process_id))
         pd.DataFrame(self.Stocks,columns=["stock"]).to_csv(os.path.join(logdn,"Process{0}SL.csv".format(process_id)), index=False)
 
+
     def run(self):
         print ("Printout has been redirected to {0}".format(self.stdoutfnwp))
         from contextlib import redirect_stdout,redirect_stderr
-        newstdout = open(self.stdoutfnwp, "a")
-        newstderr = open(self.stderrfnwp, "a")
+        if self.flag_debug:
+            newstdout = sys.__stdout__
+            newstderr = sys.__stderr__
+        else:
+            newstdout = open(self.stdoutfnwp, "w" if self.flag_overwrite else "a")
+            newstderr = open(self.stderrfnwp, "w" if self.flag_overwrite else "a")
+
         with redirect_stdout(newstdout),redirect_stderr(newstderr):
             print("#####################################################################")
             print("start process at {0}".format(datetime.now().time()))
@@ -220,7 +229,8 @@ class Process_Generate_DBTP(Process):
                 print ("End with {0}".format(mess))
                 print ("Process {0} finish {1:.2f}".format(self.process_id, (idx+1)/total_num), file=sys.__stdout__)
                 newstdout.flush()
-def DBTP_main(DBTP_Name,SL_Name, NumP=4):
+
+def DBTP_main(DBTP_Name,SL_Name, NumP, flag_overwrite):
     iSL=StockList(SL_Name)
     for tag, idx, StartI, EndI in iSL.SLDef["DBTP_Generator"]:
         assert StartI<EndI and StartI//1000000==20 and EndI//1000000==20
@@ -235,7 +245,7 @@ def DBTP_main(DBTP_Name,SL_Name, NumP=4):
         for i in list(range(NumP)):
             len_to_get=sub_len+1 if i< sub_beneficial else sub_len
             #PI=Process_Generate_DBTP(DBTP_Name, SL_Name,sl[:len_to_get+1], StartI, EndI,i)
-            PI = Process_Generate_DBTP(DBTP_Name, SL_Name, sl[:len_to_get], StartI, EndI, i)
+            PI = Process_Generate_DBTP(DBTP_Name, SL_Name, sl[:len_to_get], StartI, EndI, i, flag_overwrite)
             PI.daemon = True
             PI.start()
             PIs.append(PI)

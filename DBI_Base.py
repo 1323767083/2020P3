@@ -133,7 +133,8 @@ class DBI_init(DB_Base):
         for index_code in self.DBI_Index_Code_List:
             fnwp=self.get_DBI_index_fnwp(index_code)
             if os.path.exists(fnwp): os.remove(fnwp)
-        flag_HFQ_inited_fnwp=os.path.join(self.Dir_DBI_Update_Log_HFQ_Index,self.DBI_HFQ_Inited_flag)
+        #flag_HFQ_inited_fnwp=os.path.join(self.Dir_DBI_Update_Log_HFQ_Index,self.DBI_HFQ_Inited_flag)
+        flag_HFQ_inited_fnwp=self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
         if os.path.exists(flag_HFQ_inited_fnwp): os.remove(flag_HFQ_inited_fnwp)
         for fn in os.listdir(self.Dir_DBI_HFQ):
             os.remove(os.path.join(self.Dir_DBI_HFQ,fn))
@@ -315,7 +316,8 @@ class StockList(DBI_init):
         assert filter in ["SH", "SZ"], "Filter Not Support****{0}".format(filter)
         adjust_StartI = self.nptd[np.where(self.nptd >= StartI)[0][0] - IPO_threadhold]
         adjust_EndI = self.nptd[np.where(self.nptd <= EndI)[0][-1]]
-        HFQlog_fnwp = os.path.join(self.Dir_DBI_Update_Log_HFQ_Index, self.DBI_HFQ_Inited_flag)
+        #HFQlog_fnwp = os.path.join(self.Dir_DBI_Update_Log_HFQ_Index, self.DBI_HFQ_Inited_flag)
+        HFQlog_fnwp =self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
         df = pd.read_csv(HFQlog_fnwp, header=0, names=self.title_DBI_HFQ_Inited_flag)
         sl_source = df[df["result"] == True]["code"].tolist()
         sl_result = []

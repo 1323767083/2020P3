@@ -57,3 +57,7 @@ rdchujf, pass same as linux
 
 keep the RL system untouched
 chmod -R ug-w Buy300_2
+
+
+tensorboard
+ tensorboard --logdir tensorboard --port 6002 --bind_all     #bind_all make it can be access from internet

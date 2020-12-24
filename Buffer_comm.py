@@ -214,7 +214,8 @@ class TD_memory_integrated:
             else:
                 assert idx_HP>=0,  idx_HP  #HP phase finished
                 del self.memory[:-(idx_HP+1)]
-                self.iavh.set_final_record_AV(self.memory[-1][0][2][0])  #-1 last record 0 means state in memory 2 means AV 0 means av item has shape (0,13)
+                #self.iavh.set_final_record_AV(self.memory[-1][0][2][0])  #-1 last record 0 means state in memory 2 means AV 0 means av item has shape (0,13)
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
                 return True
         else:                       #HP phase not finished
             del self.memory[:]
@@ -233,7 +234,8 @@ class TD_memory_integrated:
                 raw_reward = self.memory[-1][2]
                 del self.memory[-(idx_HP + 1):]
                 self.memory[-1][2] = raw_reward * self.gamma ** (idx_HP + 1)
-                self.iavh.set_final_record_AV(self.memory[-1][0][2][0])
+                #self.iavh.set_final_record_AV(self.memory[-1][0][2][0])
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
                 return True
         else:                               #HP phase not finished
             assert idx_HP==self.lc.LHP

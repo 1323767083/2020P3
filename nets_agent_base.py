@@ -10,22 +10,18 @@ class nets_conf:
     @DynamicAttrs
     """
 def get_agent_nc(lc):
+    assert "CNN" in lc.agent_method_sv and "CNN" in lc.agent_method_joint_lvsv
     nc=nets_conf()
     N_item_list=["lv_shape","sv_shape"]
     CNN_sv_list=["flag_s_level","s_kernel_l","s_filter_l","s_maxpool_l"]
     CNN_lv_list=["flag_l_level","l_kernel_l","l_filter_l","l_maxpool_l"]
     D_list=["dense_l","dense_prob","dense_advent"]
-
-    assert "CNN" in lc.agent_method_sv and "CNN" in lc.agent_method_joint_lvsv
-
     nc_item_list=[]
     for list_add in [N_item_list,D_list,CNN_sv_list,CNN_lv_list]:
         nc_item_list += list_add
-
     for item_title in nc_item_list:
         assert item_title in list(lc.net_config.keys()), item_title
         setattr(nc, item_title, lc.net_config[item_title])
-
     nc.lv_shape = tuple(nc.lv_shape)
     nc.sv_shape = tuple(nc.sv_shape)
     return nc
@@ -44,7 +40,7 @@ class common_component:
         conv_name,max_pool_name, relu_name= name + '_conv',name + '_pool',name + '_relu'
         a = keras.layers.Conv1D(filters=filters, padding='same', kernel_size=kernel,name=conv_name)(input_tensor)
         if max_pool>1 and a.shape[1]>1:#todo dirty solution for 1D only
-            a = keras.layers.MaxPool1D(pool_size=max_pool, padding='valid', strides=1,name=max_pool_name)(a)
+            a = keras.layers.MaxPool1D(pool_size=max_pool, padding='valid', name=max_pool_name)(a) #strides=1,不注明就是和pool_size一样
         d = keras.layers.LeakyReLU(name=relu_name)(a)
         return d
 
@@ -53,7 +49,7 @@ class common_component:
         conv_name,max_pool_name, relu_name= name + '_conv',name + '_pool',name + '_relu'
         a = keras.layers.Conv2D(filters=filters, padding='same', kernel_size=kernel,name=conv_name)(input_tensor)
         if max_pool > 1 and a.shape[1]>1 and a.shape[2]>1:  #todo dirty solution for 2D only
-            a = keras.layers.MaxPool2D(pool_size=max_pool, padding='valid', strides=(1,1),name=max_pool_name)(a)
+            a = keras.layers.MaxPool2D(pool_size=max_pool, padding='valid', name=max_pool_name)(a) #strides=(1,1),不注明就是和pool_size一样
         d = keras.layers.LeakyReLU(name=relu_name)(a)
         return d
 
@@ -101,7 +97,7 @@ class LVSV_component:
                                         kernel_size=kernel, name=conv_nm), name="TD_{0}".format(conv_nm))(immediate_sv)
             if maxpool > 1 and immediate_sv.shape[1]>1:
                 immediate_sv = keras.layers.TimeDistributed(keras.layers.MaxPool1D(pool_size=maxpool, padding='valid',
-                                        strides=1,name=pool_nm), name="TD_{0}".format(pool_nm))(immediate_sv)
+                                        name=pool_nm), name="TD_{0}".format(pool_nm))(immediate_sv) #strides=1,不注明就是和pool_size一样
             immediate_sv = keras.layers.TimeDistributed(keras.layers.LeakyReLU(name=relu_nm), name="TD_{0}".format(relu_nm))(immediate_sv)
         output_sv = keras.layers.Lambda(lambda x: keras.backend.squeeze(x, axis=2), name=name + "_SV")(immediate_sv)
         return output_sv
@@ -120,8 +116,7 @@ class LVSV_component:
                 assert kernel == 0
                 immediate_lv_t = self.cc.Inception_1D_module(filter, immediate_lv, name=conv_name)
                 if maxpool > 1 and immediate_lv.shape[1]>1:
-                    immediate_lv = keras.layers.MaxPool1D(pool_size=maxpool, padding='valid',
-                                                          strides=1, name=pool_name)(immediate_lv_t)
+                    immediate_lv = keras.layers.MaxPool1D(pool_size=maxpool, padding='valid',name=pool_name)(immediate_lv_t) #strides=1,不注明就是和pool_size一样
         lv_sv_joint_state = keras.layers.Reshape((self.nc.l_filter_l[-1],), name=name + "LV_SV_joint")(immediate_lv)
         return lv_sv_joint_state
 
@@ -137,8 +132,7 @@ class LVSV_component:
                 assert kernel == 0
                 immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
                 if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
-                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',
-                                                       strides=(1,1),name=pool_nm)(immediate)
+                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
         output_sv = keras.layers.Flatten(name=name)(immediate)
         return output_sv
 
@@ -161,6 +155,7 @@ class LVSV_component:
         ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',name="Action_prob")(Pre_a)
         Pre_sv = self.cc.construct_denses(self.nc.dense_advent[:-1], state,name=name + "_Pre_sv")
         sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='linear',name="State_value")(Pre_sv)
+        #sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='tanh', name="State_value")(Pre_sv)
         return ap, sv
 
 class V2OS_4_OB_agent:
@@ -206,7 +201,6 @@ class net_agent_base:
             self.layer_label = "OS"
             self.choose_action=self.V2_choose_action
             self.choose_action_CC=None
-
             assert self.lc.P2_current_phase == "Train_Sell"
         else:
             self.av_shape = self.lc.OB_AV_shape
@@ -215,7 +209,6 @@ class net_agent_base:
             assert self.lc.P2_current_phase == "Train_Buy"
             self.choose_action=self.V3_choose_action
             self.choose_action_CC=self.V3_choose_action_CC
-
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -275,7 +268,7 @@ class net_agent_base:
                 l_sv.append(sell_sv[0])
             else: # not have holding
                 if calledby=="Explore":
-                    if np.random.choice([0, 1], p=[0.5,0.5]): #TODO need to find whether configure in config needed:
+                    if np.random.choice([0, 1], p=[0.8,0.2]): #TODO need to find whether configure in config needed:
                         action=0
                     else:
                         action = self.i_action.I_nets_choose_action(buy_prob)
@@ -299,4 +292,3 @@ class net_agent_base:
         l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
         l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
         return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
-

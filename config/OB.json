@@ -218,15 +218,6 @@
             64,
             32,
             1
-        ],
-        "###comment###":"only for agent_method_sv, agent_method_joint_lvsv is RNN or RCN",
-        "ms_param_TimeDistributed": [
-            100,
-            256
-        ],
-        "ms_param_CuDNNLSTM": [
-            100,
-            200
         ]
     },
     "===========Tunning_Param=======": "=======================",
