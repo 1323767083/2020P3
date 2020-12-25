@@ -53,10 +53,18 @@ Guide to update DBI
      1. 整数传成浮点数  如100  传成 99.99999999999999 或 100.0000000000001
      2. 有NaN 和 undefined
      
-4.python DB_main.py Create_List_Stock_Fail_Generate_TPDB SLV1  
+4.python DB_main.py Create_List_Stock_Fail_Generate_TPDB SLV300  
    根据 /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/CreateLog里 的 error log 生成
    /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/Adj_to_Remove.csv
    由于格式原因， 这个文件要打开后手工整理， 如有糊涂地方， 把每个error log 打开记下所有出错的股票代码
+
+   不如如下：   
+   Decompress File Not Found****/home/rdchujf/DB_raw/Normal/decompress/201807/20180720/000671.csv
+   qz_mess = self.IRD.get_qz_df_inteface( Stock
+   Not Enough Record
+
+   这里面000671 也是出错的股票代码
+   
    
 关于stock list
 1.create stock list 

@@ -161,8 +161,12 @@ class LVSV_component:
 class V2OS_4_OB_agent:
     def __init__(self,lc,ob_system_name, Ob_model_tc):
         self.lc=lc
-        self.model=self._load_model(ob_system_name, Ob_model_tc)
-        self.i_cav=globals()[self.lc.CLN_AV_Handler](lc)
+        if ob_system_name!="Just_sell":
+            self.model=self._load_model(ob_system_name, Ob_model_tc)
+            self.i_cav=globals()[self.lc.CLN_AV_Handler](lc)
+            self.predict=self.model_predict
+        else:
+            self.predict=lambda x: [np.array([[1,0] for _ in range(lc.batch_size)]),np.NaN]
     def _load_model(self, ob_system_name, Ob_model_tc):
         OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
         model_config_fnwp=os.path.join(OB_model_dir, "config.json")
@@ -176,7 +180,7 @@ class V2OS_4_OB_agent:
         print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
         return model
 
-    def predict(self, state):
+    def model_predict(self, state):
         lv, sv, av = state
         p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
         return p,v
@@ -256,16 +260,18 @@ class net_agent_base:
         if not hasattr(self, "OS_agent"):
             self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
             self.i_OS_action=actionOBOS("OS")
-        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        #sel_probs, sell_SVs = self.OS_agent.predict(state)
+        sel_probs, _ = self.OS_agent.predict(state)
         l_a,l_ap,l_sv = [],[],[]
-        for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
+        #for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
+        for buy_prob, sell_prob, buy_sv, av_item in zip(buy_probs, sel_probs, buy_SVs, av):
             assert len(buy_prob)==2 and len(sell_prob) == 2
             if self.i_cav.Is_Holding_Item(av_item):
                 #action = np.random.choice([2, 3], p=sell_prob)
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
                 l_ap.append(np.zeros_like(sell_prob))  # this is add zero and this record will be removed by TD_buffer before send to server for train
-                l_sv.append(sell_sv[0])
+                l_sv.append(np.NaN) #l_sv.append(sell_sv[0])
             else: # not have holding
                 if calledby=="Explore":
                     if np.random.choice([0, 1], p=[0.8,0.2]): #TODO need to find whether configure in config needed:
@@ -287,7 +293,8 @@ class net_agent_base:
         if not hasattr(self, "OS_agent"):
             self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
             self.i_OS_action=actionOBOS("OS")
-        sel_probs, sell_SVs = self.OS_agent.predict(state)
+        #sel_probs, sell_SVs = self.OS_agent.predict(state)
+        sel_probs, _ = self.OS_agent.predict(state)
         #TODO check whether need to convert to list and if there is effecient way to convert to list
         l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
         l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
