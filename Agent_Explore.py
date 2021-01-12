@@ -72,6 +72,7 @@ class Agent_Sub(Process):
         mod=len(total_stock_list)//self.lc.num_workers
         left=len(total_stock_list)%self.lc.num_workers
         self.stock_list = total_stock_list[process_idx * mod:(process_idx + 1) * mod]
+
         if process_idx<left:
             self.stock_list.append(total_stock_list[-(process_idx+1)])
 

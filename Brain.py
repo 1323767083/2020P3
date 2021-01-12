@@ -71,7 +71,7 @@ class Train_Process(Process):
 
 
     def init_weight_update(self, i_brain, Ds):
-        found_model_surfix = find_model_surfix(self.lc.brain_model_dir,Ds["train_count"])
+        found_model_surfix = find_model_surfix(self.lc.brain_model_dir,Ds["train_count"], True)
         if  found_model_surfix is None:
             last_saved_weights_fnwp=self.save_AIO_model_weight_config(i_brain,Ds["train_count"])
         else:
@@ -110,7 +110,7 @@ class Train_Process(Process):
         Ds["received_count_sum"] += accumulate_item_get
         Ds["l_recieved_count"][int(accumulate_item_get * 1.0 / 100) if accumulate_item_get < 1000 else 10] += 1
         Ds["accumulate_item_get_this_train_count"]=accumulate_item_get
-        numb_record_trained, _ = i_brain.optimize()
+        numb_record_trained = i_brain.optimize()
         if self.lc.flag_record_state:
             i_brain.mc.rv.recorder_process([Ds["train_count"], Ds["saved_trc"], Ds["print_trc"]])
             i_brain.mc.rv.saver()

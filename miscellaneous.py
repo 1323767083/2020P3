@@ -192,11 +192,19 @@ def get_VGPU_lists(lc):
         ll_VGPU_config[int(eval_core[-1])].append(percent_gpu)
         ll_VGPU_process[int(eval_core[-1])].append("eval_{0}".format(idx))
 
-def find_model_surfix(model_dir, eval_loop_count):
+def find_model_surfix(model_dir, eval_loop_count, flag_AIO_saved):
     l_model_fn = [fn for fn in os.listdir(model_dir) if "_T{0}.".format(eval_loop_count) in fn]
-    if len(l_model_fn) == 2:
-        regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
-        match = re.search(regex, l_model_fn[0])
-        return match.group(1)
+    if flag_AIO_saved:
+        if len(l_model_fn) == 2:
+            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
+            match = re.search(regex, l_model_fn[0])
+            return match.group(1)
+        else:
+            return None
     else:
-        return None
+        if len(l_model_fn) == 1:
+            regex = r'\w*(_\d{4}_\d{4}_T\d*).h5'
+            match = re.search(regex, l_model_fn[0])
+            return match.group(1)
+        else:
+            return None

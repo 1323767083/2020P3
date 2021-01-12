@@ -154,6 +154,10 @@ class gconfig_data:
         self.Max_TotalMoney=float("nan")
         self.low_profit_threadhold=float("nan")
         self.CC_strategy_fun=""
+
+        #new add param, have default value here
+        self.flag_train_random_explore=True
+        self.flag_train_store_AIO_model=True
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -240,8 +244,8 @@ class gconfig(gconfig_data):
 
         assert self.CLN_trainer == "PPO_trainer",self.CLN_trainer
 
-        assert self.agent_method_sv in ["CNN","CNN2D"]   #remove "RNN","RCN"
-        assert self.agent_method_joint_lvsv in ["CNN","CNN2D"] #remove "RNN","RCN"
+        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4"]   #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4"] #remove "RNN","RCN"
         assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
             self.OS_AV_shape = (self.LHP + 1,)

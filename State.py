@@ -25,19 +25,16 @@ class Phase_State(Phase_Data):
 
     def Init_Phase_State_V2_Explore(self):
         self.CuPs_force_flag = [True, True]
-        #assert self.lc.LNB==1
 
     def Init_Phase_State_V2_Eval(self):
         self.CuPs_force_flag = [True, False]
-        #assert self.lc.LNB==1
 
     def Init_Phase_State_V3_Explore(self):
-        self.CuPs_force_flag = [True, True]
-        #assert self.lc.LNB == 1
+        #self.CuPs_force_flag = [True, True]
+        self.CuPs_force_flag = [False, True]
     def Init_Phase_State_V3_Eval(self):
         #self.CuPs_force_flag = [False, False]
         self.CuPs_force_flag = [False, True]  # V3 is to evaluate buy agent, so need to forece sell all holding if possible
-        #assert self.lc.LNB == 1
 
     def check_need_force_state(self, action):
         if self._Is_Phase_Last_Step() and self.CuPs_force_flag[self.CuP]:

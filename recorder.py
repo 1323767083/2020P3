@@ -247,15 +247,11 @@ class get_recorder_OS_losses:
         assert self.lgc.P2_current_phase=="Train_Sell"
         self.ir = globals()[self.lgc.CLN_record_variable](self.lgc)
 
-
-        '''
-        self.L_tcs = [int(re.findall(r'\w+T(\d+).h5py', fn)[0]) for fn in os.listdir(self.lgc.brain_model_dir)
-                 if fn.startswith("train_model_AIO_")]
-        self.L_tcs.sort()
-        self.L_tcs.pop(-1)  # th unfinished trained tcs model
-        '''
+        #LETs= [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(self.lgc.brain_model_dir)
+        #   if fn.startswith("train_model_AIO_")]
         LETs= [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(self.lgc.brain_model_dir)
-           if fn.startswith("train_model_AIO_")]
+           if fn.startswith(self.lgc.actor_weight_fn_seed)]
+
         LETs.sort()
         LETs.pop(-1)
         self.L_tcs= [idx*self.lgc.num_train_to_save_model for idx in range(LETs[-1]/self.lgc.num_train_to_save_model+1)]

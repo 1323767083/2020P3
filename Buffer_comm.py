@@ -221,14 +221,16 @@ class TD_memory_integrated:
             del self.memory[:]
             return False
 
-
     def V3_verified_train_record(self):
         _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
         flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
         if not flag_in_HP:
             if idx_HP==-1:                  #NB phase not finished
-                del self.memory[:]
-                return False
+                #del self.memory[:]
+                #return False
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+                return True
+
             else:
                 assert idx_HP>=0            #HP phase finished
                 raw_reward = self.memory[-1][2]

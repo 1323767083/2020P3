@@ -47,8 +47,8 @@ class Train_Brain:
 
     def save_model(self, fnwps):
         model_AIO_fnwp, config_fnwp, weight_fnwp = fnwps
-
-        self.Tmodel.save(model_AIO_fnwp, overwrite=True, include_optimizer=True,save_format="h5")
+        if self.lc.flag_train_store_AIO_model:
+            self.Tmodel.save(model_AIO_fnwp, overwrite=True, include_optimizer=True,save_format="h5")
         if not os.path.exists(config_fnwp):
             model_json = self.Pmodel.to_json()
             with open(config_fnwp, "w") as json_file:
@@ -79,14 +79,14 @@ class Train_Brain:
         return result
 
     def optimize(self):
-        num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
+        num_record_to_train, loss_this_round, custom_dic = self.mc.optimize_com(self.tb, self.Pmodel, self.Tmodel)
         if num_record_to_train != 0:
-            self.tensorboard.on_epoch_end(self.tensorboard_batch_id,
-                                          self.named_loss(self.Tmodel, loss_this_round))
+            custom_dic.update(self.named_loss(self.Tmodel, loss_this_round))
+            self.tensorboard.on_epoch_end(self.tensorboard_batch_id,custom_dic)
             self.tensorboard_batch_id += 1
             if self.lc.flag_record_state:
                 self.mc.rv.recorder_brainer([self.Tmodel.metrics_names, loss_this_round])
-        return num_record_to_train, loss_this_round
+        return num_record_to_train
 
 
 class Explore_Brain(net_agent_base):

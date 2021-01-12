@@ -26,6 +26,7 @@ class Client_Datas_Common:
         self.l_ap = [[] for _ in self.stock_list]
         self.l_sv = [0.0 for _ in self.stock_list]
 
+
     def stack_l_state(self, l_state):
         l_lv, l_sv, l_av = [], [], []
         for state in l_state:

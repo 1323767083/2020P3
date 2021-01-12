@@ -301,9 +301,9 @@ class vtrainer_tk(tk.Frame):
             end_tc = saved_tc + steps_to_take
             for tc in range(saved_tc, end_tc):
                 RD_trainer, RD_brain, RD_process = i_rd.read_SC_CC_data_raw(saved_tc, tc)
-                num_record_to_train, loss_this_round = Dmodel["ib"].optimize(Dmodel["Tmodel"], Dmodel["Pmodel"], RD_trainer)
-                assert all([recoved_lm == saved_lm for recoved_lm, saved_lm in
-                            zip(loss_this_round, RD_brain[1])]), "{0}, {1}".format(loss_this_round, RD_brain)
+                num_record_to_train = Dmodel["ib"].optimize(Dmodel["Tmodel"], Dmodel["Pmodel"], RD_trainer)
+                #assert all([recoved_lm == saved_lm for recoved_lm, saved_lm in
+                #            zip(loss_this_round, RD_brain[1])]), "{0}, {1}".format(loss_this_round, RD_brain)
                 assert num_record_to_train == len(RD_trainer[0]), "{0} {1} ".format(num_record_to_train,
                                                                                     len(RD_trainer[0]))
                 print("optimized on train count {0}".format(tc))

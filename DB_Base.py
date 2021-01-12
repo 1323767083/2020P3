@@ -28,6 +28,8 @@ class DB_Base:
     Dir_raw_Index_base_addon_decompressed= "/home/rdchujf/Stk_qz_3_support/Stk_Day_Idx_addon_decompress"
     '''
     Dir_DB_Raw="/home/rdchujf/DB_raw"
+    #Dir_raw_normal_decompressed ="/home/rdchujf/DB_raw_Decompress"
+    #Dir_raw_normal_addon_decompressed ="/home/rdchujf/DB_raw_Decompress"
 
     Dir_raw_legacy_1 = os.path.join(Dir_DB_Raw, "Legacy")
     Dir_raw_legacy_2 = os.path.join(Dir_DB_Raw, "Legacy")

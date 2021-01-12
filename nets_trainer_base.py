@@ -26,14 +26,13 @@ class PPO_trainer:
         self.lc=lc
         self.nc=get_trainer_nc(lc)
 
-        self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent,
-                               self.M_advent_low, self.M_advent_high]
+        self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent]
+                               #self.M_advent_low, self.M_advent_high]
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
         self.load_model_custom_objects = {"join_loss": self.join_loss, "tf": tf, "concatenate": keras.backend.concatenate,
                                           "M_policy_loss": self.M_policy_loss, "M_value_loss": self.M_value_loss,
                                           "M_entropy_loss": self.M_entropy_loss, "M_state_value": self.M_state_value,
-                                          "M_advent": self.M_advent, "M_advent_low": self.M_advent_low,
-                                          "M_advent_high": self.M_advent_high, "lc": lc}
+                                          "M_advent": self.M_advent,"lc": lc}
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
         assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
@@ -161,14 +160,6 @@ class PPO_trainer:
         _, _, _, advent,  _= self.extract_y(y_pred)
         return tf.reduce_mean(advent)
 
-    def M_advent_low(self,y_true, y_pred):
-        _, _, _, advent,  _= self.extract_y(y_pred)
-        return tfp.stats.percentile(advent, 10., interpolation='lower')
-
-    def M_advent_high(self,y_true, y_pred):
-        _, _, _, advent, _= self.extract_y(y_pred)
-        return tfp.stats.percentile(advent, 90., interpolation='higher')
-
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name='input_l_view')
@@ -188,7 +179,7 @@ class PPO_trainer:
     def optimize_com(self, i_train_buffer, Pmodel, Tmodel):
         flag_data_available, stack_states, raw_states=self._vstack_states(i_train_buffer)
         if not flag_data_available:
-            return 0, None
+            return 0, None,None
         s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
         n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
         fake_y = np.ones((self.lc.batch_size, 1))
@@ -198,10 +189,20 @@ class PPO_trainer:
         assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
         _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
         rg = self.get_reward(n_r, v, n_s__av,l_support_view)
-        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,'input_account': self.get_av(n_s_av),
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+                                                 'input_account': self.get_av(n_s_av),
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
+        #n_r # v # rg
+        Custom_Dic={
+            "Count_minue_r":(n_r<0).sum(),
+            "Count_0_r":(n_r == 0).sum(),
+            "Count_positive_r": (n_r > 0).sum(),
+            "r_mean":n_r.mean()
+        }
+
+
         if self.lc.flag_record_state:
             self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
             self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
-        return num_record_to_train,loss_this_round
+        return num_record_to_train,loss_this_round,Custom_Dic

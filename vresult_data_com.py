@@ -44,8 +44,11 @@ def get_addon_setting(system_name,process_name):
     src_dir = os.path.join(sc.base_dir_RL_system, system_name, process_name)
     Lstock = [fn for fn in os.listdir(src_dir) if len(fn) == 8]
 
+    #LEvalT = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
+    #        if fn.startswith("train_model_AIO_")]
     LEvalT = [int(re.findall(r'\w+T(\d+).h5', fn)[0]) for fn in os.listdir(lgc.brain_model_dir)
-            if fn.startswith("train_model_AIO_")]
+            if fn.startswith(lgc.actor_config_fn_seed)]
+
     LEvalT.sort()
     LEvalT.pop(-1)
     LEvalT.pop(0)

@@ -161,9 +161,9 @@ class env_reward:
             return raw_profit
 
     def Success_sell_new(self,profit):
-        raw_profit = (profit - self.shift_factor) * self.scale_factor
+        raw_profit = profit - self.shift_factor
         if self.flag_clip:
-            return  10 if raw_profit > 10 else -10 if raw_profit < -10 else raw_profit
+            return  1 if raw_profit > 0 else -1 if raw_profit < 0 else raw_profit*10
         else:
             return raw_profit
 

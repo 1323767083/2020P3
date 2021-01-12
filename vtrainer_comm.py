@@ -51,8 +51,8 @@ class visual_trainer_brain:
     def optimize(self, Tmodel, Pmodel,inputs):
         with tf.device("/GPU:0"):
             self.tb.add(inputs)
-            num_record_to_train, loss_this_round = self.mc.optimize_com(self.tb, Pmodel, Tmodel)
-            return num_record_to_train, loss_this_round
+            num_record_to_train = self.mc.optimize_com(self.tb, Pmodel, Tmodel)
+            return num_record_to_train
 
     def get_layer_wb(self, model, layer_name):
         return model.get_layer(name=layer_name).get_weights()
