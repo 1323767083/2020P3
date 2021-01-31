@@ -71,7 +71,7 @@ class Train_Process(Process):
 
 
     def init_weight_update(self, i_brain, Ds):
-        found_model_surfix = find_model_surfix(self.lc.brain_model_dir,Ds["train_count"], True)
+        found_model_surfix = find_model_surfix(self.lc.brain_model_dir,Ds["train_count"], self.lc.flag_train_store_AIO_model)
         if  found_model_surfix is None:
             last_saved_weights_fnwp=self.save_AIO_model_weight_config(i_brain,Ds["train_count"])
         else:
@@ -98,7 +98,7 @@ class Train_Process(Process):
         if self.lc.Flag_Delete_Train_Brain_Buffer_After_Weight_Update:
             num_record_cleaned=self.get_train_records(self.delete_list)
             self.logger.info("train_count {0} clean {1} records".format(Ds["train_count"],num_record_cleaned))
-
+            i_brain.tb.reset_tb()  # also need to reset in the brain buffer train queque(tq)
         self.logger.info("train_count {0} finish worker weight update and start worker work".format(Ds["train_count"]))
         return
 

@@ -383,7 +383,9 @@ class net_agent_base:
             else: # not have holding
                 if self.lc.flag_train_random_explore:
                     if calledby=="Explore":
-                        if np.random.choice([0, 1], p=[0.8,0.2]): #TODO need to find whether configure in config needed:
+                        #if np.random.choice([0, 1], p=[0.8,0.2]): #TODO need to find whether configure in config needed:
+                        if np.random.choice([0, 1],
+                                p=[1-self.lc.train_random_explore_prob_buy, self.lc.train_random_explore_prob_buy]):
                             action=0
                         else:
                             action = self.i_action.I_nets_choose_action(buy_prob)

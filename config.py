@@ -158,6 +158,8 @@ class gconfig_data:
         #new add param, have default value here
         self.flag_train_random_explore=True
         self.flag_train_store_AIO_model=True
+        self.train_random_explore_prob_buy=0.2
+        self.train_total_los_clip=0
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)

@@ -57,6 +57,9 @@ class brain_buffer:
     def get_buffer_size(self):
         return len(self.train_queue[0])
 
+    def reset_tb(self):
+        for t_idx in range(self.lc.Buffer_nb_Features + 2 * 2):
+            del self.train_queue[t_idx][:]
 
 class brain_buffer_reuse:
     def __init__(self, lc):
@@ -99,7 +102,7 @@ class brain_buffer_reuse:
             return [False] + [None for _ in range(self.tq_out_numb_col)]
 
 
-    def reset(self):
+    def reset_tb(self):
         for t_idx in range(self.tq_numb_col):
             del self.tq[t_idx][:]
 

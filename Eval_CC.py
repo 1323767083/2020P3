@@ -6,29 +6,37 @@ from State import *
 class Eval_CC:
     #Max_TotalMoney=5000000
     #low_profit_threadhold = -0.02
+    seed_CC_Sub="EvalGroup{0}"
     def __init__(self,lc):
         self.lc=lc
         self.iSL = DBI_Base.StockList(self.lc.SLName)
-        self.CC_GroupIdx, self.l_CC_ProcessIdx=self.Get_V3EvalCC_ProcessIdx_Range()
+        self.l_CC_GroupIdx, self.ll_CC_ProcessIdx=self.Get_V3EvalCC_ProcessIdx_Range()
 
-        if len(self.l_CC_ProcessIdx)!=0:
-            self.CC_OutBuffer=[[] for _ in self.l_CC_ProcessIdx]
+        if len(self.l_CC_GroupIdx)!=0:
             self.StartEndP =[]
             start_idx=0
             total_sl=[]
-            for sl in [self.iSL.Get_Eval_SubProcess_SL(lc, self.CC_GroupIdx, process_idx) for process_idx in self.l_CC_ProcessIdx]:
+            for sl in [self.iSL.Get_Eval_SubProcess_SL(lc, self.l_CC_GroupIdx[0], process_idx) for process_idx in self.ll_CC_ProcessIdx[0]]:
                 total_sl.extend(sl)
                 self.StartEndP.append(start_idx)
                 start_idx+=len(sl)
             else:
                 self.StartEndP.append(start_idx)
 
+            self.lll_CC_OutBuffer=[[[] for _ in self.ll_CC_ProcessIdx[location_idx]] for location_idx, _ in enumerate(self.l_CC_GroupIdx)]
+
             self.log_titles = self.lc.account_inform_titles + self.lc.simulator_inform_titles + self.lc.PSS_inform_titles
-            self.df = pd.DataFrame(columns=self.log_titles)
+            self.l_df = [pd.DataFrame(columns=self.log_titles) for _ in self.l_CC_GroupIdx]
             self.dfMoney_titles=["DateI","Money_in_hand","Eval_holding","Eval_Ttotal"]
-            self.dfMoney=pd.DataFrame(columns=self.dfMoney_titles)
+            self.l_dfMoney=[pd.DataFrame(columns=self.dfMoney_titles)  for _ in self.l_CC_GroupIdx]
+            self.ADlog_titles = ["DateI", "not_buy_due_limit", "not_buy_due_low_profit", "sell_due_low_profit"]
+            self.l_dfADlog = [pd.DataFrame(columns=self.ADlog_titles)   for _ in self.l_CC_GroupIdx]
+
             self.CC_log_dir = os.path.join(self.lc.system_working_dir, "CC")
             if not os.path.exists(self.CC_log_dir): os.mkdir(self.CC_log_dir)
+            for group_idx in self.l_CC_GroupIdx:
+                sub_dir=os.path.join(self.CC_log_dir,self.seed_CC_Sub.format(group_idx))
+                if not os.path.exists(sub_dir): os.mkdir(sub_dir)
 
             self.TotalInvest=self.lc.Max_TotalMoney
             self.i_cav = globals()[lc.CLN_AV_Handler](lc)
@@ -40,34 +48,40 @@ class Eval_CC:
         return self.lc.system_type=="LHPP2V3" and calledby=="Eval" and Cln_DBTP_Reader=="DBTP_Eval_CC_Reader"
 
     def Is_ProcessIdx_CCProcessIdx(self, ProcessIdx):
-        return ProcessIdx in self.l_CC_ProcessIdx
+        return any([ProcessIdx in l_CC_ProcessIdx for l_CC_ProcessIdx in  self.ll_CC_ProcessIdx])
 
-    def get_money_in_hand(self,ET):
-        return os.path.join(self.CC_log_dir, "ET{0}_money_in_hand.csv".format(ET))
+    def get_Group_location_idx(self, ProcessIdx):
+        return [ProcessIdx in l_CC_ProcessIdx for l_CC_ProcessIdx in self.ll_CC_ProcessIdx].index(True)
+
 
     def get_SL_fnwp(self):
         return os.path.join(self.CC_log_dir,"SL_in_order.csv")
 
-    def get_Record_fnwp(self,ET):
-        return os.path.join(self.CC_log_dir,"ET{0}.csv".format(ET))
+    def get_money_in_hand(self,ET,group_idx):
+        return os.path.join(self.CC_log_dir, self.seed_CC_Sub.format(group_idx),"ET{0}_money_in_hand.csv".format(ET))
 
-    def get_action_decision_log_fnwp(self,ET):
-        return os.path.join(self.CC_log_dir,"ET{0}_action_decision.csv".format(ET))
+    def get_Record_fnwp(self,ET, group_idx):
+        return os.path.join(self.CC_log_dir,self.seed_CC_Sub.format(group_idx), "ET{0}.csv".format(ET))
+
+    def get_action_decision_log_fnwp(self,ET, group_idx):
+        return os.path.join(self.CC_log_dir,self.seed_CC_Sub.format(group_idx), "ET{0}_action_decision.csv".format(ET))
 
     def Stop_Record_on_ET(self, ET):
         self.TotalInvest = self.lc.Max_TotalMoney   #this is to make next round evaluation has money
-        if hasattr(self, "df"):
-            self.df.to_csv(self.get_Record_fnwp(ET), index=False, float_format='%.2f')
-            self.df.drop(self.df.index, inplace=True) #delete all row
-        if hasattr(self, "dfADlog"):
-            self.dfADlog.to_csv(self.get_action_decision_log_fnwp(ET), index=False, float_format='%.2f')
-            self.dfADlog.drop(self.dfADlog.index, inplace=True) #delete all row
-        #self.dfMoney
-        if hasattr(self, "dfMoney"):
-            self.dfMoney.to_csv(self.get_money_in_hand(ET), index=False, float_format='%.2f')
-            self.dfMoney.drop(self.dfMoney.index, inplace=True) #delete all row
+        if hasattr(self, "l_df"):
+            for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
+                self.l_df[location_group_idx].to_csv(self.get_Record_fnwp(ET,group_idx), index=False, float_format='%.2f')
+                self.l_df[location_group_idx].drop(self.l_df[location_group_idx].index, inplace=True) #delete all row
+        if hasattr(self, "l_dfADlog"):
+            for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
+                self.l_dfADlog[location_group_idx].to_csv(self.get_action_decision_log_fnwp(ET,group_idx), index=False, float_format='%.2f')
+                self.l_dfADlog[location_group_idx].drop(self.l_dfADlog[location_group_idx].index, inplace=True) #delete all row
+        if hasattr(self, "l_dfMoney"):
+            for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
+                self.l_dfMoney[location_group_idx].to_csv(self.get_money_in_hand(ET,group_idx), index=False, float_format='%.2f')
+                self.l_dfMoney[location_group_idx].drop(self.l_dfMoney[location_group_idx].index, inplace=True) #delete all row
 
-    def Buy_Strategy_one_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag):
+    def Buy_Strategy_one_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag,location_group_idx):
         Sidxs_all       = set(list(range(len(l_a_OB))))
         Sidxs_OB_buy    = set([idx for idx, action in enumerate(l_a_OB) if action ==0])
         Sidxs_holding   = set([idx for idx, holding_flag in enumerate(l_holding) if holding_flag])
@@ -97,20 +111,14 @@ class Eval_CC:
         l_not_buy_due_low_profit.sort()
         l_sell_due_low_profit.sort()
         l_not_buy_due_limit.sort()
-
-        if not hasattr(self,"dfADlog"):
-            self.ADlog_titles = ["DateI", "not_buy_due_limit", "not_buy_due_low_profit", "sell_due_low_profit"]
-            self.dfADlog = pd.DataFrame(columns=self.ADlog_titles)
-
         l_ADlog=[dateI,
                 "_".join(map(str, l_not_buy_due_limit)),
                 "_".join(map(str, l_not_buy_due_low_profit)),
                 "_".join(map(str, l_sell_due_low_profit))]
-        self.dfADlog = self.dfADlog.append(pd.DataFrame([l_ADlog],columns=self.ADlog_titles), ignore_index=True)
-
+        self.l_dfADlog[location_group_idx] = self.l_dfADlog[location_group_idx].append(pd.DataFrame([l_ADlog],columns=self.ADlog_titles), ignore_index=True)
         return l_a
 
-    def Buy_Strategy_multi_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag):
+    def Buy_Strategy_multi_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag, location_group_idx):
         Sidxs_all       = set(list(range(len(l_a_OB))))
         Sidxs_OB_buy    = set([idx for idx, action in enumerate(l_a_OB) if action ==0])
         Sidxs_holding   = set([idx for idx, holding_flag in enumerate(l_holding) if holding_flag])
@@ -149,26 +157,23 @@ class Eval_CC:
         l_not_buy_due_limit.sort()
         l_multibuy.sort()
 
-        if not hasattr(self,"dfADlog"):
-            self.ADlog_titles = ["DateI", "not_buy_due_limit", "not_buy_due_low_profit", "sell_due_low_profit","multibuy"]
-            self.dfADlog = pd.DataFrame(columns=self.ADlog_titles)
-
         l_ADlog=[dateI,
                 "_".join(map(str, l_not_buy_due_limit)),
                 "_".join(map(str, l_not_buy_due_low_profit)),
                 "_".join(map(str, l_sell_due_low_profit)),
                 "_".join(map(str, l_multibuy)) ]
-        self.dfADlog = self.dfADlog.append(pd.DataFrame([l_ADlog],columns=self.ADlog_titles), ignore_index=True)
+        self.l_dfADlog[location_group_idx] = self.l_dfADlog[location_group_idx].append(pd.DataFrame([l_ADlog],columns=self.ADlog_titles), ignore_index=True)
 
         return l_a
 
     def handler(self,process_idx, stacted_state,result,LL_GPU2Eval):
-        self.CC_OutBuffer[process_idx - self.l_CC_ProcessIdx[0]] = [stacted_state, result]
-        if any([len(item) == 0 for item in self.CC_OutBuffer]):
+        location_group_idx=self.get_Group_location_idx(process_idx)
+        self.lll_CC_OutBuffer[location_group_idx][process_idx - self.ll_CC_ProcessIdx[location_group_idx][0]] = [stacted_state, result]
+        if any([len(item) == 0 for item in self.lll_CC_OutBuffer[location_group_idx]]):
             return
         l_a_OB, l_a_OS, l_holding,L_Eval_Profit_low_flag,l_sell_return,l_buy_invest,l_DateI, l_log = [[] for _ in range(8)]
         l_holding_value=[]
-        for CC_OutBuffer_item in  self.CC_OutBuffer:
+        for CC_OutBuffer_item in  self.lll_CC_OutBuffer[location_group_idx]:
             [_, _, av],[l_a_OB_round, l_a_OS_round]=CC_OutBuffer_item
             l_a_OB.extend(l_a_OB_round)
             l_a_OS.extend(l_a_OS_round)
@@ -182,37 +187,37 @@ class Eval_CC:
             l_holding_value.extend([self.i_cav.get_inform_item(av_item,"Holding_Gu")*
                                     self.i_cav.get_inform_item(av_item,"Holding_NPrice") for av_item in av])
         assert len(set(l_DateI))==1,l_DateI
-        print(l_DateI[0])
-        self.df=self.df.append(pd.DataFrame(l_log,columns=self.log_titles), ignore_index=True)
-
+        print(location_group_idx,"   ", l_DateI[0])
+        self.l_df[location_group_idx] =self.l_df[location_group_idx].append(pd.DataFrame(l_log,columns=self.log_titles), ignore_index=True)
         self.TotalInvest=self.TotalInvest-sum(l_buy_invest)+ sum(l_sell_return)
         eval_holding_value=sum(l_holding_value)
-        self.dfMoney =self.dfMoney.append(pd.DataFrame([[l_DateI[0],self.TotalInvest, eval_holding_value,
-                                        self.TotalInvest+eval_holding_value]],
-                                        columns=self.dfMoney_titles),ignore_index=True)
+        self.l_dfMoney[location_group_idx] = self.l_dfMoney[location_group_idx].append(pd.DataFrame(
+            [[l_DateI[0], self.TotalInvest, eval_holding_value,self.TotalInvest+eval_holding_value]],
+            columns=self.dfMoney_titles),ignore_index=True)
 
         num_stock_could_invest= int(self.TotalInvest//self.lc.env_min_invest_per_round)
 
         l_a = getattr(self, self.lc.CC_strategy_fun)(l_DateI[0],num_stock_could_invest,l_a_OB,l_a_OS,l_holding,
-                                                     L_Eval_Profit_low_flag)
+                                                     L_Eval_Profit_low_flag, location_group_idx)
 
-        for process_idx in self.l_CC_ProcessIdx:
-            idx=process_idx-self.l_CC_ProcessIdx[0]
-            result=[l_a[self.StartEndP[idx]:self.StartEndP[idx+1]],self.fakeap,self.fakesv]  #l_ap and l_sv not used in Eval CC as no are log needed
+        for process_idx in self.ll_CC_ProcessIdx[location_group_idx]:
+            idx=process_idx-self.ll_CC_ProcessIdx[location_group_idx][0]
+            result=[l_a[self.StartEndP[idx]:self.StartEndP[idx+1]],
+                    self.fakeap[self.StartEndP[idx]:self.StartEndP[idx+1]],
+                    self.fakesv[self.StartEndP[idx]:self.StartEndP[idx+1]]]  #l_ap and l_sv not used in Eval CC as no are log needed
             LL_GPU2Eval[process_idx].append(result)
-        for CC_OutBuffer_item in self.CC_OutBuffer:
+        for CC_OutBuffer_item in self.lll_CC_OutBuffer[location_group_idx]:
             del CC_OutBuffer_item[:]
 
     def Get_V3EvalCC_ProcessIdx_Range(self):
         L_CC_ProcessGroup=[idx for idx,process_group_idx in enumerate(self.lc.l_eval_num_process_group)
                     if self.lc.l_CLN_env_get_data_eval[process_group_idx]=="DBTP_Eval_CC_Reader"]
         if len(L_CC_ProcessGroup)==0:
-            return np.NaN,[]
-        elif len(L_CC_ProcessGroup)==1:
-            return L_CC_ProcessGroup[0], list(range(L_CC_ProcessGroup[0]*self.lc.eval_num_process_per_group,
-                                                    (L_CC_ProcessGroup[0]+1)*self.lc.eval_num_process_per_group))
+            return [],[]
         else:
-            assert False, "DBTP_Eval_CC_Reader Only can be one progcess group DBTP_reader"
+            return L_CC_ProcessGroup, [list(range(CC_ProcessGroup*self.lc.eval_num_process_per_group,
+                   (CC_ProcessGroup+1)*self.lc.eval_num_process_per_group)) for CC_ProcessGroup in L_CC_ProcessGroup]
+
 
     def Extract_V3EvalCC_MultiplexAction(self,MultiplexAction):
         action=MultiplexAction%10

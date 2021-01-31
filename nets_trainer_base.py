@@ -67,7 +67,7 @@ class PPO_trainer:
         Pmodel = keras.models.model_from_json(loaded_model_json, custom_objects=self.load_jason_custom_objects)
         self.load_model_custom_objects["P"]=Pmodel
         L_Tmodel = keras.models.load_model(model_AIO_fnwp, compile=True, custom_objects=self.load_model_custom_objects)
-        syncronize_predict_model = L_Tmodel.get_layer("P")
+        syncronize_predict_model = L_Tmodel.get_layer("P")  #todo check whether this operation is ok
         return L_Tmodel, syncronize_predict_model
 
     def _vstack_states(self,i_train_buffer):
@@ -111,7 +111,8 @@ class PPO_trainer:
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
         loss_policy = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
-        return tf.reduce_mean(-loss_policy)
+        assert loss_policy.shape[1]==1,loss_policy.shape
+        return tf.reduce_mean(-loss_policy,axis=0)
     #compare with old m new is to avoid policy losss is huge, which is very seldom, but if happen totally distroy the learning
     #normally loss is at 0.02 scale
     def join_loss_policy_part(self,y_true,y_pred):
@@ -122,12 +123,15 @@ class PPO_trainer:
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
 
         loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-10, clip_value_max=10)
-        return tf.reduce_mean(-loss_policy)
+        assert loss_policy.shape[1] == 1, loss_policy.shape
+        return tf.reduce_mean(-loss_policy,axis=0)
+
 
     def join_loss_entropy_part(self, y_true, y_pred):
         prob, v, input_a, advent,oldAP  = self.extract_y(y_pred)
         entropy = self.lc.LOSS_ENTROPY * tf.reduce_sum(prob * keras.backend.log(prob + 1e-10), axis=1, keepdims=True)
-        return tf.reduce_mean(-entropy)
+        assert entropy.shape[1] ==1, entropy.shape
+        return tf.reduce_mean(-entropy,axis=0)
 
     def join_loss_sv_part(self, y_true, y_pred):
         prob, v, input_a, advent,oldAP = self.extract_y(y_pred)
@@ -135,13 +139,18 @@ class PPO_trainer:
             loss_value = self.lc.LOSS_V * tf.square(advent)
         else:
             loss_value = self.lc.LOSS_V * keras.backend.minimum (tf.square(advent),self.lc.LOSS_sqr_threadhold)
-        return tf.reduce_mean(loss_value)
+        assert loss_value.shape[1] == 1, loss_value.shape
+        return tf.reduce_mean(loss_value,axis=0)
 
     def join_loss(self,y_true, y_pred):
         loss_p = self.join_loss_policy_part(y_true, y_pred)
         loss_e = self.join_loss_entropy_part(y_true, y_pred)
         loss_v = self.join_loss_sv_part(y_true, y_pred)
-        return loss_p + loss_v + loss_e
+        loss=loss_p + loss_v + loss_e
+        assert loss.shape[0] == 1, loss
+        if self.lc.train_total_los_clip!=0:
+            loss=tf.clip_by_value(loss, clip_value_min=-self.lc.train_total_los_clip, clip_value_max=self.lc.train_total_los_clip)
+        return loss
 
     def M_policy_loss(self,y_true, y_pred):
         return self.join_loss_policy_part(y_true, y_pred)
@@ -154,11 +163,11 @@ class PPO_trainer:
 
     def M_state_value(self,y_true, y_pred):
         _, v, _, _,  _= self.extract_y(y_pred)
-        return tf.reduce_mean(v)
+        return tf.reduce_mean(v,axis=0)
 
     def M_advent(self,y_true, y_pred):
         _, _, _, advent,  _= self.extract_y(y_pred)
-        return tf.reduce_mean(advent)
+        return tf.reduce_mean(advent,axis=0)
 
     def build_train_model(self, name="T"):
         Pmodel = self.build_predict_model("P")
