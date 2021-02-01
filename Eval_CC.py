@@ -23,6 +23,8 @@ class Eval_CC:
             else:
                 self.StartEndP.append(start_idx)
 
+            self.l_CC_last_eval_date=[99999999 for _ in self.l_CC_GroupIdx ] #999999 us make the first round start trigger the print
+
             self.lll_CC_OutBuffer=[[[] for _ in self.ll_CC_ProcessIdx[location_idx]] for location_idx, _ in enumerate(self.l_CC_GroupIdx)]
 
             self.log_titles = self.lc.account_inform_titles + self.lc.simulator_inform_titles + self.lc.PSS_inform_titles
@@ -187,7 +189,12 @@ class Eval_CC:
             l_holding_value.extend([self.i_cav.get_inform_item(av_item,"Holding_Gu")*
                                     self.i_cav.get_inform_item(av_item,"Holding_NPrice") for av_item in av])
         assert len(set(l_DateI))==1,l_DateI
-        print(location_group_idx,"   ", l_DateI[0])
+        if self.l_CC_last_eval_date[location_group_idx]>l_DateI[0]:
+            print("CC group {0} End Evaluation at {1} and Start Evaluation at {2}   ".format(location_group_idx,
+                                                self.l_CC_last_eval_date[location_group_idx],l_DateI[0]))
+        self.l_CC_last_eval_date[location_group_idx]=l_DateI[0]
+
+        #print(location_group_idx,"   ", l_DateI[0])
         self.l_df[location_group_idx] =self.l_df[location_group_idx].append(pd.DataFrame(l_log,columns=self.log_titles), ignore_index=True)
         self.TotalInvest=self.TotalInvest-sum(l_buy_invest)+ sum(l_sell_return)
         eval_holding_value=sum(l_holding_value)
@@ -210,13 +217,14 @@ class Eval_CC:
             del CC_OutBuffer_item[:]
 
     def Get_V3EvalCC_ProcessIdx_Range(self):
-        L_CC_ProcessGroup=[idx for idx,process_group_idx in enumerate(self.lc.l_eval_num_process_group)
+        L_CC_ProcessGroup=[process_group_idx for process_group_idx in self.lc.l_eval_num_process_group
                     if self.lc.l_CLN_env_get_data_eval[process_group_idx]=="DBTP_Eval_CC_Reader"]
         if len(L_CC_ProcessGroup)==0:
             return [],[]
         else:
-            return L_CC_ProcessGroup, [list(range(CC_ProcessGroup*self.lc.eval_num_process_per_group,
-                   (CC_ProcessGroup+1)*self.lc.eval_num_process_per_group)) for CC_ProcessGroup in L_CC_ProcessGroup]
+            return L_CC_ProcessGroup, [list(range(self.lc.l_eval_num_process_group.index(CC_ProcessGroup)*self.lc.eval_num_process_each_group,
+                   (self.lc.l_eval_num_process_group.index(CC_ProcessGroup)+1)*self.lc.eval_num_process_each_group)) for CC_ProcessGroup in L_CC_ProcessGroup]
+
 
 
     def Extract_V3EvalCC_MultiplexAction(self,MultiplexAction):

@@ -65,6 +65,9 @@ class Train_Brain:
         assert wait_result, "Fail to save {0} in 10 minuts(600 second)".format(weight_fnwp)
         os.rename(temp_fnwp, weight_fnwp)
 
+    def save_AIO_model(self, model_AIO_fnwp):
+        self.Tmodel.save(model_AIO_fnwp, overwrite=True, include_optimizer=True, save_format="h5")
+
     def load_model(self, fnwps):
         return self.mc.load_train_model(fnwps)
 

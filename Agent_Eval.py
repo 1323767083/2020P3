@@ -152,7 +152,7 @@ class EvalSub(Process):
                             if not self.Flag_CC_log:
                                 fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(
                                     self.Share_eval_loop_count.value,
-                                    self.process_idx % self.lc.eval_num_process_per_group)
+                                    self.process_idx % self.lc.eval_num_process_each_group)
                                 return_flag,_,Summery_count__mess,_=self.i_prepare_summary_are_1ET.\
                                     _generate_data__are_summary_1ET1G(self.Share_eval_loop_count.value,fnwps)
                                 if return_flag:

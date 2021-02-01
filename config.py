@@ -91,7 +91,7 @@ class gconfig_data:
         self.eval_core = "" #"GPU_1"
         self.percent_gpu_core_for_eva = float("nan") #0.2
         self.l_eval_num_process_group=[2]
-        self.eval_num_process_per_group=3
+        self.eval_num_process_each_group=3
 
         # loss WEIGHT
         self.LOSS_POLICY = float("nan") #1.0

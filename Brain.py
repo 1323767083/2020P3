@@ -167,5 +167,9 @@ class Train_Process(Process):
                 print(Ds)
 
                 print("Brain hold buffer size {0}".format(i_brain.tb.get_buffer_size()))
+            elif cmd_list[0][:-1] == "save":
+                AIO_fnwp=os.path.join(self.lc.brain_model_dir,"AIO{0}.h5".format(Ds["train_count"]))
+                i_brain.save_AIO_model(AIO_fnwp)
+                print ("AIO model saved in {0}".format(AIO_fnwp))
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))

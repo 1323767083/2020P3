@@ -253,7 +253,7 @@ class ana_reward_data(are_esi_reader, DBI_init):
         df_total=pd.DataFrame()
         l_TCSR_sum, l_TCSR_mean, l_TCSR_median, l_TCSR_std, l_TCSR_count,l_TCSR_Psum,l_TCSR_Nsum=[],[],[],[],[],[],[]
         TSummery_count={"EvalT":evalT,"effective_buy":0,"effective_sell":0,"effective_trans":0}
-        for group_process_id in list(range(self.lgc.eval_num_process_per_group)):
+        for group_process_id in list(range(self.lgc.eval_num_process_each_group)):
 
             fnwps=self._get_fnwp__are_summary_1ET1G(evalT, group_process_id)
             if self._check_exists__are_summary_1ET1G(fnwps):

@@ -414,13 +414,13 @@ class StockList(DBI_init):
             return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist())
 
     def Get_Eval_SubProcess_SL(self, lc,process_group_idx,process_idx):
-        process_idx_left = process_idx % lc.eval_num_process_per_group
+        process_idx_left = process_idx % lc.eval_num_process_each_group
         SL_idx, self.SL_StartI, self.SL_EndI = lc.l_eval_SL_param[process_group_idx]
         flag, group_stock_list = self.get_sub_sl("Eval", SL_idx)
 
         assert flag, "Get Stock list {0} tag=\"Eval\" index={1}".format(self.SLName, process_group_idx)
-        mod=len(group_stock_list)//lc.eval_num_process_per_group
-        left=len(group_stock_list)%lc.eval_num_process_per_group
+        mod=len(group_stock_list)//lc.eval_num_process_each_group
+        left=len(group_stock_list)%lc.eval_num_process_each_group
         stock_list = group_stock_list[process_idx_left * mod:(process_idx_left + 1) * mod]
         if process_idx_left<left:
             stock_list.append(group_stock_list[-(process_idx_left+1)])

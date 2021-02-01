@@ -168,8 +168,8 @@ class main(Process):
     def eval_init(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = self.lc.get_CUDA_VISIBLE_DEVICES_str(self.lc.eval_core)
 
-        #total_num_eval_process=self.lc.eval_num_process_group*self.lc.eval_num_process_per_group
-        total_num_eval_process = len(self.lc.l_eval_num_process_group) * self.lc.eval_num_process_per_group
+        #total_num_eval_process=self.lc.eval_num_process_group*self.lc.eval_num_process_each_group
+        total_num_eval_process = len(self.lc.l_eval_num_process_group) * self.lc.eval_num_process_each_group
 
         self.L_E_Start1Round = [self.Manager.Event() for _ in range(total_num_eval_process)]
         self.L_Eval2GPU = self.Manager.list()
@@ -186,7 +186,7 @@ class main(Process):
 
         process_idx=0
         for process_group_idx in self.lc.l_eval_num_process_group:
-            for _ in range(self.lc.eval_num_process_per_group):
+            for _ in range(self.lc.eval_num_process_each_group):
                 print ("Start Eval Process Group {0} Process idx {1}".format(process_group_idx,process_idx))
                 Eval_P = EvalSub(self.lc, process_group_idx,process_idx, self.L_Eval2GPU, self.LL_GPU2Eval[process_idx], self.L_E_Stop_Evalsub[process_idx],
                                  self.L_E_Start1Round[process_idx], self.Share_eval_loop_count)
