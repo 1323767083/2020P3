@@ -151,15 +151,19 @@ class gconfig_data:
 
         self.Plen=float("nan")
 
-        self.Max_TotalMoney=float("nan")
-        self.low_profit_threadhold=float("nan")
-        self.CC_strategy_fun=""
+        self.Max_TotalMoney=float("nan")  #todo obsolete to be delete
+        self.low_profit_threadhold=float("nan") #todo obsolete to be delete
+        self.CC_strategy_fun=""  #todo obsolete to be delete
 
         #new add param, have default value here
         self.flag_train_random_explore=True
         self.flag_train_store_AIO_model=True
         self.train_random_explore_prob_buy=0.2
         self.train_total_los_clip=0
+        self.l_CC_group_invest_total_money=float('nan')
+        self.l_CC_group_strategy_fun=float('nan')
+        self.l_CC_group_low_profit_threadhold=float("nan")
+        self.l_CC_min_invest_per_round=float("nan")
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -175,7 +179,7 @@ class gconfig(gconfig_data):
         self.command_pipe_seed = "pipe.command"
         self.specific_param=gconfig_specific()
         self.account_inform_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice",
-                               "Buy_Times", "Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice"]
+                               "Buy_Times", "Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice","Tinpai_huaizhang"]
 
         self.simulator_inform_titles=["DateI","StockI","Eval_Profit"]
         self.PSS_inform_titles =["AcutalAction"]
@@ -258,9 +262,32 @@ class gconfig(gconfig_data):
         len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
         self.PLen = self.LHP + self.LNB
+        if self.l_CC_group_invest_total_money!=self.l_CC_group_invest_total_money:  # x!=x is true means x is nan means this param not in the config and keep the default
+            self.l_CC_group_invest_total_money=[self.Max_TotalMoney if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else 0
+                                                for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
+            self.Max_TotalMoney=float('nan')  # Todo should be removed later keep only for not change the exsisting config file
+        else:
+            self.Max_TotalMoney = float('nan')
+        if self.l_CC_group_strategy_fun!=self.l_CC_group_strategy_fun:
+            self.l_CC_group_strategy_fun=[self.CC_strategy_fun if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else ""
+                                          for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
+            self.CC_strategy_fun=""
+        else:
+            self.CC_strategy_fun = ""
+
+        if self.l_CC_group_low_profit_threadhold!=self.l_CC_group_low_profit_threadhold:
+            self.l_CC_group_low_profit_threadhold=[self.low_profit_threadhold if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else 0
+                                          for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
+            self.low_profit_threadhold=float('nan')
+        else:
+            self.low_profit_threadhold = float('nan')
+
+        if self.l_CC_min_invest_per_round!=self.l_CC_min_invest_per_round:
+            self.l_CC_min_invest_per_round=[self.env_min_invest_per_round if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else 0
+                                          for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
+            #self.env_min_invest_per_round can not be set to nan as other evaluator(not CC) will use this value still
 
         l_specific_param_title=[]
-
         if self.system_type == "LHPP2V2":
             assert self.P2_current_phase == "Train_Sell"
             self.train_action_type = "OS"

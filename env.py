@@ -65,6 +65,9 @@ class env_account:
         self.Sell_Return = 0.0
         self.Sell_NPrice = 0.0
         self.Sell_Earn=0.0
+        self.Tinpai_huaizhang = 0.0
+
+
     def reset(self):
         self._account_reset()
 
@@ -120,7 +123,7 @@ class env_account:
     def get_inform_for_AV(self):
         return [getattr(self,titles)for titles in self.lc.account_inform_titles]
 
-class env_reward_old:
+class env_reward_old:  #todo to delete
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_punish_no_action):
         self.scale_factor,self.shift_factor, self.flag_clip=scale_factor, shift_factor, flag_clip
         if flag_punish_no_action:
@@ -139,7 +142,6 @@ class env_reward_old:
 
     def hist_scale(self):
         return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor
-
 
 class env_reward:
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_new_or_old):  # old reward from -1 to 1  new from -10 to 10
@@ -227,6 +229,7 @@ class Simulator_intergrated:
         support_view_dic["action_taken"] = action_str
 
         if not support_view_dic["Flag_Tradable"]:
+            self.i_account.no_action()  #this is to clean the step inform like the buy inform  ToDo double check
             reward = self.i_reward.Tinpai
             return_message="Tinpai"
             return return_message, reward, state, support_view_dic

@@ -82,7 +82,7 @@ class Phase_State(Phase_Data):
             # Following is to ensure while HP forece flag set, only unsuccess finish HP is tinpai
             if self.CuP==self.P_END and self.CuPs_force_flag[self.P_HP]:
                 assert return_message=="Tinpai"
-
+                self.i_av.set_Tinpai_huaizhang(raw_av[0])  #this is to put tinpai can not sell invest to Tinpai_huaizhang
         return Flag_Done, raw_av,action
 
     def _Update_Phase_Normal_Step(self, action, return_message,l_inform,Flag_Force_Next_Reset):
@@ -97,6 +97,7 @@ class Phase_State(Phase_Data):
             raw_av = self.i_av.fabricate_av(self.CuPs_idx, self.CuP, l_inform,action,Flag_Force_Next_Reset,
                                             flag_CuP_finished=False,flag_CuP_Successed=False)
             Flag_Done = False   #continue in current phase
+
         return Flag_Done, raw_av, action
 
 
@@ -218,6 +219,9 @@ class AV_Handler(Phase_Data):
 
     def Is_Force_Next_Reset(self,raw_av):
         return raw_av[self.PFlag_Force_Next_Reset]
+
+    def set_Tinpai_huaizhang(self,raw_av): #this is to store the the Holding_Invest due to tinpai and alsoholding period end
+        raw_av[self.PTinpai_huaizhang]=raw_av[self.PHolding_Invest]
 
 class AV_Handler_AV1(AV_Handler):
     def get_OS_AV(self,raw_av):
