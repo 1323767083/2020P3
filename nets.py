@@ -6,9 +6,13 @@ from Buffer_comm import brain_buffer, brain_buffer_reuse
 from action_comm import actionOBOS
 from nets_trainer_base import *
 
+#使用 GPU
+#https://www.tensorflow.org/guide/gpu
+
 def init_virtual_GPU(memory_limit):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     try:
+        tf.config.experimental.set_memory_growth(gpus[0], True)   #Todo this is avoid gpu memory for this process be further allocate after virtual device memory limitation set?
         tf.config.experimental.set_virtual_device_configuration(
             gpus[0],
             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])

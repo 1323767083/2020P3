@@ -91,7 +91,7 @@ def plot_multi_experiments(system_names__group_idxs,ET_tb_entropy_threadhold):
     for [_, i] in system_names__group_idxs:
         print ("location gruop idx ", i)
         reverse_sorted_idxes=sorted(list(range(len(l_acc_earn[i]))), key=lambda x:l_acc_earn[i][x],reverse=True)
-        for a in reverse_sorted_idxes[:10]:
+        for a in reverse_sorted_idxes[:30]:
             if l_ETs[i][a]<ET_tb_entropy_threadhold:
                 print ("{0} {1:.2f}".format(l_ETs[i][a],l_acc_earn[i][a]))
     #plt.show()

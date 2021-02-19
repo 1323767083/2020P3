@@ -41,7 +41,7 @@ Guide to update DBI
   ERROR: ERROR: Can not delete output file : No such file or directory : /
   home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csv
 
-3.python DB_main.py Generate_DBTP_Process TPVTest1 SLV1 4 True
+3.python DB_main.py Generate_DBTP_Process TPVTest1 SLV300 4 True
   根据
   a. 最后的 True 只能 用在 SL_Definition.json 之定义一个 list， 否则 第二次process 启动会覆盖第一次的结果
   b. SLV1 的 SL_Definition.json 里定义的 train 、eval stock list 和 起始终止时间
@@ -64,6 +64,9 @@ Guide to update DBI
    Not Enough Record
 
    这里面000671 也是出错的股票代码
+        use following command instead 
+        SLV300_TPV3/CreateLog$ grep "SZ" *Error.txt
+        SLV300_TPV3/CreateLog$ grep "SH" *Error.txt
    
    
 关于stock list
@@ -73,6 +76,21 @@ Guide to update DBI
     "Create_Sub_SL SLV1"
     DBTP 结果对它们的修正是在读取它们的list 时， 查找 Adj_to_Remove.csv （DBTP Error） 和 Price_to_Remove.csv （手工生成）
 
+添加新的element DBI和DBTP
+1. 在DBI_Creater 里建立新的element函数
+    Norm_Average_Nprice_And_Mount_Whole_Day_1M in DBI_Creater
+2. 在 I_DB 和 TP_DB 里建立 目录 和json file （如考虑硬盘大小， 可以是目录链接）
+    SV1M 目录下 DBI_Definition.json
+    TPV3 目录下 DBTP_Definition.json
+3. 单个股票试
+    python DB_main.py Generate_DBTP TPV3 SH600000 20200601 20201131
+4. 按stock list 建立 DBTP
+    python DB_main.py Generate_DBTP_Process TPV3 SLV300_TPV3 30 True
+    #注意SLV300 配置文件里的时间段信息，不同的DBTP 要用不同的 stocklist名字 即使是同样的stocklist
+5. python DB_main.py Create_List_Stock_Fail_Generate_TPDB SLV300_TPV3
+        use following command instead 
+        SLV300_TPV3/CreateLog$ grep "SZ" *Error.txt
+        SLV300_TPV3/CreateLog$ grep "SH" *Error.txt
 '''
 def main(argv):
     if len(argv)==0:

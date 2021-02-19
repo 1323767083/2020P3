@@ -20,6 +20,16 @@ for dir in [base_dir_RL_data,base_dir_RL_system]:
 
 l_GPU_size=[11019,12196]
 
+'''
+                                                                      actual  | set in config
+|    0     43112      C   sv5m_1_TrainBrain                           3967MiB | 3300
+|    0     43150      C   sv5m_1_ExploreAgent                         2867MiB | 2200
+|    0     47494      C   sv5m_1_EvalAgent                            2867MiB | 2200
+|    1     33898      C   sv1m_2_TrainBrain                           4231MiB | 3800
+|    1     33939      C   sv1m_2_ExploreAgent                         3231MiB | 2800
+|    1     40348      C   sv1m_2_EvalAgent                            3041MiB | 2800
+'''
+
 class gconfig_specific:
     """
     @DynamicAttrs
@@ -197,9 +207,12 @@ class gconfig(gconfig_data):
         self.sanity_check_convert_enhance()
 
     def sanity_check_convert_enhance(self):
-        self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
-        self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
-        self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
+        if self.Brian_gpu_percent<1:
+            self.Brian_gpu_percent = l_GPU_size[int(self.Brian_core[-1])]*self.Brian_gpu_percent
+        if self.percent_gpu_core_for_work<1:
+            self.percent_gpu_core_for_work=l_GPU_size[int(self.work_core[-1])]*self.percent_gpu_core_for_work
+        if self.percent_gpu_core_for_eva<1:
+            self.percent_gpu_core_for_eva=l_GPU_size[int(self.eval_core[-1])]*self.percent_gpu_core_for_eva
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
         assert self.env_max_invest_per_round==self.env_min_invest_per_round,"Only support single buy"
 

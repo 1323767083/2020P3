@@ -121,41 +121,7 @@ class LVSV_component:
         lv_sv_joint_state = keras.layers.Reshape((self.nc.l_filter_l[-1],), name=name + "LV_SV_joint")(immediate_lv)
         return lv_sv_joint_state
 
-    '''
-    def _get_2D_state(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level):
-        immediate = input_vector
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
-            assert flag in ["C", "I"]
-            prefix=name+str(idx)
-            if flag == "C":
-                immediate = self.cc.Cov_2D_module(kernel, filter, maxpool, immediate, name=prefix)
-            else:
-                assert kernel == 0
-                conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
-                immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
-                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
-                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
-        output_sv = keras.layers.Flatten(name=name)(immediate)
-        return output_sv
-    '''
-    '''
-    def _get_2D_state(self, input_vector, name, kernel_l, filter_l, maxpool_l, flag_level):
-        return self._get_2D_state_base(input_vector, name, kernel_l, filter_l, maxpool_l, flag_level, 'same')
-    '''
-    def CNN2D_get_SV_state(self, input_sv, name):
-        return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
-                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'same' )
-
-    def CNN2D_get_LV_SV_joint_state(self, inputs, name):
-        input_lv, SV_state = inputs
-        immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
-
-        lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,
-                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'same')
-        return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
-
-
-    def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type):
+    def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type, flag_stride_1):
         assert padding_type in ['same', 'valid']
         immediate = input_vector
         for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
@@ -163,9 +129,14 @@ class LVSV_component:
             prefix=name+str(idx)
             conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
             if flag == "C":
-                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm)(immediate)
+                assert  immediate.shape[1]!=1 or immediate.shape[2]!=1, "should not be all 1, {0}".format(immediate.shape)
+                strides=(1,1) if flag_stride_1 else (kernel if immediate.shape[1]!=1 else 1,kernel if immediate.shape[2]!=1 else 1)
+                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm,strides=strides)(immediate)
                 if maxpool > 1 and a.shape[1] > 1 and a.shape[2] > 1:  # todo dirty solution for 2D only
-                    a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
+                    if flag_stride_1:
+                        a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
+                    else:
+                        assert False, "while taking stride 3 not allow to maxpool"
                 immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
             else:
                 assert kernel == 0
@@ -175,81 +146,89 @@ class LVSV_component:
         output_sv = keras.layers.Flatten(name=name)(immediate)
         return output_sv
 
+    def CNN2D_get_SV_state(self, input_sv, name):
+        return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
+                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'same' , True)
+
+    def CNN2D_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, SV_state = inputs
+        immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
+
+        lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,
+                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'same', True)
+        return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
+
+
+
     def CNN2Dvalid_get_SV_state(self, input_sv, name):
         return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
-                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'valid' )
+                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'valid' , True)
 
     def CNN2Dvalid_get_LV_SV_joint_state(self, inputs, name):
         input_lv, SV_state = inputs
         immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
         lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,
-                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'valid')
+                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'valid', True)
         return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
 
+    ##CNN2DV2 only lv
     def CNN2DV2_get_SV_state(self, input_sv, name):
         return input_sv
     def CNN2DV2_get_LV_SV_joint_state(self, inputs, name):
-        input_lv, SV_state = inputs
-        adj_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
-        adj2_lv =keras.layers.Conv2D(filters=2, padding='same', kernel_size=1, name=name+"depth2")(adj_lv)
-        joint_lvsv=keras.layers.Concatenate(axis=2, name=name + "LV_SV_joint")([adj2_lv, SV_state])
-        lvsv_state= self._get_2D_state_base(joint_lvsv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,
-                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'same')
-        return lvsv_state
+        input_lv, _ = inputs
+        immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
 
+        lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,
+                                                             self.nc.l_maxpool_l, self.nc.flag_l_level,'same', True)
+        return lv_state
 
+    ##CNN2DV3 only sv
     def CNN2DV3_get_SV_state(self, input_sv, name):
-        return input_sv
-
+        return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
+                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'same' , True)
     def CNN2DV3_get_LV_SV_joint_state(self, inputs, name):
-        input_lv, input_sv = inputs
-        adj_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
-        lv_state =keras.layers.Conv2D(filters=2, padding='same', kernel_size=1, name=name+"depth2")(adj_lv)
-        label=name+"lv"
-        for idx, [kernel, filter] in enumerate(zip([5,5,5,3],[32,64,128,256])):
-            lv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=kernel, name=label+"conv{0}".format(idx))(lv_state)
-            lv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx))(lv_state)
-        for idx, [kernel, filter] in enumerate(zip([5], [512])):
-            lv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=(kernel,1), strides=(1,1),name=label+"conv{0}".format(idx+5))(lv_state)
-            lv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx+5))(lv_state)
-        lv_state = keras.layers.Flatten(name=label)(lv_state)
-
-        sv_state = input_sv
-        label = name + "sv"
-        for idx, [kernel, filter] in enumerate(zip([5,5,5,5,5,5],[8,16,32,64,128,256])):
-            sv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=(1,kernel), strides=(1,1), name=label+"conv{0}".format(idx))(sv_state)
-            sv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx))(sv_state)
-        for idx, [kernel, filter] in enumerate(zip([5,5,5,5,4],[300,352,404,458,512])):
-            sv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=(kernel,1), strides=(1,1),name=label+"conv{0}".format(idx+6))(sv_state)
-            sv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx+6))(sv_state)
-        sv_state = keras.layers.Flatten(name=label)(sv_state)
-        joint_lvsv=keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, sv_state])
-        return joint_lvsv
-
-    def CNN2DV4_get_SV_state(self, input_sv, name):
+        _, input_sv = inputs
         return input_sv
+
+
+    '''
+    def _get_2D_state_base_try_stride(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type):
+        assert padding_type in ['same', 'valid']
+        immediate = input_vector
+        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
+            assert flag in ["C", "I"]
+            prefix=name+str(idx)
+            conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
+            if flag == "C":
+                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm, strides=(3,3))(immediate)
+                if maxpool > 1 and a.shape[1] > 1 and a.shape[2] > 1:  # todo dirty solution for 2D only
+                    assert False
+                    #a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
+                immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
+            else:
+                assert False
+                assert kernel == 0
+                immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
+                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
+                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
+        output_sv = keras.layers.Flatten(name=name)(immediate)
+        return output_sv
+    '''
+    def CNN2DV4_get_SV_state(self, input_sv, name):
+        return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
+                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'same',False )
 
     def CNN2DV4_get_LV_SV_joint_state(self, inputs, name):
-        input_lv, input_sv = inputs
-        adj_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
-        lv_state =keras.layers.Conv2D(filters=2, padding='same', kernel_size=1, name=name+"depth2")(adj_lv)
-        label=name+"lv"
-        for idx, [kernel, filter] in enumerate(zip([5,5,5,3],[32,64,128,256])):
-            lv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=kernel, name=label+"conv{0}".format(idx))(lv_state)
-            lv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx))(lv_state)
-        #for idx, [kernel, filter] in enumerate(zip([5], [512])):
-        #    lv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=(kernel,1), strides=(1,1),name=label+"conv{0}".format(idx+5))(lv_state)
-        #    lv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx+5))(lv_state)
-        lv_state = keras.layers.Flatten(name=label)(lv_state)
+        input_lv, SV_state = inputs
+        immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
 
-        sv_state=Lambda (lambda x: x[:,-1:,:,:])(input_sv)
-        label = name + "sv"
-        for idx, [kernel, filter] in enumerate(zip([5,5,5,5,5,5],[8,16,32,64,128,256])):
-            sv_state = keras.layers.Conv2D(filters=filter, padding='valid', kernel_size=(1,kernel), strides=(1,1), name=label+"conv{0}".format(idx))(sv_state)
-            sv_state = keras.layers.LeakyReLU(name=label+"relu{0}".format(idx))(sv_state)
-        sv_state = keras.layers.Flatten(name=label)(sv_state)
-        joint_lvsv=keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, sv_state])
-        return joint_lvsv
+        #lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,      #todo the lv not change to stride yet
+        #                                                     self.nc.l_maxpool_l, self.nc.flag_l_level,'same')  #todo this is for try_strong_sv_weak_lv_stride3 and try_strong_sv_weak_lv_stride3_enhanced
+        lv_state = self._get_2D_state_base(immediate_lv, name + "LV", self.nc.l_kernel_l,
+                                           self.nc.l_filter_l,  # todo the lv not change to stride yet
+                                           self.nc.l_maxpool_l, self.nc.flag_l_level,'same',False)
+        return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
+
 
 
     def get_ap_av_HP(self, inputs, name):

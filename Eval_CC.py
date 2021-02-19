@@ -227,7 +227,7 @@ class Eval_CC(Eval_CC_base):
         location_group_idx=self.get_Group_location_idx(process_idx)
         self.lll_CC_OutBuffer[location_group_idx][process_idx - self.ll_CC_ProcessIdx[location_group_idx][0]] = [stacted_state, result]
         if any([len(item) == 0 for item in self.lll_CC_OutBuffer[location_group_idx]]):
-            return
+            return False,np.NaN
         l_a_OB, l_a_OS, l_holding,L_Eval_Profit_low_flag,l_sell_return,l_buy_invest,l_DateI, l_log = [[] for _ in range(8)]
         l_holding_value=[]
         l_Tinpai_huaizhang=[]
@@ -277,7 +277,7 @@ class Eval_CC(Eval_CC_base):
             LL_GPU2Eval[process_idx].append(result)
         for CC_OutBuffer_item in self.lll_CC_OutBuffer[location_group_idx]:
             del CC_OutBuffer_item[:]
-
+        return True, list(set(l_DateI))[0]
     def Get_V3EvalCC_ProcessIdx_Range(self):
         L_CC_ProcessGroup=[process_group_idx for process_group_idx in self.lc.l_eval_num_process_group
                     if self.lc.l_CLN_env_get_data_eval[process_group_idx]=="DBTP_Eval_CC_Reader"]
