@@ -3,6 +3,7 @@ import DBI_Base
 import pandas as pd
 import numpy as np
 from State import *
+from Buy_Strategies import Buy_Strategies
 class Eval_CC_base:
     seed_CC_Sub="EvalGroup{0}"
     def __init__(self,system_working_dir):
@@ -61,6 +62,8 @@ class Eval_CC(Eval_CC_base):
             self.fakeap=[[np.NaN,np.NaN] for _ in total_sl]
             self.fakesv=[[np.NaN,np.NaN] for _ in total_sl]
 
+            self.istrategy = Buy_Strategies(self.lc)
+
     def Is_V3EvalCC(self, Cln_DBTP_Reader,calledby):
         return self.lc.system_type=="LHPP2V3" and calledby=="Eval" and Cln_DBTP_Reader=="DBTP_Eval_CC_Reader"
 
@@ -85,7 +88,7 @@ class Eval_CC(Eval_CC_base):
             for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
                 self.l_dfMoney[location_group_idx].to_csv(self.get_money_in_hand(ET,group_idx), index=False, float_format='%.2f')
                 self.l_dfMoney[location_group_idx].drop(self.l_dfMoney[location_group_idx].index, inplace=True) #delete all row
-
+    '''
     def Buy_Strategy_one_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag,location_group_idx):
         Sidxs_all       = set(list(range(len(l_a_OB))))
         Sidxs_OB_buy    = set([idx for idx, action in enumerate(l_a_OB) if action ==0])
@@ -222,8 +225,8 @@ class Eval_CC(Eval_CC_base):
 
         return l_a
 
-
-    def handler(self,process_idx, stacted_state,result,LL_GPU2Eval):
+    '''
+    def CC_handler(self,process_idx, stacted_state,result,LL_GPU2Eval):
         location_group_idx=self.get_Group_location_idx(process_idx)
         self.lll_CC_OutBuffer[location_group_idx][process_idx - self.ll_CC_ProcessIdx[location_group_idx][0]] = [stacted_state, result]
         if any([len(item) == 0 for item in self.lll_CC_OutBuffer[location_group_idx]]):
@@ -252,22 +255,34 @@ class Eval_CC(Eval_CC_base):
                   format(location_group_idx, self.l_CC_last_eval_date[location_group_idx],l_DateI[0]))
         self.l_CC_last_eval_date[location_group_idx]=l_DateI[0]
 
-        self.l_df[location_group_idx] =self.l_df[location_group_idx].append(pd.DataFrame(l_log,columns=self.log_titles), ignore_index=True)
-
         sell_money_on_the_way=sum(l_sell_return)
         buy_money_used=sum(l_buy_invest)
         Tinpai_huaizhang=sum(l_Tinpai_huaizhang)
         self.l_TotalInvest[location_group_idx] =self.l_TotalInvest[location_group_idx] -buy_money_used+sell_money_on_the_way
         eval_holding_value=sum(l_holding_value)
-        self.l_dfMoney[location_group_idx] = self.l_dfMoney[location_group_idx].append(pd.DataFrame(
-            [[l_DateI[0], self.l_TotalInvest[location_group_idx], eval_holding_value,sell_money_on_the_way,
-              self.l_TotalInvest[location_group_idx]+eval_holding_value,Tinpai_huaizhang]],
-            columns=self.dfMoney_titles),ignore_index=True)
+
+        #self.l_dfMoney[location_group_idx] = self.l_dfMoney[location_group_idx].append(pd.DataFrame(
+        #    [[l_DateI[0], self.l_TotalInvest[location_group_idx], eval_holding_value,sell_money_on_the_way,
+        #      self.l_TotalInvest[location_group_idx]+eval_holding_value,Tinpai_huaizhang]],
+        #    columns=self.dfMoney_titles),ignore_index=True)
+
+        l_moneylog=[[l_DateI[0], self.l_TotalInvest[location_group_idx], eval_holding_value, sell_money_on_the_way,
+          self.l_TotalInvest[location_group_idx] + eval_holding_value, Tinpai_huaizhang]]
 
         num_stock_could_invest= int(self.l_TotalInvest[location_group_idx]//self.lc.l_CC_min_invest_per_round[self.l_CC_GroupIdx[location_group_idx]])
 
-        l_a = getattr(self, self.lc.l_CC_group_strategy_fun[self.l_CC_GroupIdx[location_group_idx]])(l_DateI[0],num_stock_could_invest,l_a_OB,l_a_OS,l_holding,
-                                                     L_Eval_Profit_low_flag, location_group_idx)
+        l_a,l_ADlog = getattr(self.istrategy, self.lc.l_CC_group_strategy_fun[self.l_CC_GroupIdx[location_group_idx]])\
+            (l_DateI[0],num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag)
+
+        self.l_df[location_group_idx] = self.l_df[location_group_idx].append(
+            pd.DataFrame(l_log, columns=self.log_titles), ignore_index=True)
+
+        self.l_dfMoney[location_group_idx] = self.l_dfMoney[location_group_idx].\
+            append(pd.DataFrame(l_moneylog,columns=self.dfMoney_titles),ignore_index=True)
+
+        self.l_dfADlog[location_group_idx] = self.l_dfADlog[location_group_idx].\
+            append(pd.DataFrame([l_ADlog],columns=self.ADlog_titles), ignore_index=True)
+
 
         for process_idx in self.ll_CC_ProcessIdx[location_group_idx]:
             idx=process_idx-self.ll_CC_ProcessIdx[location_group_idx][0]

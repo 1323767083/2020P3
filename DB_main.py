@@ -91,6 +91,40 @@ Guide to update DBI
         use following command instead 
         SLV300_TPV3/CreateLog$ grep "SZ" *Error.txt
         SLV300_TPV3/CreateLog$ grep "SH" *Error.txt
+
+添加新的DBTP可以通过添加DBI element， 也可以通过在 Filter list 增加filter 来 调整数据
+例如
+TPHFD：的DBTP_Definition.json
+{
+    "DataFromDBI":
+    {
+        "LV":{
+            "VTest1":["Price_VS_Mount", "Sell_Dan", "Buy_Dan","Exchange_Ratios"]
+        },
+        "SV":{
+            "VTest1":["Norm_Average_Nprice_And_Mount_Whole_Day"]
+        },
+        "Reference":{
+            "VTest1": ["DateI","HFQ_Ratio"],
+            "NPrice1300_I5":["Potential_Nprice_1300"]
+         }
+    },
+    "Param":
+    {
+        "LV": {
+            "Filters_In_order":["LV_HFD","LV_NPrice","LV_Volume","LV_HFD_Sanity"]
+        },
+        "SV": {
+            "Filters_In_order":["SV_HFD","SV_NPrice","SV_Volume","SV_HFD_Sanity"]
+        },
+        "Reference": {
+            "Filters_In_order":["AV_HFD","AV_HFD_Sanity"]
+        }
+
+    }
+}
+
+注意这些filter的函数 都要返回的
 '''
 def main(argv):
     if len(argv)==0:

@@ -7,7 +7,7 @@ import pandas as pd
 import os, pickle,time, sys
 from datetime import datetime
 from multiprocessing import Process
-
+from DBTP_Filters import DBTP_Filters
 class Memory_For_DBTP_Creater:
     def __init__(self,npMemTitlesM,iDBIs,max_len):
         self.npMemTitlesM=npMemTitlesM
@@ -68,7 +68,9 @@ class DBTP_Creater(DBTP_Base):
         DBTP_Base.__init__(self,DBTP_Name)
         self.iHFQTool=hfq_toolbox()
         self.buff=Memory_For_DBTP_Creater(self.npMemTitlesM, self.iDBIs,max_len)
+        self.iFilters= DBTP_Filters(self.FT_TypesD_Flat)
 
+    '''
     def Adjust_on_NPrice(self,result_datas):
         HFQ_Ratio = self.buff.get_np_item("HFQ_Ratio", [1])
 
@@ -123,6 +125,21 @@ class DBTP_Creater(DBTP_Base):
             result_datas[FT_idx][idx, :, SelectedIdxs[0]] = adjSelectedDataVolume[idx]
         return result_datas
 
+    def Generate_DBTP_Data(self, Stock, DayI):
+        fnwp = self.get_DBTP_data_fnwp(Stock, DayI)
+        if os.path.exists(fnwp):
+            #return pickle.load(open(fnwp,"rb"))
+            print("DBTP from DBI {0} {1} already exists ".format(Stock, DayI))
+            return False
+
+        print("DBTP from DBI {0} {1} success generated".format(Stock, DayI))
+        result_datas=self.create_DBTP_Raw_Data_From_DBI()
+        result_datas=self.Adjust_on_NPrice(result_datas)
+        result_datas = self.Adjust_on_Volume(result_datas)
+        pickle.dump(result_datas, open(fnwp, "wb"))
+        #return result_datas
+        return True
+    '''
 
     def create_DBTP_Raw_Data_From_DBI(self):
         assert self.buff.Is_Ready(), "The get_DBTP_data only be called either fnwp is exsist or the mx len reached in record"
@@ -143,18 +160,33 @@ class DBTP_Creater(DBTP_Base):
     def Generate_DBTP_Data(self, Stock, DayI):
         fnwp = self.get_DBTP_data_fnwp(Stock, DayI)
         if os.path.exists(fnwp):
-            #return pickle.load(open(fnwp,"rb"))
+            # return pickle.load(open(fnwp,"rb"))
             print("DBTP from DBI {0} {1} already exists ".format(Stock, DayI))
             return False
 
-        print("DBTP from DBI {0} {1} success generated".format(Stock, DayI))
-        result_datas=self.create_DBTP_Raw_Data_From_DBI()
-        result_datas=self.Adjust_on_NPrice(result_datas)
-        result_datas = self.Adjust_on_Volume(result_datas)
-        pickle.dump(result_datas, open(fnwp, "wb"))
-        #return result_datas
-        return True
+        result_datas = self.create_DBTP_Raw_Data_From_DBI()
 
+        for Fidx, label in [[0, "LV"], [1, "SV"],[2,"AV"]]:
+            #flag_init_HFQ_Ratio = False
+            HFQ_Ratio=[]
+            for Filter in self.Filters[Fidx]:
+                component = Filter.split("_")
+                assert component[0] == label
+                if component[-1] in ["NPrice", "HFD"]:
+                    if len(HFQ_Ratio)==0:
+                        HFQ_Ratio = self.buff.get_np_item("HFQ_Ratio", [1])
+                    result_datas, HFQ_Ratio = getattr(self.iFilters, Filter)(result_datas, HFQ_Ratio)
+                elif component[-1] in ["Volume"]:
+                    result_datas = getattr(self.iFilters, Filter)(result_datas)
+                elif component[-1] in ["Sanity"]:
+                    assert self.Filters[Fidx][-1] == Filter, "Sanity Filter should be the last one {0}".format(
+                        self.Filters[Fidx])
+                    result_datas = getattr(self.iFilters, Filter)(result_datas)
+                else:
+                    assert False, "only support filter end with NPrice, HFD, Volume, Sanity, not {0}".format(Filter)
+        print("DBTP from DBI {0} {1} success generated".format(Stock, DayI))
+        pickle.dump(result_datas, open(fnwp, "wb"))
+        return True
 
     def DBTP_generator(self, Stock, StartI, EndI):
         AStart_idx, AStartI=self.get_closest_TD(StartI, True)

@@ -294,13 +294,13 @@ class StockList(DBI_init):
         assert tag in ["Train", "Eval"]
         return os.path.join(self.SL_wdn, "{0}_{1}.csv".format( tag, idx))
 
-    def Sanity_Check_SL(self, sl):
+    def Sanity_Check_SL(self, sl, flag_remove_adj, flag_remove_price):
         adj_fnwp=os.path.join(self.SL_wdn,"Adj_to_Remove.csv")
-        if os.path.exists(adj_fnwp):
+        if flag_remove_adj and os.path.exists(adj_fnwp):
             sl_remove=pd.read_csv(adj_fnwp,header=0, names=["stock"])["stock"].tolist()
             sl= list(set(sl) - set(sl_remove))
         Price_adj_fnwp=os.path.join(self.SL_wdn,"Price_to_Remove.csv")
-        if os.path.exists(Price_adj_fnwp):
+        if flag_remove_price and os.path.exists(Price_adj_fnwp):
             sl_remove=pd.read_csv(Price_adj_fnwp,header=0, names=["Stock","Reason"])["Stock"].tolist()
             sl= list(set(sl) - set(sl_remove))
         return sl
@@ -411,7 +411,8 @@ class StockList(DBI_init):
         if not os.path.exists(fnwp):
             return False, ""
         else:
-            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist())
+            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist(),
+                                              flag_remove_adj=True, flag_remove_price=True)
 
     def Get_Eval_SubProcess_SL(self, lc,process_group_idx,process_idx):
         process_idx_left = process_idx % lc.eval_num_process_each_group

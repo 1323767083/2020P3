@@ -198,8 +198,10 @@ class PPO_trainer:
         assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
         _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
         rg = self.get_reward(n_r, v, n_s__av,l_support_view)
+        n_av=self.get_av(n_s_av)
+        assert not any (n_av), " all av should be 0" #todo all s_ av is 1 , this will never go to train"
         loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
-                                                 'input_account': self.get_av(n_s_av),
+                                                 'input_account': n_av,
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
         #n_r # v # rg

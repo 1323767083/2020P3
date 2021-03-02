@@ -121,7 +121,7 @@ class env_account:
                 return Close_NPrice/self.Holding_NPrice-1
 
     def get_inform_for_AV(self):
-        return [getattr(self,titles)for titles in self.lc.account_inform_titles]
+        return [getattr(self,title) for title in self.lc.account_inform_titles]
 
 class env_reward_old:  #todo to delete
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_punish_no_action):

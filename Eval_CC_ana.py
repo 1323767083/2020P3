@@ -65,7 +65,7 @@ def plot_1_experiment(system_name, Eval_Group_idx):
     #plt.xticks(np.arange(len(ETs)), ETs)
     plt.title("Accumulate Earning {0} group {1}".format(system_name, Eval_Group_idx))
 
-def plot_multi_experiments(system_names__group_idxs,ET_tb_entropy_threadhold):
+def plot_multi_experiments(system_names__group_idxs,ET_threadhold_low,ET_threadhold_high ):
     plt.rcParams["figure.figsize"] = (20, 10)
     fig = plt.figure()
     for idx, _ in enumerate(system_names__group_idxs):
@@ -88,12 +88,19 @@ def plot_multi_experiments(system_names__group_idxs,ET_tb_entropy_threadhold):
             print("{0} {1:.2f}".format(l_ETs[idx][a], l_acc_earn[idx][a]), end='######')
         print("\n")
 
-    for [_, i] in system_names__group_idxs:
-        print ("location gruop idx ", i)
-        reverse_sorted_idxes=sorted(list(range(len(l_acc_earn[i]))), key=lambda x:l_acc_earn[i][x],reverse=True)
+    for i,ip in [[0,1],[1,0],[2,3],[3,2]]:
+        reverse_sorted_idxes = sorted(list(range(len(l_acc_earn[i]))), key=lambda x: l_acc_earn[i][x], reverse=True)
+        l_message, l_total=[],[]
         for a in reverse_sorted_idxes[:30]:
-            if l_ETs[i][a]<ET_tb_entropy_threadhold:
-                print ("{0} {1:.2f}".format(l_ETs[i][a],l_acc_earn[i][a]))
+            if l_ETs[i][a]<=ET_threadhold_high and l_ETs[i][a]>=ET_threadhold_low:
+                ie=l_acc_earn[i][a]
+                ipe=l_acc_earn[ip][l_ETs[ip].index(l_ETs[i][a])]
+                l_message.append("ET {0} group {1}  result {2:.2f} group {3} result {4:.2f} total {5:.2f}".format(l_ETs[i][a],i,ie,ip,ipe,ie+ipe))
+                l_total.append(ie+ipe)
+        sorted_message_idxs=sorted(list(range(len(l_total))), key=lambda x: l_total[x], reverse=True)
+        for idx in sorted_message_idxs:
+            print (l_message[idx])
+        print ("--------------------------------------------------------")
     #plt.show()
 
 def ana_transaction_1ET_on_count(system_name,Eval_Group_idx,ET,flag_old):

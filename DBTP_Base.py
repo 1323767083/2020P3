@@ -20,6 +20,15 @@ import numpy as np
     },
     "Param":
     {
+        "LV": {
+            "Filters_In_order":[]
+        },
+        "SV": {
+            "Filters_In_order":[]
+        },
+        "Reference": {
+            "Filters_In_order":[]
+        }
 
     }
 }
@@ -42,8 +51,14 @@ class DBTP_Base(DBI_init):
             temp_list.extend(self.DBTP_Definition["DataFromDBI"][L1_item].keys())
         self.DBINames = list(set(temp_list))
         assert len(self.DBINames) >= 1
-
         self.iDBIs = [DBI_Creater(DBI_name) for DBI_name in self.DBINames]
+
+        if len(self.DBTP_Definition["Param"])==0:
+            self.Filters=[["LV_NPrice","LV_Volume"],["SV_NPrice","SV_Volume"],[]]
+        else:
+            self.Filters=[self.DBTP_Definition["Param"]["LV"]["Filters_In_order"],
+                          self.DBTP_Definition["Param"]["SV"]["Filters_In_order"],
+                          self.DBTP_Definition["Param"]["Reference"]["Filters_In_order"]]
 
         MemTitlesM = []
         self.MemShapesM = []

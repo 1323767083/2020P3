@@ -29,7 +29,18 @@ l_GPU_size=[11019,12196]
 |    1     33939      C   sv1m_2_ExploreAgent                         3231MiB | 2800
 |    1     40348      C   sv1m_2_EvalAgent                            3041MiB | 2800
 '''
-
+'''
+ Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0     47675      C   again_try_TrainBrain                        4267MiB |3600
+|    0     47713      C   again_try_ExploreAgent                      3267MiB |2600
+|    0     52633      C   again_try_EvalAgent                         2875MiB |2600
+|    1     51672      C   ...v_stride3_both_deep_enhanced_TrainBrain  4231MiB |3800
+|    1     51719      C   ...stride3_both_deep_enhanced_ExploreAgent  3231MiB |2800
+|    1     56881      C   ...lv_stride3_both_deep_enhanced_EvalAgent  3231MiB |2800
++-----------------------------------------------------------------------------+
+'''
 class gconfig_specific:
     """
     @DynamicAttrs
@@ -188,12 +199,16 @@ class gconfig(gconfig_data):
         self.log_e_s_d_i_fn_seed = "log_s_s_d_i"
         self.command_pipe_seed = "pipe.command"
         self.specific_param=gconfig_specific()
-        self.account_inform_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice",
-                               "Buy_Times", "Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice","Tinpai_huaizhang"]
+        self.account_inform_holding_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice","Buy_Times"]
+        self.account_inform_holding_types={"TransIDI":int, "Holding_Gu":int, "Holding_Invest":float,"Holding_HRatio":float, "Holding_NPrice":float,"Buy_Times":int}
+        self.account_inform_step_titles=["Buy_Invest", "Buy_NPrice", "Sell_Return", "Sell_Earn","Sell_NPrice","Tinpai_huaizhang"]
+        self.account_inform_step_types={"Buy_Invest":float, "Buy_NPrice":float, "Sell_Return":float, "Sell_Earn":float,"Sell_NPrice":float,"Tinpai_huaizhang":float}
+        self.account_inform_titles=self.account_inform_holding_titles+self.account_inform_step_titles
+        self.account_inform_type={**self.account_inform_holding_types, **self.account_inform_step_types}
 
         self.simulator_inform_titles=["DateI","StockI","Eval_Profit"]
         self.PSS_inform_titles =["AcutalAction"]
-    def read_from_json(self, param_fnwp):
+    def read_from_json(self, param_fnwp, system_name=""):
         param = json.load(open(param_fnwp, "r"), object_pairs_hook=OrderedDict)
         for item in list(param.keys()):
             sitem = str(item)
@@ -202,7 +217,10 @@ class gconfig(gconfig_data):
 
         base_dir,fn=os.path.split(param_fnwp)
         assert fn=="config.json"
-        base_dir, self.RL_system_name = os.path.split(base_dir)
+        if system_name=="":
+            base_dir, self.RL_system_name = os.path.split(base_dir)
+        else:
+            self.RL_system_name=system_name
 
         self.sanity_check_convert_enhance()
 
