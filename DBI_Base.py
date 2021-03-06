@@ -140,6 +140,31 @@ class DBI_init(DB_Base):
             os.remove(os.path.join(self.Dir_DBI_HFQ,fn))
         return
 
+    def get_exceed_max_price_sl(self,sl_name, max_price):
+        i = StockList(sl_name)
+        flag, sl = i.get_sub_sl("Train", 0)
+        assert flag
+        #j = DBI_init()
+        threadhold = max_price
+        esl = []
+        for stock in sl:
+            flag, df, mess = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+            assert flag
+            max_price = df["open_price"].max()
+            if max_price >= threadhold:
+                print("{0} should exclude for max {1}".format(stock, max_price))
+                esl.append([stock, "price_too_high"])
+            else:
+                print(stock, " ok")
+
+        df = pd.DataFrame(esl, columns=["Stock", "Reason"])
+        #fnwp = os.path.join("/home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List", sl_name, "Price_to_Remove.csv")
+        fnwp = os.path.join(self.Dir_DBI_SL, sl_name, "Price_to_Remove.csv")
+        df.to_csv(fnwp, index=False)
+        print ("stock has max price exceed {0} be stored in {1}".format(max_price,fnwp))
+
+    #get_exceed_max_price_sl("SLV500_10M", 500)
+
     def Update_DBI_addon_HFQ_Index(self, DayI):
         assert DayI >self.Raw_Normal_Lumpsum_EndDayI
         logfnwp=self.get_DBI_Update_Log_HFQ_Index_fnwp(DayI)
@@ -253,8 +278,14 @@ class hfq_toolbox:
         return old_volume *  new_hfq_ratio/ old_hfq_ratio
     def get_hfqprice_from_Nprice(self, Nprice, hfq_ratio):
         return Nprice * hfq_ratio
-
-
+'''
+class stock_code:
+    "SH":[600,601,603,605]  #沪A
+    "SZ":[000]          #深A
+    "SZ":[002]          #中小板
+    "SZ":[300]          #创业板
+    "SH":[688]          #科创板
+'''
 
 {
     "FunGenTSL":"TSL_from_caculate",
@@ -281,7 +312,7 @@ class StockList(DBI_init):
         assert os.path.exists(self.SL_wdn), self.SL_wdn
         SL_Def_fnwp=os.path.join(self.SL_wdn,"SL_Definition.json")
         self.SLDef = json.load(open(SL_Def_fnwp, "r"), object_pairs_hook=OrderedDict)
-        assert self.SLDef["FunGenTSL"] in ["TSL_from_caculate","TSL_from_50", "TSL_from_300","TSL_from_try"]
+        assert self.SLDef["FunGenTSL"] in ["TSL_from_caculate","TSL_from_50", "TSL_from_300","TSL_from_500","TSL_from_try"]
         if self.SLDef["FunGenTSL"] == "TSL_from_caculate":
             self.generate_Train_Eval_SL=self.generate_Train_Eval_SL_for_TSL_from_caculate
         else:
@@ -349,6 +380,10 @@ class StockList(DBI_init):
     def TSL_from_300(self):
         assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
         return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock300.csv"))[["stock"]]
+
+    def TSL_from_500(self):
+        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock500.csv"))[["stock"]]
 
     def Get_Total_SL(self):
         slfnwp=self.TL_fnwp()

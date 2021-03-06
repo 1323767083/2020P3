@@ -1,12 +1,15 @@
 import sys
+from DB_Base import DB_Base
 from DBI_Base import DBI_init,StockList
 from DBTP_Creater import DBTP_Creater,DBTP_main
 commmand_smaples=[
+    "Sanity_Check_Raw_HFQ_index",
     "Initial_DBI",
     "Reset_DBI",
     "Update_DBI  20200601",
     "Create_Total_SL SLV1",
-    "Create_Sub_SL SLV1"
+    "Create_Sub_SL SLV1",
+    "Get_SL_Exceed_MaxPrice SLV1 500",
     "Generate_DBTP TPVTest1 SH600000 20200101 20200110",
     "Generate_DBTP_Process TPVTest1 SLV1 4 True/False #True means overwrite create log",
     "Create_List_Stock_Fail_Generate_TPDB SLV1"
@@ -14,6 +17,7 @@ commmand_smaples=[
 
 '''
 Guide to update DBI
+
 
 一。拷贝原始文件 （raw data）
 1. 把交易的 原始压缩数据按月拷贝到  /home/rdchujf/DB_raw/Normal
@@ -23,6 +27,9 @@ Guide to update DBI
 3. hfq文件：
     a。删除 /home/rdchujf/DB_raw/HFQ_Index/Stk_Day_FQ_WithHS 下的所有文件
     b。压缩文件解压到/home/rdchujf/DB_raw/HFQ_Index/Stk_Day_FQ_WithHS
+4. 查看raw data hfq 和 index 的完整性
+   python DB_main.py Sanity_Check_Raw_HFQ_index
+   它的report 可以用 DB_Base 里的 remove_raw_hfq_index_double(self,dir, stock, dateS) 函数处理
 二。更新 DBI
 1.python DB_main.py Reset_DBI  #删除 DBI 里的 HFQ 和 index
 
@@ -91,6 +98,8 @@ Guide to update DBI
         use following command instead 
         SLV300_TPV3/CreateLog$ grep "SZ" *Error.txt
         SLV300_TPV3/CreateLog$ grep "SH" *Error.txt
+6. python DB_main.py Get_SL_Exceed_MaxPrice SLV1 500
+        Generate Price_to_Remove.csv for stock price exceed 500
 
 添加新的DBTP可以通过添加DBI element， 也可以通过在 Filter list 增加filter 来 调整数据
 例如
@@ -161,10 +170,19 @@ def main(argv):
         SL_Name=argv[1]
         i=StockList(SL_Name)
         i.generate_Train_Eval_SL()
+    elif command == "Get_SL_Exceed_MaxPrice":
+        SL_Name = argv[1]
+        max_price=eval(argv[2])
+        i=StockList(SL_Name)
+        i.get_exceed_max_price_sl(SL_Name,max_price)
     elif command == "Create_List_Stock_Fail_Generate_TPDB":
         SL_Name=argv[1]
         i=StockList(SL_Name)
         i.Get_Stocks_Error_Generate_DBTP()
+    elif command == "Sanity_Check_Raw_HFQ_index":
+        # this function not fully tested
+        i=DB_Base()
+        i.Sanity_check_raw_HFQ_index_multi_rows()
     else:
         print ("Command {0} is not supported".format(command))
     print("Finished")

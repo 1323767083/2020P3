@@ -30,9 +30,7 @@ Potential issue:
 
 
 三月二号
-1. 回归测试 
-2. 500 stocklist ， change create log name， make 10m data
 3. trader 编写调试模拟器
-4. FTP 
-
+4. FTP (partly)
+5. stock code classification tool to extract hfq rows from index     
 

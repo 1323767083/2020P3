@@ -3,8 +3,23 @@ import os,random,sys
 import subprocess
 from datetime import datetime
 
+class Decompressed_flag:
+    def get_decompressed_flag_fnwp(self, compressed_fnwp):
+        dn,fn=os.path.split(compressed_fnwp)
+        return os.path.join(dn,"{0}.Decompressed".format(fn.split(".")[0]))
 
-class Raw_HFQ_Index(DB_Base):
+    def check_decompressed(self, compressed_fnwp):
+        return os.path.exists(self.get_decompressed_flag_fnwp(compressed_fnwp))
+
+    def set_Normal_decompressed(self, compressed_fnwp):
+        with open(self.get_decompressed_flag_fnwp(compressed_fnwp),"w") as f:
+            f.write("Success Decompressed")
+
+    def set_HFQ_Index_decompressed(self, compressed_fnwp):
+        with open(self.get_decompressed_flag_fnwp(compressed_fnwp),"w") as f:
+            f.write("Success Decompressed")
+
+class Raw_HFQ_Index(DB_Base,Decompressed_flag):
     def __init__(self,swith_HFQ__index):
         DB_Base.__init__(self)
         self.swith_HFQ__index=swith_HFQ__index
@@ -78,7 +93,7 @@ class Raw_HFQ_Index(DB_Base):
         else:
             return False, "", "Decompress File Not Found****{0} {1}".format(self.swith_HFQ__index,decompressed_fnwp)
 
-class RawData(DB_Base):
+class RawData(DB_Base,Decompressed_flag):
     def __init__(self):
         DB_Base.__init__(self)
 
@@ -103,8 +118,10 @@ class RawData(DB_Base):
             compressed_fnwp = os.path.join(compress_dn, "{0:8d}.7z".format(dayI))
         return compressed_fnwp, decompressed_fnwp
 
-    def decompress_normal_addon_qz(self,dayI, compressed_fnwp,decompressed_dn):
 
+    def decompress_normal_addon_qz(self,dayI, compressed_fnwp,decompressed_dn):
+        if self.check_decompressed(compressed_fnwp):
+            return True, "Already Decompressed"
         if not os.path.exists(compressed_fnwp):
             return False, "Compress File Not Found**** Failed found qz compress file {0}".format(compressed_fnwp)
         lcmd=["7z","e", compressed_fnwp, "-o%s" %   decompressed_dn,"-r","-y","-bd"]
@@ -116,6 +133,7 @@ class RawData(DB_Base):
             dir_to_remove=os.path.join(decompressed_dn,
                          "{0:4d}-{1:02d}-{2:02d}".format(dayI // 10000, dayI % 10000 // 100, dayI % 100))
             if os.path.exists(dir_to_remove):   os.rmdir(dir_to_remove)
+            self.set_Normal_decompressed(compressed_fnwp)
             return True, "Success"
         else: # fail log
             return False,  "Decomprress File Error**** {0}".format(compressed_fnwp)

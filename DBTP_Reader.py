@@ -47,7 +47,7 @@ class DBTP_Train_Reader(DBTP_Reader):
         dfSD=dfSD[(dfSD["Date"]>=SDateI) & (dfSD["Date"]<=EDateI)]["Date"]
         SD=dfSD.values
         assert len(self.generate_TD_periods(SD[0],SD[-1]))==len(SD), \
-            "{0}  len(self.generate_TD_periods(self.SD[0],self.SD[-1])) = {1} len(self.SD)= {2} ".format(
+            "{0}  len(self.generate_TD_periods(SD[0],SD[-1])) = {1} len(SD)= {2} ".format(
                 Stock,len(self.generate_TD_periods(SD[0], SD[-1])),len(SD))
         self.SDTDSidx, _ = self.get_closest_TD(SD[0], True)
         self.SDTDEidx, _ = self.get_closest_TD(SD[-1], False)

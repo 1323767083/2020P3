@@ -1,176 +1,94 @@
-Process Process_Generate_DBTP-22:
-Traceback (most recent call last):
-  File "pandas/_libs/parsers.pyx", line 1152, in pandas._libs.parsers.TextReader._convert_tokens
-TypeError: Cannot cast array from dtype('float64') to dtype('int64') according to the rule 'safe'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/rdchujf/remote_sw/DB_Base.py", line 106, in get_qz_df
-    df = pd.read_csv(fnwp, header=0, names=self.title_qz, dtype=self.dtype_qz)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/io/parsers.py", line 676, in parser_f
-    return _read(filepath_or_buffer, kwds)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/io/parsers.py", line 454, in _read
-    data = parser.read(nrows)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/io/parsers.py", line 1133, in read
-    ret = self._engine.read(nrows)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/io/parsers.py", line 2037, in read
-    data = self._reader.read(nrows)
-  File "pandas/_libs/parsers.pyx", line 860, in pandas._libs.parsers.TextReader.read
-  File "pandas/_libs/parsers.pyx", line 875, in pandas._libs.parsers.TextReader._read_low_memory
-  File "pandas/_libs/parsers.pyx", line 952, in pandas._libs.parsers.TextReader._read_rows
-  File "pandas/_libs/parsers.pyx", line 1084, in pandas._libs.parsers.TextReader._convert_column_data
-  File "pandas/_libs/parsers.pyx", line 1160, in pandas._libs.parsers.TextReader._convert_tokens
-ValueError: cannot safely convert passed user dtype of int64 for float64 dtyped data in column 3
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
-    self.run()
-  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 225, in run
-    flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
-  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 170, in DBTP_generator
-    flag, mess=self.buff.Add(Stock,DayI)
-  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 45, in Add
-    flag,mess=iDBI.Generate_DBI_day( Stock, DayI)
-  File "/home/rdchujf/remote_sw/DBI_Creater.py", line 341, in Generate_DBI_day
-    qz_flag, qz_df, qz_mess = self.IRD.get_qz_df_inteface( Stock, DayI)
-  File "/home/rdchujf/remote_sw/DBR_Reader.py", line 172, in get_qz_df_inteface
-    flag,df,message=self.get_normal_addon_qz_df(dayI, stock,True)
-  File "/home/rdchujf/remote_sw/DBR_Reader.py", line 126, in get_normal_addon_qz_df
-    flag, df, message = self.get_qz_df(decompressed_fnwp)
-  File "/home/rdchujf/remote_sw/DB_Base.py", line 112, in get_qz_df
-    df[item] = df[item].astype(self.dtype_qz[item])
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/generic.py", line 5698, in astype
-    new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/internals/managers.py", line 582, in astype
-    return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/internals/managers.py", line 442, in apply
-    applied = getattr(b, f)(**kwargs)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/internals/blocks.py", line 625, in astype
-    values = astype_nansafe(vals1d, dtype, copy=True)
-  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/dtypes/cast.py", line 897, in astype_nansafe
-    return arr.astype(dtype, copy=True)
-ValueError: could not convert string to float: 'undefined'
+Process Process_Generate_DBTP-10:
+File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+self.run()
+File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 260, in run
+flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
+File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 202, in DBTP_generator
+flag, mess=self.buff.Add(Stock,DayI)
+File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 45, in Add
+flag,mess=iDBI.Generate_DBI_day( Stock, DayI)
+File "/home/rdchujf/remote_sw/DBI_Creater.py", line 134, in Generate_DBI_day
+self.Generate_Oneday(qz_df, hfq_df, DayI, Stock,self.TypeDefinition)
+File "/home/rdchujf/remote_sw/DBI_Creater.py", line 92, in Generate_Oneday
+result_L.append(iE.Gen(inputsL))
+File "/home/rdchujf/remote_sw/DBI_Generator_SVs.py", line 173, in Gen
+ result= _Norm_Average_Nprice_And_Mount_Gen_5M_Base(inputs,self.param_norm_average_price_and_mount_5M)
+ File "/home/rdchujf/remote_sw/DBI_Generator_SVs.py", line 133, in _Norm_Average_Nprice_And_Mount_Gen_5M_Base
+ df.drop([idx for idx, flag in enumerate(Sidx) if flag ], inplace =True)
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/frame.py", line 3997, in drop
+    errors=errors,
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/generic.py", line 3936, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/generic.py", line 3970, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/indexes/base.py", line 5017, in drop
+    raise KeyError(f"{labels[mask]} not found in axis")
+KeyError: '[51] not found in axis'
 
 
 
 
+SZ002002
+SZ002004
+SZ002010
+SZ002013
+SZ002019
+SZ002028
 
 
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002002 20180101 20210226 >/home/rdchujf/T02
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002004 20180101 20210226 >/home/rdchujf/T04.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002010 20180101 20210226 >/home/rdchujf/T10.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002013 20180101 20210226 >/home/rdchujf/T13.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002019 20180101 20210226 >/home/rdchujf/T19.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002028 20180101 20210226 >/home/rdchujf/T28.txt
 
 
+SH603317
+SH688002
+SH688029
+SH688088
+SH688099
+SH688321
 
-好像是文件结构不一样了
-
-
-ERROR: ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000001.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompre$
-s/202006/20200610/000001.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000001.csv
-
-
-
-ERROR: Can't allocate required memory!
-ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/2020$
-6/20200612/000001.csv
-ERROR:
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csv
-Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csvERROR:
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200
-612/000001.csv
-
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000002.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000006.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000007.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000009.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000009.csv
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000011.csv
-
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000002.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000002.csv
-ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000004.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/20200
-6/20200610/000004.csv
+SZ000008
+SZ000009
+SZ000012
+SZ000021
+SZ000027
+SZ000598
+SZ000887
+SZ000998
+SZ001872
+SZ001914
+SZ002081
 
 
-ERROR: Can't allocate required memory!
-ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000005.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/20200
-6/20200610/000005.csv
-
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000156.csv
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000007.csv
-
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000026.csv
-
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000504.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000505.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000507.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000509.csv
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002002 20180101 20210226 >/home/rdchujf/T02
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002004 20180101 20210226 >/home/rdchujf/T04.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002010 20180101 20210226 >/home/rdchujf/T10.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002013 20180101 20210226 >/home/rdchujf/T13.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002019 20180101 20210226 >/home/rdchujf/T19.txt
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ002028 20180101 20210226 >/home/rdchujf/T28.txt
 
 
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ000008 20180101 20210226 >/home/rdchujf/T08
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ000009 20180101 20210226 >/home/rdchujf/T09
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ000012 20180101 20210226 >/home/rdchujf/T12
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ000021 20180101 20210226 >/home/rdchujf/T21
+python DB_main.py Generate_DBTP TPV5_10M_5MNprice SZ000027 20180101 20210226 >/home/rdchujf/T27
 
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200610/000007.csv
+"SZ000008","SZ000009","SZ000012","SZ000021","SZ000027"
 
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000026.csv
-
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000504.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000505.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000507.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000509.csv
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000063.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000070.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000541.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000541.csv
-
-ERROR: Can't allocate required memory!
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000088.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000089.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000547.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000096.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000099.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000552.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000553.csv
-
-ERROR: Can't allocate required memory!
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000159.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000166.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000166.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000400.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000401.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000400.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000401.csv
-ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000403.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/20200
-6/20200615/000403.csv
-
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000404.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000402.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000413.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000413.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000411.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000413.csv
-ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000415.csv
-ERROR: ERROR: Can not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/202006/20200615/000416.csvCan not delete output file : No such file or directory : /home/rdchujf/DB_raw/Normal/decompress/20200
-6/20200615/000416.csv
+import pandas as pd
+import os
+old_dnwp="/mnt/data_disk/DB_raw/HFQ_Index/Obsolete_Stk_Day_FQ_WithHS/Stk_Day_FQ_WithHS/"
+new_dnwp="/mnt/data_disk/DB_raw/HFQ_Index/Stk_Day_FQ_WithHS/"
+stock="SZ000008"
+fnwp=os.path.join(new_dnwp,"{0}.csv".format(stock))
+dfn=pd.read_csv(fnwp,encoding="gb18030")
+a=dfn[dfn["时间"]=="2020-07-31"]
+print (a.index)
+dfn.drop([a.index[0]], inplace=True)
+dfn.to_csv("/home/rdchujf/a.csv", index=False)
+b=pd.read_csv("/home/rdchujf/a.csv",encoding="gb18030")

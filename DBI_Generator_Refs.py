@@ -20,29 +20,43 @@ class Potential_Nprice_930(DBI_Generator_Base):
     param_potential_price_time_interval_list = [[93000, 96000], [100000, 103000], [103000, 106000],
                                                 [110000, 113000], [130000, 133000], [133000, 136000],
                                                 [140000, 143000], [143000, 146000]]
-    #todo change to 5 minutes interval as Potential_Nprice_1300
+
     def Gen(self, inputs):
         result= _Gen_Potential_Nprice_Base(inputs, self.param_potential_price_time_interval_list)
         self.Result_Check_Shape(result)
         return result
 
-class Potential_Nprice_1300(DBI_Generator_Base):
+class param_M5:
+    param_potential_price_time_interval_list = [[93000, 96000], [100000, 103000], [103000, 106000],
+                                                [110000, 113000], [130000, 133000], [133000, 136000],
+                                                [140000, 143000], [143000, 146000]]
+    Final_interval_list=[]
+    step=500
+    for start, end in param_potential_price_time_interval_list:
+        a=[]
+        for itemStart in list(range(start, end, step)):
+            a.append([itemStart,itemStart+step])
+        Final_interval_list.extend(a)
+
+class Potential_Nprice_930M5(DBI_Generator_Base,param_M5):
     ShapesM = [2]
     Input_Params = ["QZ_DF"]
     TitilesD =["Flag_Tradable","Potential_NPrice_1300"]
     TypesD = ["Flag_Tradable","NPrice_Not_Normal"]
 
-    param_potential_price_time_interval_list = [[93000, 96000], [100000, 103000], [103000, 106000],
-                                                [110000, 113000], [130000, 133000], [133000, 136000],
-                                                [140000, 143000], [143000, 146000]]
 
-    Final_interval_list=[]
-    step=500
-    for start, end in param_potential_price_time_interval_list[4:]:
-        a=[]
-        for itemStart in list(range(start, end, step)):
-            a.append([itemStart,itemStart+step])
-        Final_interval_list.extend(a)
+    def Gen(self, inputs):
+        result= _Gen_Potential_Nprice_Base(inputs, self.Final_interval_list)
+        self.Result_Check_Shape(result)
+        return result
+
+
+class Potential_Nprice_1300M5(DBI_Generator_Base,param_M5):
+    ShapesM = [2]
+    Input_Params = ["QZ_DF"]
+    TitilesD =["Flag_Tradable","Potential_NPrice_1300"]
+    TypesD = ["Flag_Tradable","NPrice_Not_Normal"]
+
 
     def Gen(self, inputs):
         result= _Gen_Potential_Nprice_Base(inputs, self.Final_interval_list)
@@ -70,7 +84,7 @@ class Exchange_Ratios(DBI_Generator_Base):
     def Gen(self,inputs):
         df_hfq, date_I=inputs
         df_result=df_hfq[df_hfq["date"]==str(date_I)]
-        assert len(df_result)==1,"{0} does not find in hfq df ".format(date_I)
+        assert len(df_result)==1,"{0} does not find in hfq df  {1}".format(date_I,df_result)
         result= df_result[["exchange_ratio_for_tradable_part","exchange_ratio_for_whole"]].values.tolist()[0]
         self.Result_Check_Shape(result)
         return result

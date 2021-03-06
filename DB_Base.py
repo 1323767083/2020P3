@@ -31,22 +31,29 @@ class DB_Base:
     #Dir_raw_normal_decompressed ="/home/rdchujf/DB_raw_Decompress"
     #Dir_raw_normal_addon_decompressed ="/home/rdchujf/DB_raw_Decompress"
 
+
     Dir_raw_legacy_1 = os.path.join(Dir_DB_Raw, "Legacy")
     Dir_raw_legacy_2 = os.path.join(Dir_DB_Raw, "Legacy")
     Dir_raw_normal = os.path.join(Dir_DB_Raw, "Normal")
-    Dir_raw_normal_addon = os.path.join(Dir_DB_Raw, "Normal")
+    #Dir_raw_normal_addon = os.path.join(Dir_DB_Raw, "Normal")
 
     Dir_raw_normal_decompressed =  os.path.join(Dir_raw_normal, "decompress")
-    Dir_raw_normal_addon_decompressed = os.path.join(Dir_raw_normal, "decompress")
+    #Dir_raw_normal_addon_decompressed = os.path.join(Dir_raw_normal, "decompress")
+
 
     Dir_raw_HFQ_Index=os.path.join(Dir_DB_Raw,"HFQ_Index")
     Dir_raw_HFQ_base = os.path.join(Dir_raw_HFQ_Index, "Stk_Day_FQ_WithHS")
-    Dir_raw_HFQ_base_addon = os.path.join(Dir_raw_HFQ_Index, "Stk_Day_FQ_WithHS_addon")
-    Dir_raw_HFQ_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_FQ_WithHS_addon_decompress")
+    Dir_raw_Index_base = os.path.join(Dir_raw_HFQ_Index, "Stk_Day_Idx")
 
-    Dir_raw_Index_base = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx")
-    Dir_raw_Index_base_addon = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx_addon")
-    Dir_raw_Index_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index,"Stk_Day_Idx_addon_decompress")
+    Dir_DB_Raw_addon = "/home/rdchujf/DB_raw_addon"
+    Dir_raw_normal_addon = os.path.join(Dir_DB_Raw_addon, "Normal")
+    Dir_raw_normal_addon_decompressed = os.path.join(Dir_raw_normal_addon, "decompress")
+
+    Dir_raw_HFQ_Index_addon=os.path.join(Dir_DB_Raw_addon, "HFQ_Index")
+    Dir_raw_HFQ_base_addon = os.path.join(Dir_raw_HFQ_Index_addon, "Stk_Day_FQ_WithHS_addon")
+    Dir_raw_HFQ_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index_addon,"Stk_Day_FQ_WithHS_addon_decompress")
+    Dir_raw_Index_base_addon = os.path.join(Dir_raw_HFQ_Index_addon,"Stk_Day_Idx_addon")
+    Dir_raw_Index_base_addon_decompressed = os.path.join(Dir_raw_HFQ_Index_addon,"Stk_Day_Idx_addon_decompress")
 
     #df structure
     title_qz = ["TranID", "Time", "Price", "Volume", "SaleOrderVolume", "BuyOrderVolume", "Type",
@@ -74,7 +81,7 @@ class DB_Base:
     title_DBI_HFQ_Inited_flag=    ["operation", "code", "result", "message"]
 
 
-    def __init__(self,Raw_lumpsum_End_DayI=20201130):
+    def __init__(self,Raw_lumpsum_End_DayI=20210226):
         self.TD_StartI = 20100101
         HostName=os.uname()[1]
         if HostName=='Y70':
@@ -113,6 +120,7 @@ class DB_Base:
             if "cannot safely convert passed user dtype of int64 for float64 dtyped data" in str(e) or "undefined" in str(e):
                 df = pd.read_csv(fnwp, header=0, names=self.title_qz)
                 df.dropna(inplace=True)
+                df.reset_index(inplace=True, drop=True) # this is to correct the empty row index(index without row) casued by drop row
                 for item in list(self.dtype_qz.keys()):
                     df[item] = df[item].astype(self.dtype_qz[item])
             # 6883,undefined,undefined,NaN,NaN,NaN,undefined,undefined,undefined,undefined,undefined
@@ -189,3 +197,55 @@ class DB_Base:
         else:
             dfo=pd.DataFrame(loglist,columns=log_titles)
         dfo.to_csv(logfnwp,index=False)
+
+
+    def _Check_raw_Multi_Rows(self,src_dir):
+        reg = r'Index has duplicate keys: Index\(\[\'(\w+-\w+-\w+)\'\], dtype=\'object\', name=\'时间\'\)'
+        SL_no_multi, SL_has_one_multi, has_more_multi = [], [], []
+        for fn in os.listdir(src_dir):
+            fnwp = os.path.join(src_dir, fn)
+            df = pd.read_csv(fnwp, encoding="gb18030")
+            try:
+                df.set_index(["时间"], verify_integrity=True)
+            except Exception as e:
+                if "Index has duplicate keys" in str(e):
+                    result = re.findall(reg, str(e))
+                    if len(result) == 1:
+                        SL_has_one_multi.append([fn[:-4], result[0]])
+                    else:
+                        has_more_multi.append(str(e))
+                else:
+                    print(e)
+                    assert False
+            SL_no_multi.append(fn)
+            dn, subdn = os.path.split(src_dir)
+            fnwp1=os.path.join(dn, "report_{0}_one_multi_date.csv".format(subdn))
+            pd.DataFrame(SL_has_one_multi, columns=["stock","DateS"]).to_csv(fnwp1, index=False)
+            fnwp2=os.path.join(dn, "report_{0}_more_multi_date.txt".format(subdn))
+            with open(fnwp2,"w") as f:
+                for line in has_more_multi:
+                    f.write(line)
+            print ("Report Stored in {0} {1}".format(fnwp1, fnwp2) )
+        return SL_no_multi, SL_has_one_multi, has_more_multi
+
+    def Sanity_check_raw_HFQ_index_multi_rows(self): #this function not fully tested
+        self._Check_raw_Multi_Rows(self.Dir_raw_HFQ_base)
+        self._Check_raw_Multi_Rows(self.Dir_raw_Index_base)
+
+    def remove_raw_hfq_index_double(self,dir, stock, dateS):
+        fnwp = os.path.join(dir, "{0}.csv".format(stock))
+        df = pd.read_csv(fnwp, encoding="gb18030")
+        a = df[df["时间"] == dateS]  # 如果只改raw  时间的格式是  “时间”   “2020-07-31”
+        if len(a) != 1:
+            print("double line at {0} {1}".format(dateS, stock))
+            # print (a.index)
+            found_idxs = a.index.to_list()
+            df.drop(found_idxs[1:], inplace=True)
+            a = df[df["时间"] == dateS]
+            print("multi row removed from dataframe", a.index)
+            df.to_csv(fnwp, index=False, encoding="gb18030")
+            b = pd.read_csv(fnwp, encoding="gb18030")
+            a = b[b["时间"] == dateS]
+            print("multi row removed from DBI HFQ file", a.index)
+            return True
+        return False

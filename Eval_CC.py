@@ -80,14 +80,18 @@ class Eval_CC(Eval_CC_base):
             for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
                 self.l_df[location_group_idx].to_csv(self.get_Record_fnwp(ET,group_idx), index=False, float_format='%.2f')
                 self.l_df[location_group_idx].drop(self.l_df[location_group_idx].index, inplace=True) #delete all row
+                self.l_df[location_group_idx].reset_index(inplace=True, drop=True)  #clean the empty index after drop
         if hasattr(self, "l_dfADlog"):
             for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
                 self.l_dfADlog[location_group_idx].to_csv(self.get_action_decision_log_fnwp(ET,group_idx), index=False, float_format='%.2f')
                 self.l_dfADlog[location_group_idx].drop(self.l_dfADlog[location_group_idx].index, inplace=True) #delete all row
+                self.l_dfADlog[location_group_idx].reset_index(inplace=True, drop=True)  # clean the empty index after drop
         if hasattr(self, "l_dfMoney"):
             for location_group_idx, group_idx in enumerate(self.l_CC_GroupIdx):
                 self.l_dfMoney[location_group_idx].to_csv(self.get_money_in_hand(ET,group_idx), index=False, float_format='%.2f')
                 self.l_dfMoney[location_group_idx].drop(self.l_dfMoney[location_group_idx].index, inplace=True) #delete all row
+                self.l_dfMoney[location_group_idx].reset_index(inplace=True, drop=True)  # clean the empty index after drop
+
     '''
     def Buy_Strategy_one_time(self,dateI,num_stock_could_invest,l_a_OB,l_a_OS,l_holding,L_Eval_Profit_low_flag,location_group_idx):
         Sidxs_all       = set(list(range(len(l_a_OB))))
