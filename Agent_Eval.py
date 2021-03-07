@@ -52,8 +52,8 @@ class EvalMain(Process):
                         if self.i_Eval_CC.Is_ProcessIdx_CCProcessIdx(process_idx):
                             raw_result = self.i_eb.choose_action_CC(stacted_state, "Eval")
                             return_flag,return_dateI= self.i_Eval_CC.CC_handler(process_idx, stacted_state,raw_result,self.LL_GPU2Eval)
-                            if eval_loop_count==250 and return_flag: #this for debug purpose
-                                print (process_idx, "  ", return_dateI)
+                            #if eval_loop_count==250 and return_flag: #this for debug purpose
+                            #    print (process_idx, "  ", return_dateI)
                         else:
                             result = self.i_eb.choose_action(stacted_state, "Eval")
                             self.LL_GPU2Eval[process_idx].append(result)

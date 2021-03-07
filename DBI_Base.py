@@ -82,6 +82,9 @@ class DBI_init(DB_Base):
             flag,df,mess=self.IRIdx.get_lumpsum_df(index_code)
             if not flag: return False, mess
             df=df[df["date"] <= str(self.Raw_Normal_Lumpsum_EndDayI)]
+            df.drop_duplicates(subset=["date"],inplace=True)  # should set subset as duplicate row has minor difference in float
+            assert not any(df.duplicated(["date"])),"these are duplicated rows {0}".format(df[df.duplicated(["date"])])
+            df.reset_index(inplace=True)
             fnwp=self.get_DBI_index_fnwp(index_code)
             df.to_csv(fnwp,index=False)
         return True, "Success"
@@ -104,6 +107,9 @@ class DBI_init(DB_Base):
         flag,df,mess=self.IRHFQ.get_lumpsum_df(stock)
         if not flag: return False, mess
         df=df[df["date"] <= str(self.Raw_Normal_Lumpsum_EndDayI)]
+        df.drop_duplicates(subset=["date"],inplace=True)  #should set subset as duplicate row has minor difference in float
+        assert not any(df.duplicated(["date"])),"these are duplicated rows {0}".format(df[df.duplicated(["date"])])
+        df.reset_index(inplace=True)
         fnwp=self.get_DBI_hfq_fnwp(stock)
         df.to_csv(fnwp,index=False)
         return True, "Success"
@@ -140,59 +146,30 @@ class DBI_init(DB_Base):
             os.remove(os.path.join(self.Dir_DBI_HFQ,fn))
         return
 
-    def get_exceed_max_price_sl(self,sl_name, max_price):
-        i = StockList(sl_name)
-        flag, sl = i.get_sub_sl("Train", 0)
-        assert flag
-        #j = DBI_init()
-        threadhold = max_price
-        esl = []
-        for stock in sl:
-            flag, df, mess = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
-            assert flag
-            max_price = df["open_price"].max()
-            if max_price >= threadhold:
-                print("{0} should exclude for max {1}".format(stock, max_price))
-                esl.append([stock, "price_too_high"])
-            else:
-                print(stock, " ok")
-
-        df = pd.DataFrame(esl, columns=["Stock", "Reason"])
-        #fnwp = os.path.join("/home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List", sl_name, "Price_to_Remove.csv")
-        fnwp = os.path.join(self.Dir_DBI_SL, sl_name, "Price_to_Remove.csv")
-        df.to_csv(fnwp, index=False)
-        print ("stock has max price exceed {0} be stored in {1}".format(max_price,fnwp))
-
-    #get_exceed_max_price_sl("SLV500_10M", 500)
-
-    def Update_DBI_addon_HFQ_Index(self, DayI):
-        assert DayI >self.Raw_Normal_Lumpsum_EndDayI
+    def Update_DBI_addon(self, DayI):
+        assert DayI > self.Raw_Normal_Lumpsum_EndDayI
         logfnwp=self.get_DBI_Update_Log_HFQ_Index_fnwp(DayI)
         if os.path.exists(logfnwp):
             return True, "Already Update DBI*****  {0} logfile exsists {1}".format(DayI,logfnwp)
-        # check existance for raw files(fnwp)
-        addon_HFQ_fnwp,_=self.IRHFQ.get_addon_fnwp(DayI)
-        addon_Index_fnwp,_=self.IRIdx.get_addon_fnwp(DayI)
-        addon_qz_compress_fnwp,addon_qz_decompress_fnwp=self.IRD.get_normal_addon_raw_fnwp(DayI,"XXXXXXXX",False)
-        for fnwp in [addon_HFQ_fnwp,addon_Index_fnwp,addon_qz_compress_fnwp]:
+
+        addon_HFQ_fnwp, _ = self.IRHFQ.get_addon_fnwp(DayI)
+        addon_qz_compress_fnwp, addon_qz_decompress_fnwp = self.IRD.get_normal_addon_raw_fnwp(DayI, "XXXXXXXX", False)
+        for fnwp in [addon_HFQ_fnwp,addon_qz_compress_fnwp]:
             if not os.path.exists(fnwp):
                 return False, "File Not Found**** {0}".format(fnwp)
 
-        idx_flag,idx_rawdf,idx_mess=self.IRIdx.get_addon_df(DayI)
-        if not idx_flag:
-            Error_mess="{0} {1} {2}".format(idx_mess,DayI, idx_flag)
-            print (Error_mess)
-            return False,Error_mess
         hfq_flag, hfq_rawdf, hfq_mess = self.IRHFQ.get_addon_df(DayI)
         if not hfq_flag:
             Error_mess = "{0} {1} {2}".format(hfq_mess,DayI, hfq_mess)
-            print(Error_mess)
             return False, Error_mess
+        else:
+            print (hfq_mess)
         decompress_flag, decompress_mess=self.IRD.decompress_normal_addon_qz(DayI, addon_qz_compress_fnwp,os.path.dirname(addon_qz_decompress_fnwp))
         if not decompress_flag:
             Error_mess = "{0} {1}".format(decompress_mess,DayI)
-            print(Error_mess)
             return False, Error_mess
+        else:
+            print (decompress_mess)
 
         for index_code in self.DBI_Index_Code_List:
             fnwp=self.get_DBI_index_fnwp(index_code)
@@ -200,49 +177,57 @@ class DBI_init(DB_Base):
             if not flag:
                 return False, mess
             if DBIdf[DBIdf["date"] == str(DayI)].empty:
-                input=idx_rawdf[idx_rawdf["code"]==index_code].iloc[0].values
+                df_found=hfq_rawdf[hfq_rawdf["code"] == index_code]
+                assert len(df_found)==1, "{0}raw HFQ_index file {1} record {2}".format(DayI, index_code,len(df_found) )
+                input=df_found.iloc[0].values
                 if input.size==0:
-                    return False, "No Data for {0} at {1} in addon Index file".format(index_code, DayI)
-                DBIdf.loc[len(DBIdf)]=input
+                    return False, "No Data for {0} at {1} in addon HFQ_index file".format(index_code, DayI)
+                DBIdf.loc[len(DBIdf)]=input[:-3]  #the last three column is HFQ related inform
                 DBIdf.sort_values(by="date",inplace=True)
                 DBIdf.to_csv(fnwp,index=False)
                 print (["Addon indexes Update",index_code,True, "Success"])
+            else:
+                print(["Addon indexes Update", index_code, True, "Already updated"])
 
-        set_HFQ_StockL=set(hfq_rawdf["code"].tolist())
-        set_qz_StockL=set(["{0}{1}".format("SH" if int(fn[:6]) >= 600000 else "SZ", fn[:6])
-                   for fn in  os.listdir(os.path.dirname(addon_qz_decompress_fnwp))])
-        HFQ_no_QZ_L=list(set_HFQ_StockL.difference(set_qz_StockL))
-        QZ_no_HFQ_L=list(set_qz_StockL.difference(set_HFQ_StockL))
-        HFQ_and_QZ_L=list(set_HFQ_StockL &set_qz_StockL)
+
+        qz_StockL=["{0}{1}".format("SH" if int(fn[:6]) >= 600000 else "SZ", fn[:6]) for fn in os.listdir(os.path.dirname(addon_qz_decompress_fnwp))]
         Log_List = []
-        for ll in [[HFQ_no_QZ_L,"In raw HFQ not in raw QZ"],[QZ_no_HFQ_L,"In raw Qz not in raw HFQ"]]:
-            for code in ll[0]:
-                Log_List.append([code, False, ll[1]])
-                print(Log_List[-1])
-        for stock in HFQ_and_QZ_L:
+        CSuccess, CSuccessNew, CAlredayExist,CError=0,0,0,0
+        for stock in qz_StockL:
             fnwp = self.get_DBI_hfq_fnwp(stock)
             if os.path.exists(fnwp):
                 flag, DBIdf, mess = self.get_hfq_df(fnwp)
                 if not flag:
-                    Log_List.append([stock, False, "In raw HFQ in raw QZ****"+mess])
+                    Log_List.append([stock, False, "In raw QZ, DBI HFQ found but fail to read****"+mess])
                     print(Log_List[-1])
+                    CError+=1
                     continue
             else:
                 DBIdf= pd.DataFrame(columns=self.title_hfq)
             if DBIdf[DBIdf["date"] == str(DayI)].empty:
-                input=hfq_rawdf[hfq_rawdf["code"]==stock].values.tolist()
-                assert  input.size!=0, "stock in raw addon HFQ and in raw QZ can not in this situation"
-                DBIdf.loc[len(DBIdf)]=input[0]
+                df_found=hfq_rawdf[hfq_rawdf["code"] == stock]
+                assert len(df_found)==1, "{0}raw HFQ_index file {1} record {2}".format(DayI, stock,len(df_found) )
+                input=df_found.iloc[0].values
+                assert  input.size!=0, "No Data for {0} at {1} in addon HFQ_index file".format(stock, DayI)
+                DBIdf.loc[len(DBIdf)]=input
                 DBIdf.sort_values(by="date", inplace=True)
                 DBIdf.to_csv(fnwp, index=False)
-                Log_List.append([stock, True, "In raw HFQ in raw QZ****Success update"])
+                if len(DBIdf)==1:
+                    Log_List.append([stock, True, "In raw HFQ in raw QZ****Generate New HFQ and Success update"])
+                    CSuccessNew+=1
+                else:
+                    Log_List.append([stock, True, "In raw HFQ in raw QZ****Success update"])
+                    CSuccess+=1
             else:
-                Log_List.append([stock, True, "In raw HFQ in raw QZ****Date Already exisit"])
+                Log_List.append([stock, True, "In raw HFQ in raw QZ****Date Already exists"])
+                CAlredayExist+=1
             print(Log_List[-1])
-            continue
-
-        pd.DataFrame(Log_List, columns=["stock", "status","mess"]).to_csv(logfnwp, index=False)
+        dflog=pd.DataFrame(Log_List, columns=["stock", "status","mess"])
+        dflog.to_csv(logfnwp, index=False)
         print ("Finish Update_DBI_addon_HFQ_Index {0}. Log file in {1}".format(DayI,logfnwp))
+        print ("Success Update: {0} Success Update Generate New HFQ: {1} Already Updated before:{2} Error: {3}".
+               format(CSuccess, CSuccessNew, CAlredayExist,CError))
+        assert len(dflog)== CSuccess+ CSuccessNew+ CAlredayExist+CError
         return True, "Success"
 
     ##TD related
@@ -461,6 +446,27 @@ class StockList(DBI_init):
         if process_idx_left<left:
             stock_list.append(group_stock_list[-(process_idx_left+1)])
         return stock_list
+
+    #todo move get_exceed_max_price_sl to Stock list
+    def get_exceed_max_price_sl(self,set_max_price):
+        flag, sl = self.get_sub_sl("Train", 0)
+        assert flag
+        esl = []
+        for stock in sl:
+            flag, df, mess = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+            assert flag
+            max_price = df["open_price"].max()
+            if max_price >= set_max_price:
+                print("{0} should exclude for exceeding {1}".format(stock, set_max_price))
+                esl.append([stock, "price_too_high"])
+            else:
+                print(stock, " ok")
+
+        df = pd.DataFrame(esl, columns=["Stock", "Reason"])
+        #fnwp = os.path.join("/home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List", sl_name, "Price_to_Remove.csv")
+        fnwp = os.path.join(self.Dir_DBI_SL, self.SLName, "Price_to_Remove.csv")
+        df.to_csv(fnwp, index=False)
+        print ("stock has max price exceed {0} be stored in {1}".format(set_max_price,fnwp))
 
 
 class DBI_Base(DBI_init):

@@ -27,9 +27,9 @@ class FTP_base:
     def get_data(self, DateI, data_server, account, password, desbasedir, fn):
         desdir = os.path.join(desbasedir, str(DateI // 100))
         if not os.path.exists(desdir): os.mkdir(desdir)
-        des_fnwp = os.path.join(desbasedir, fn)
+        des_fnwp = os.path.join(desdir, fn)
         if os.path.exists(des_fnwp):
-            print("Already Exisits {0}".format(des_fnwp))
+            print("Already Exists {0}".format(des_fnwp))
             return True
         ftp = FTP(data_server)
         ftp.login(user=account, passwd=password)
@@ -77,5 +77,5 @@ class Get_Data_After_closing(DB_Base, FTP_base):
 
     def get_HFQ_index(self, DateI):
         fn = "{0}.rar".format(DateI)
-        if not self.get_data(DateI, self.data_server,self.account_HFQ_index, self.password, self.Dir_raw_Index_base_addon, fn):
-            return False
+        return self.get_data(DateI, self.data_server,self.account_HFQ_index, self.password, self.Dir_raw_HFQ_Index_addon, fn)
+

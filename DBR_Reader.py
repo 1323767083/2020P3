@@ -11,7 +11,7 @@ class Decompressed_flag:
     def check_decompressed(self, compressed_fnwp):
         return os.path.exists(self.get_decompressed_flag_fnwp(compressed_fnwp))
 
-    def set_Normal_decompressed(self, compressed_fnwp):
+    def set_decompressed_flag(self, compressed_fnwp):
         with open(self.get_decompressed_flag_fnwp(compressed_fnwp),"w") as f:
             f.write("Success Decompressed")
 
@@ -23,18 +23,17 @@ class Raw_HFQ_Index(DB_Base,Decompressed_flag):
     def __init__(self,swith_HFQ__index):
         DB_Base.__init__(self)
         self.swith_HFQ__index=swith_HFQ__index
+        #swith only work in the raw normal HFQ and raw normal INdex,, addon HFQ and addon in dex in one file with hfq dataframe format
         assert self.swith_HFQ__index in ["HFQ","Index"]
         if self.swith_HFQ__index=="HFQ":
             self.Dir_base=self.Dir_raw_HFQ_base
             self.FUN_get_df=self.get_hfq_df
-            self.Dir_addon_base=self.Dir_raw_HFQ_base_addon
-            self.Dir_addon_decompress_base=self.Dir_raw_HFQ_base_addon_decompressed
         else:
             self.Dir_base=self.Dir_raw_Index_base
             self.FUN_get_df=self.get_index_df
-            self.Dir_addon_base=self.Dir_raw_Index_base_addon
-            self.Dir_addon_decompress_base=self.Dir_raw_Index_base_addon_decompressed
 
+        self.Dir_addon_base=self.Dir_raw_HFQ_Index_addon
+        self.Dir_addon_decompress_base=self.Dir_raw_HFQ_Index_addon_decompressed
 
     # ********************HFQ Data API**************************
     def _get_lumpsum_fnwp(self, code):
@@ -61,16 +60,18 @@ class Raw_HFQ_Index(DB_Base,Decompressed_flag):
         decompressed_fnwp=os.path.join(self.Dir_addon_decompress_base, str(dayI//100),str(dayI) + ".csv")
         return compressed_fnwp,decompressed_fnwp
 
-    def decompress_normal_addon(self, compressed_fnwp, decompressed_dn):
+    def decompress_addon(self, compressed_fnwp, decompressed_dn):
         if not os.path.exists(compressed_fnwp):
             return False,"Compress File Not Found****{0}".format(compressed_fnwp)
-
+        if self.check_decompressed(compressed_fnwp):
+            return True, "Already Decompressed"
         print ("\tStart Decompress at {0}  {1}".format(datetime.now().time(),compressed_fnwp))
         if not os.path.exists(decompressed_dn): os.makedirs(decompressed_dn)
         lcmd = ["rar", "e", compressed_fnwp, decompressed_dn,"-y","-inul"]
         with open(os.devnull, 'w')  as FNULL: #hide terminal output
             res = subprocess.call(lcmd,stdout=FNULL)
         if res==0: # success
+            self.set_decompressed_flag(compressed_fnwp)
             return True, "Success"
         else: # fail log
             return False,  "Decomprress File Error**** {0}".format(compressed_fnwp)
@@ -78,15 +79,15 @@ class Raw_HFQ_Index(DB_Base,Decompressed_flag):
     def get_addon_df(self, dayI):
         compressed_fnwp,decompressed_fnwp=self.get_addon_fnwp(dayI)
         if os.path.exists(decompressed_fnwp):
-            flag, df, mess = self.FUN_get_df(decompressed_fnwp)
+            flag, df, mess = self.get_hfq_df(decompressed_fnwp)
             if not flag:
                 return False, "", mess
-            return True, df, "Success"
-        flag, mess= self.decompress_normal_addon(compressed_fnwp, os.path.dirname(decompressed_fnwp))
+            return True, df, "Already Decompressed {0} at {1}".format(compressed_fnwp,decompressed_fnwp)
+        flag, mess= self.decompress_addon(compressed_fnwp, os.path.dirname(decompressed_fnwp))
         if not flag:
             return False, "", mess
         if os.path.exists(decompressed_fnwp):
-            flag, df, mess = self.FUN_get_df(decompressed_fnwp)
+            flag, df, mess = self.get_hfq_df(decompressed_fnwp)  #addon data(hfq and index) all use the hfq dataframe structure,
             if not flag:
                 return False, "", mess
             return True, df, "Success"
@@ -121,7 +122,7 @@ class RawData(DB_Base,Decompressed_flag):
 
     def decompress_normal_addon_qz(self,dayI, compressed_fnwp,decompressed_dn):
         if self.check_decompressed(compressed_fnwp):
-            return True, "Already Decompressed"
+            return True, "Already Decompressed {0} at {1}".format(compressed_fnwp,decompressed_dn)
         if not os.path.exists(compressed_fnwp):
             return False, "Compress File Not Found**** Failed found qz compress file {0}".format(compressed_fnwp)
         lcmd=["7z","e", compressed_fnwp, "-o%s" %   decompressed_dn,"-r","-y","-bd"]
@@ -133,7 +134,7 @@ class RawData(DB_Base,Decompressed_flag):
             dir_to_remove=os.path.join(decompressed_dn,
                          "{0:4d}-{1:02d}-{2:02d}".format(dayI // 10000, dayI % 10000 // 100, dayI % 100))
             if os.path.exists(dir_to_remove):   os.rmdir(dir_to_remove)
-            self.set_Normal_decompressed(compressed_fnwp)
+            self.set_decompressed_flag(compressed_fnwp)
             return True, "Success"
         else: # fail log
             return False,  "Decomprress File Error**** {0}".format(compressed_fnwp)
