@@ -1,21 +1,9 @@
-import sys
+import sys,os
+import pandas as pd
 from DB_Base import DB_Base
 from DBI_Base import DBI_init,StockList
 from DBTP_Creater import DBTP_Creater,DBTP_creator_on_SLperiod,DBTP_creator
 from DB_FTP import Get_Data_After_closing
-commmand_smaples=[
-    "Initial_DBI",
-    "Reset_DBI",
-    "Create_Total_SL SLV1",
-    "Create_Sub_SL SLV1",
-    "Get_SL_Exceed_MaxPrice SLV1 500",
-    "Generate_DBTP TPVTest1 SH600000 20200101 20200110",
-    "Generate_DBTP_Process TPVTest1 SLV1 4 True/False #True means overwrite create log",
-    "Create_List_Stock_Fail_Generate_TPDB SLV1",
-    "Addon_Download  20210301",
-    "Addon_Update_DBI 20210301",
-    "Addon_Generate_DBTP DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite "
-]
 
 '''
 Guide to update DBI
@@ -58,6 +46,22 @@ Guide to update DBI
          1. 整数传成浮点数  如100  传成 99.99999999999999 或 100.0000000000001
          2. 有NaN 和 undefined
      
+       f: 如果有进程中间出错中断， 修补方法：
+           以Output 的最后修改时间来确定哪个进程， 哪个文件  一般 打印出错的process 代号比文件的标号大 1
+           找到原因并解决
+           从相应的 SL 里找到后面没处理的stock
+           类似以下的行命令一个个生成， 并保留log            
+
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600176 20180101 20210226 >/home/rdchujf/t.txt
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600177 20180101 20210226 >>/home/rdchujf/t.txt
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600183 20180101 20210226 >>/home/rdchujf/t.txt
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600188 20180101 20210226 >>/home/rdchujf/t.txt
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600196 20180101 20210226 >>/home/rdchujf/t.txt
+                python DB_main.py Generate_DBTP DBTP_5MV1 SH600208 20180101 20210226 >>/home/rdchujf/t.txt
+                
+            然后拼装 log
+                cat /home/rdchujf/t.txt >>Process2Output.txt
+     
     5.python DB_main.py Create_List_Stock_Fail_Generate_TPDB SLV300  
        根据 /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/CreateLog里 的 error log 生成
        /home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List/SLV300/Adj_to_Remove.csv
@@ -73,32 +77,37 @@ Guide to update DBI
             SLV300_TPV3/CreateLog$ grep "SZ" *Error.txt
             SLV300_TPV3/CreateLog$ grep "SH" *Error.txt
 update Addon data
-1. FTP
-    a. to homeserver
-        python DB_main.py Addon_Download 20210305
-    b. to local then to home server
-
-        #using following way in V70 local jupiter run the program
-        import sys
-        sys.path.append("D:\\user\\Hu\\workspace_gp\\2020P3")
-        import DB_FTP
-        i=DB_FTP.FTP_base()
-        i.local_get_qz_data(20210303)
-        i.local_get_HFQ_index(20210303)
-        
-        存在 C:\\Users\\lenovo\\202103
-
-2. Addon_Update_DBI
-    python DB_main.py Addon_Update_DBI 20210305
-3. generate DBTP for the date on SL_name
-    python DB_main.py Addon_Generate_DBTP DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite
-    现阶段：
-    python DB_main.py Addon_Generate_DBTP TPV5_10M_5MNprice SLV500_10M Train 0 20210303 20210305 10 True
-    python DB_main.py Addon_Generate_DBTP TPVTest1 SLV300 Train 0 20210301 20210305 10 True
+    1. FTP
+        a. to homeserver
+            python DB_main.py Addon_Download 20210305
+        b. to local then to home server
     
-    use
-    ls -l *Error.txt check result
-4. roll back for one day
+            #using following way in V70 local jupiter run the program
+            import sys
+            sys.path.append("D:\\user\\Hu\\workspace_gp\\2020P3")
+            import DB_FTP
+            i=DB_FTP.FTP_base()
+            i.local_get_qz_data(20210303)
+            i.local_get_HFQ_index(20210303)
+            
+            存在 C:\\Users\\lenovo\\202103
+    
+    2. Addon_Update_DBI
+        python DB_main.py Addon_Update_DBI 20210305
+    3. generate DBTP for the date on SL_name
+        python DB_main.py Addon_Generate_DBTP DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite
+        现阶段：
+        python DB_main.py Addon_Generate_DBTP TPV5_10M_5MNprice SLV500_10M Train 0 20210303 20210305 10 True
+        python DB_main.py Addon_Generate_DBTP TPVTest1 SLV300 Train 0 20210301 20210305 10 True
+        
+        use
+        ls -l *Error.txt check result
+    4. Addon_In_One
+        python DB_main.py Addon_In_One Config_name DateI
+        
+        Config_name.csv format
+        DBTP_Name, SL_Name, SL_tag, SL_idx
+         
    
 关于stock list
     1.create stock list 
@@ -161,6 +170,22 @@ update Addon data
 
 
 '''
+
+commmand_smaples=[
+    "Initial_DBI",
+    "Reset_DBI",
+    "Create_Total_SL SLV1",
+    "Create_Sub_SL SLV1",
+    "Get_SL_Exceed_MaxPrice SLV1 500",
+    "Generate_DBTP TPVTest1 SH600000 20200101 20200110",
+    "Generate_DBTP_Process TPVTest1 SLV1 4 True/False #True means overwrite create log",
+    "Create_List_Stock_Fail_Generate_TPDB SLV1",
+    "Addon_Download  20210301",
+    "Addon_Update_DBI 20210301",
+    "Addon_Generate_DBTP DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite ",
+    "Addon_In_One Config_name DateI"
+]
+
 def main(argv):
     if len(argv)==0:
         print ("Command Format Sample")
@@ -214,6 +239,30 @@ def main(argv):
         DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite=argv[1],argv[2],argv[3],\
                                                 eval(argv[4]),eval(argv[5]),eval(argv[6]),eval(argv[7]),eval(argv[8])
         DBTP_creator(DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite)
+    elif command=="Addon_In_One":
+        param_fnwp=os.path.join ("/home/rdchujf/DB_raw_addon/Config", "{0}.csv".format(argv[1]))
+        DateI=eval(argv[2])
+
+        i = Get_Data_After_closing()
+        if not i.get_qz_data(DateI):
+            print ("Fail in downloading qz for {0}".format(DateI))
+            return
+        else:
+            print("Success downloading qz for {0}".format(DateI))
+        if not i.get_HFQ_index(DateI):
+            print("Fail in downloading HFQ_index for {0}".format(DateI))
+            return
+        else:
+            print("Success downloading HFQ_index for {0}".format(DateI))
+
+        i=DBI_init()
+        flag, mess=i.Update_DBI_addon(DateI)
+        print ("Success" if flag else "Fail", "  ",mess)
+
+        df = pd.read_csv(param_fnwp)
+        for idx, row in df.iterrows():
+            print (row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]))
+            DBTP_creator(row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]), DateI, DateI, 10, True)
     else:
         print ("Command {0} is not supported".format(command))
     print("Finished")

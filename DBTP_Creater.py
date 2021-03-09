@@ -197,7 +197,6 @@ def DBTP_creator(DBTP_Name,SL_Name,SL_tag, SL_idx,StartI,EndI,NumP,flag_overwrit
     for sub_dir in [DBTP_Name,"{0}_{1}_{2}".format(SL_Name,SL_tag,SL_idx),"{0}-{1}".format(StartI, EndI)]:
         logdn=os.path.join(logdn,sub_dir)
         if not os.path.exists(logdn):os.mkdir(logdn)
-
     fnwp = StockList(SL_Name).Sub_fnwp(SL_tag, SL_idx)
     if not os.path.exists(fnwp):
         print("File Not exist {0}".format(fnwp))
@@ -227,75 +226,3 @@ def DBTP_creator_on_SLperiod(DBTP_Name,SL_Name, NumP, flag_overwrite):
     iSL=StockList(SL_Name)
     for SL_tag,SL_idx, StartI, EndI in iSL.SLDef["DBTP_Generator"]:
         DBTP_creator(DBTP_Name,SL_Name,SL_tag, SL_idx,StartI,EndI,NumP,flag_overwrite)
-
-
-'''
-class Process_Generate_DBTP(Process):
-    def __init__(self, DBTP_Name, SL_Name,Stocks, StartI, EndI, process_id, flag_overwrite, flag_debug=False ):
-        Process.__init__(self)
-        self.iDBTP_Creater=DBTP_Creater(DBTP_Name)
-        self.Stocks=Stocks
-        self.StartI= StartI
-        self.EndI= EndI
-        self.process_id=process_id
-        self.flag_overwrite=flag_overwrite  #overwrite flag是 让 log file 从新开始写
-        self.flag_debug=flag_debug  # debug flag 是 让所有输出都在屏幕上， 不写log
-
-        logdn=self.iDBTP_Creater.Dir_IDB
-        for sub_dir in ["Stock_List",SL_Name, "CreateLog"]:
-            logdn=os.path.join(logdn,sub_dir)
-            if not os.path.exists(logdn): os.mkdir(logdn)
-
-        self.stdoutfnwp=os.path.join(logdn,"Process{0}Output.txt".format(process_id))
-        self.stderrfnwp = os.path.join(logdn, "Process{0}Error.txt".format(process_id))
-        pd.DataFrame(self.Stocks,columns=["stock"]).to_csv(os.path.join(logdn,"Process{0}SL.csv".format(process_id)), index=False)
-
-
-    def run(self):
-        print ("Printout has been redirected to {0}".format(self.stdoutfnwp))
-        from contextlib import redirect_stdout,redirect_stderr
-        if self.flag_debug:
-            newstdout = sys.__stdout__
-            newstderr = sys.__stderr__
-        else:
-            newstdout = open(self.stdoutfnwp, "w" if self.flag_overwrite else "a")
-            newstderr = open(self.stderrfnwp, "w" if self.flag_overwrite else "a")
-
-        with redirect_stdout(newstdout),redirect_stderr(newstderr):
-            print("#####################################################################")
-            print("start process at {0}".format(datetime.now().time()))
-            total_num=len(self.Stocks)
-            for idx,Stock in enumerate(self.Stocks):
-                print ("********************************************************************")
-                print ("Start Generate {0} {1} {2} @ {3}".format(Stock, self.StartI, self.EndI,datetime.now().time() ))
-                flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
-                print ("End with {0}".format(mess))
-                print ("Process {0} finish {1:.2f}".format(self.process_id, (idx+1)/total_num), file=sys.__stdout__)
-                newstdout.flush()
-
-def DBTP_main(DBTP_Name,SL_Name, NumP, flag_overwrite):
-    iSL=StockList(SL_Name)
-    for tag, idx, StartI, EndI in iSL.SLDef["DBTP_Generator"]:
-        assert StartI<EndI and StartI//1000000==20 and EndI//1000000==20
-        fnwp=iSL.Sub_fnwp(tag, idx)
-        if not os.path.exists(fnwp):
-            print ("File Not exist {0}".format(fnwp))
-            return
-        sl=pd.read_csv(fnwp,header=0, names=["stock"])["stock"].tolist()
-        sub_len=len(sl)//NumP
-        sub_beneficial=len(sl)%NumP
-        PIs=[]
-        for i in list(range(NumP)):
-            len_to_get=sub_len+1 if i< sub_beneficial else sub_len
-            #PI=Process_Generate_DBTP(DBTP_Name, SL_Name,sl[:len_to_get+1], StartI, EndI,i)
-            PI = Process_Generate_DBTP(DBTP_Name, SL_Name, sl[:len_to_get], StartI, EndI, i, flag_overwrite)
-            PI.daemon = True
-            PI.start()
-            PIs.append(PI)
-            #sl=sl[len_to_get+1:]
-            sl=sl[len_to_get:]
-        while  any([PI.is_alive() for PI in PIs]):
-            time.sleep(10)
-        for PI in PIs:
-            PI.join()
-'''
