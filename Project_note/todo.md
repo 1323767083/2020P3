@@ -34,3 +34,31 @@ Potential issue:
 4. FTP (partly)
 5. stock code classification tool to extract hfq rows from index     
 
+part 1
+sh603967.csv
+sz300766.csv
+sz300769.csv
+sz300768.csv
+sz300771.csv
+sz002950.csv
+sz300772.csv
+sh603317.csv
+sz300770.csv
+sz300773.csv
+sh603068.csv
+
+
+part 2
+
+SZ000976 False HFQ Not Have Lumpsum End****SZ000976 not have 20210226 data
+SH600687 False HFQ Not Have Lumpsum End****SH600687 not have 20210226 data
+SZ002071 False HFQ Not Have Lumpsum End****SZ002071 not have 20210226 data
+SH600978 False HFQ Not Have Lumpsum End****SH600978 not have 20210226 data
+SH600247 False HFQ Not Have Lumpsum End****SH600247 not have 20210226 data
+
+part 3
+SZ000603 True Success
+SZ000803 True Success
+SZ300949 True Success
+SZ000032 True Success
+SZ002024 True Success

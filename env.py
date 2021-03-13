@@ -6,6 +6,8 @@ from action_comm import actionOBOS
 from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader,DBTP_Eval_CC_Reader
 from DBI_Base import hfq_toolbox
 from Eval_CC import Eval_CC
+#roughly buy 0.0003
+#roughly sell 0.0013
 
 class env_account:
     param_yin_hua_shui          = 0.001

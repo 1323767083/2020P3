@@ -78,6 +78,11 @@ class DBI_init(DB_Base):
         flag,mess=self.check_DBI_lumpsum_inited_Indexes()
         if flag:
             return True, "Success"
+        # Following is to ensure all the raw hfq file has lower sh or sz name
+        for fn in self.Dir_raw_Index_base:
+            if fn.startswith("SH") or fn.startswith("SZ"):
+                os.rename(os.path.join(self.Dir_raw_Index_base, fn), os.path.join(self.Dir_raw_Index_base, fn.lower()))
+
         for index_code in self.DBI_Index_Code_List:
             flag,df,mess=self.IRIdx.get_lumpsum_df(index_code)
             if not flag: return False, mess
@@ -118,6 +123,12 @@ class DBI_init(DB_Base):
         flag_HFQ_inited_fnwp =self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
         if os.path.exists(flag_HFQ_inited_fnwp): return
         print ("Start Init lumpsum_HFQs for DBI")
+
+        #Following is to ensure all the raw hfq file has uppder SH or SZ name
+        for fn in self.Dir_raw_HFQ_base:
+            if fn.startswith("sh") or fn.startswith("sz"):
+                os.rename(os.path.join(self.Dir_raw_HFQ_base, fn), os.path.join(self.Dir_raw_HFQ_base, fn.upper()))
+
         compressed_fnwp, decompressed_fnwp = self.IRD.get_normal_addon_raw_fnwp(self.Raw_Normal_Lumpsum_EndDayI, "XXXXXXXX", True)
         flag,mess=self.IRD.decompress_normal_addon_qz(self.Raw_Normal_Lumpsum_EndDayI, compressed_fnwp, os.path.dirname(decompressed_fnwp))
         if not flag:
@@ -145,6 +156,7 @@ class DBI_init(DB_Base):
         for fn in os.listdir(self.Dir_DBI_HFQ):
             os.remove(os.path.join(self.Dir_DBI_HFQ,fn))
         return
+
 
     def Update_DBI_addon(self, DayI):
         assert DayI > self.Raw_Normal_Lumpsum_EndDayI

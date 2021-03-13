@@ -221,6 +221,10 @@ def DBTP_creator(DBTP_Name,SL_Name,SL_tag, SL_idx,StartI,EndI,NumP,flag_overwrit
     for PI in PIs:
         PI.join()
 
+    fns = [fn for fn in os.listdir(logdn) if "Error" in fn]
+    fns.sort()
+    for fn in fns:
+        print("{0} with size {1}".format(fn, os.path.getsize(os.path.join(logdn, fn))))
 
 def DBTP_creator_on_SLperiod(DBTP_Name,SL_Name, NumP, flag_overwrite):
     iSL=StockList(SL_Name)

@@ -49,30 +49,28 @@ def remove_double_row(dnwp, stock_list,dateI):
         else:
             print (stock, "not double line")
 
+####################################################################################################
+#generate sub links for I_DB and TP DB
+# DBI_V2  DBI_V3  NPrice1300_I5  NPrice930_I5 SV1M  SV5M
+# DBTP_10MV1  DBTP_1MV1  DBTP_5MV1  TPHFD  TPV3  TPV4_5M  TPV5_10M_5MNprice
+import subprocess
 
-from DBI_Base import StockList,DBI_init
-import pandas as pd
-import os
-#get_exceed_max_price_sl("SLV500_10M", 500)
+# def generate_synbolic_link(src, des):
+#    result = subprocess.run(['ln', '-s', src, des], stdout=subprocess.PIPE)
+#    return result.stdout
 
-def get_exceed_max_price_sl(sl_name, max_price):
-    i=StockList(sl_name)
-    flag,sl=i.get_sub_sl("Train",0)
-    assert flag
-    j=DBI_init()
-    threadhold=max_price
-    esl=[]
-    for stock in sl:
-        flag,df, mess=j.get_hfq_df(j.get_DBI_hfq_fnwp(stock))
-        assert flag
-        max_price=df["open_price"].max()
-        if max_price>=threadhold:
-            print ("{0} should exclude for max {1}".format(stock,max_price))
-            esl.append([stock,"price_too_high"])
-        else:
-            print (stock, " ok")
-
-    df=pd.DataFrame(esl, columns=["Stock","Reason"])
-    fnwp=os.path.join("/home/rdchujf/n_workspace/data/RL_data/I_DB/Stock_List",sl_name,"Price_to_Remove.csv")
-    df.to_csv(fnwp,index=False)
-
+src_dir_base = "/home/rdchujf/RL_data_additional"
+des_dir_base = "/home/rdchujf/n_workspace/data/RL_data"
+for sub_dir in ["I_DB", "TP_DB"]:
+    src_dir = os.path.join(src_dir_base, sub_dir)
+    des_dir = os.path.join(des_dir_base, sub_dir)
+    for dn in os.listdir(src_dir):
+        # des_dir_dnwp=os.path.join(des_dir,dn)
+        src_dir_dnwp = os.path.join(src_dir, dn)
+        result = subprocess.run(['ln', '-s', src_dir_dnwp, des_dir], stdout=subprocess.PIPE)
+'''
+also need change
+lrwxrwxrwx  1 rdchujf rdchujf        21 8月  20  2020 DB_raw -> /mnt/data_disk/DB_raw
+lrwxrwxrwx  1 rdchujf rdchujf        32 3月  11 08:51 DB_raw_addon -> /mnt/pdata_disk2Tw/DB_raw_addon/
+lrwxrwxrwx  1 rdchujf rdchujf        38 3月  11 08:37 RL_data_additional -> /mnt/pdata_disk2Tw/RL_data_additional/
+'''

@@ -26,6 +26,62 @@ Guide to update DBI
         a. 该文件的存在与否是是否 DBI index 和 HFQ init 的 标志
         b. 在 TSL_from_caculate 生成 stock list 时也用到
 
+    3. 加入停盘的HFQ
+        TUSHARE查 当天停盘的list
+            pro = ts.pro_api()
+            df = pro.suspend(ts_code='', suspend_date='20210226', resume_date='', fields='')
+
+       然后通过 DB_Base 里的read df 读，去除duplicated 后，写入/home/rdchujf/n_workspace/data/RL_data/I_DB/HFQ
+           stocks=["SZ000976","SH600687","SZ002071","SH600978","SH600247"]
+    
+            raw_hfq_base_dn="/mnt/data_disk/DB_raw/HFQ_Index/Stk_Day_FQ_WithHS/"
+            DBI_hfq_base_dn="/mnt/pdata_disk2Tw/RL_data_additional/HFQ/"
+            
+            for stock in stocks:
+                raw_fnwp=os.path.join(raw_hfq_base_dn,"{0}.csv".format(stock))
+                DBI_fnwp=os.path.join(DBI_hfq_base_dn,"{0}.csv".format(stock))
+                flag,dfraw, mess=i.get_hfq_df(raw_fnwp)
+                assert flag,mess
+                df=dfraw
+                df.drop_duplicates(subset=["date"],inplace=True)
+                df.reset_index(inplace=True,drop=True)
+                df.to_csv(DBI_fnwp, index=False)
+                print (DBI_fnwp)
+        手工改update log    /home/rdchujf/n_workspace/data/RL_data/I_DB/Update_Log_HFQ_Index/lumpsum_HFQ_Inited_log.csv
+        
+        生成后手工加入的HFQ
+            part 1 因为文件名sh 和 sz 小写， 所以被程序认为不存在
+            sh603967.csv
+            sz300766.csv
+            sz300769.csv
+            sz300768.csv
+            sz300771.csv
+            sz002950.csv
+            sz300772.csv
+            sh603317.csv
+            sz300770.csv
+            sz300773.csv
+            sh603068.csv
+            
+            
+            part 2  因为20210226 停盘， 所以当天qz 数据没有， 而且在20210310 手工改的时候还未复盘
+            
+            SZ000976 False HFQ Not Have Lumpsum End****SZ000976 not have 20210226 data
+            SH600687 False HFQ Not Have Lumpsum End****SH600687 not have 20210226 data
+            SZ002071 False HFQ Not Have Lumpsum End****SZ002071 not have 20210226 data
+            SH600978 False HFQ Not Have Lumpsum End****SH600978 not have 20210226 data
+            SH600247 False HFQ Not Have Lumpsum End****SH600247 not have 20210226 data
+            
+            part 3 因为20210226 停盘， 所以当天qz 数据没有， 但是在20210310 前已经复盘， 所以addon HFQ有， 20210226前面HFQ要加入
+            SZ000603 True Success
+            SZ000803 True Success
+            SZ300949 True Success
+            SZ000032 True Success
+            SZ002024 True Success
+        
+            只有这两个股票数据是 500 和 300的
+            {'SH603317'} 500
+            {'SZ002024'} 300
     3.python DB_main.py Generate_DBTP TPVTest1 SH600000 20200601 20201131
       这一步是先把所有的raw data 都解压了， 否则 后面多进程同时解压一个文件会出各种莫名奇妙的错 比如 以下两种错误， 
       第一种是多次启动解压程序引起的
@@ -103,11 +159,17 @@ update Addon data
         use
         ls -l *Error.txt check result
     4. Addon_In_One
-        python DB_main.py Addon_In_One Config_name DateI
+        python DB_main.py Addon_In_One Config_name DateI Screen_or_file   # True means Screen
         
         Config_name.csv format
         DBTP_Name, SL_Name, SL_tag, SL_idx
-         
+        
+        Example:
+        python DB_main.py Addon_In_One DBTP1M5M10MSL300SL500 20210310 False      # False 是输入文件不在屏幕上显示
+    5. Addon_Update_To_Date
+        python DB_main.py Addon_Update_To_Date Config_name
+        Example:
+        python DB_main.py Addon_Update_To_Date DBTP1M5M10MSL300SL500
    
 关于stock list
     1.create stock list 
@@ -183,7 +245,8 @@ commmand_smaples=[
     "Addon_Download  20210301",
     "Addon_Update_DBI 20210301",
     "Addon_Generate_DBTP DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite ",
-    "Addon_In_One Config_name DateI"
+    "Addon_In_One Config_name DateI Screen_or_file",
+    "Addon_Update_To_Date Config_name"
 ]
 
 def main(argv):
@@ -239,30 +302,74 @@ def main(argv):
         DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite=argv[1],argv[2],argv[3],\
                                                 eval(argv[4]),eval(argv[5]),eval(argv[6]),eval(argv[7]),eval(argv[8])
         DBTP_creator(DBTP_Name, SL_Name, SL_tag, SL_idx, StartI, EndI, NumP, flag_overwrite)
-    elif command=="Addon_In_One":
-        param_fnwp=os.path.join ("/home/rdchujf/DB_raw_addon/Config", "{0}.csv".format(argv[1]))
-        DateI=eval(argv[2])
-
-        i = Get_Data_After_closing()
-        if not i.get_qz_data(DateI):
-            print ("Fail in downloading qz for {0}".format(DateI))
-            return
-        else:
-            print("Success downloading qz for {0}".format(DateI))
-        if not i.get_HFQ_index(DateI):
-            print("Fail in downloading HFQ_index for {0}".format(DateI))
-            return
-        else:
-            print("Success downloading HFQ_index for {0}".format(DateI))
-
-        i=DBI_init()
-        flag, mess=i.Update_DBI_addon(DateI)
-        print ("Success" if flag else "Fail", "  ",mess)
-
+    elif command=="Addon_Update_To_Date":
+        Addon_IN_One_dnwp = "/home/rdchujf/DB_raw_addon/Config"
+        param_fnwp = os.path.join(Addon_IN_One_dnwp, "{0}.csv".format(argv[1]))
         df = pd.read_csv(param_fnwp)
+        TPDB_update_log_base_dir="/home/rdchujf/n_workspace/data/RL_data/TP_DB/Update_Log"
+        UpdateToDayIs=[]
         for idx, row in df.iterrows():
-            print (row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]))
-            DBTP_creator(row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]), DateI, DateI, 10, True)
+            dnwp=os.path.join(TPDB_update_log_base_dir,row["DBTP_Name"],"{0}_{1}_{2}".
+                              format(row["SL_Name"], row["SL_tag"], int(row["SL_idx"])))
+            UpdateToDayIs.append(max([int(dn[9:])for dn in os.listdir(dnwp)]))
+        lastdayIs=list(set(UpdateToDayIs))
+        if len(lastdayIs)==1:
+            print ("Update to {0}".format(lastdayIs[0]))
+        else:
+            print ("can not decide in {0}, please check following folders:".format(lastdayIs))
+            for idx, row in df.iterrows():
+                print(os.path.join(TPDB_update_log_base_dir,row["DBTP_Name"],"{0}_{1}_{2}".
+                                   format(row["SL_Name"], row["SL_tag"], int(row["SL_idx"]))))
+
+    elif command=="Addon_In_One":
+        Addon_IN_One_dnwp="/home/rdchujf/DB_raw_addon/Config"
+        param_fnwp=os.path.join (Addon_IN_One_dnwp, "{0}.csv".format(argv[1]))
+        DateI=eval(argv[2])
+        flag_Print_on_screen_or_file=eval(argv[3])
+
+        from contextlib import redirect_stdout, redirect_stderr
+        if flag_Print_on_screen_or_file:
+            newstdout = sys.__stdout__
+            newstderr = sys.__stderr__
+            stdoutfnwp,stderrfnwp="",""
+        else:
+            Addon_IN_One_log_dnwp=Addon_IN_One_dnwp
+            for subdir in [argv[1],str(DateI)]:
+                Addon_IN_One_log_dnwp=os.path.join(Addon_IN_One_log_dnwp, subdir)
+                if not os.path.exists(Addon_IN_One_log_dnwp): os.mkdir (Addon_IN_One_log_dnwp)
+            stdoutfnwp=os.path.join(Addon_IN_One_log_dnwp,"Output.txt")
+            stderrfnwp=os.path.join(Addon_IN_One_log_dnwp,"Error.txt")
+            print ("Output will be direct to {0}".format(stdoutfnwp))
+            print ("Error will be direct to {0}".format(stderrfnwp))
+            newstdout = open(stdoutfnwp, "w")
+            newstderr = open(stderrfnwp, "w")
+
+        with redirect_stdout(newstdout), redirect_stderr(newstderr):
+
+            i = Get_Data_After_closing()
+            if not i.get_qz_data(DateI):
+                print ("Fail in downloading qz for {0}".format(DateI))
+                return
+            else:
+                print("Success downloading qz for {0}".format(DateI))
+            if not i.get_HFQ_index(DateI):
+                print("Fail in downloading HFQ_index for {0}".format(DateI))
+                return
+            else:
+                print("Success downloading HFQ_index for {0}".format(DateI))
+
+            i=DBI_init()
+            flag, mess=i.Update_DBI_addon(DateI)
+            print ("Success" if flag else "Fail", "  ",mess)
+
+            df = pd.read_csv(param_fnwp)
+            for idx, row in df.iterrows():
+                print (row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]))
+                DBTP_creator(row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]), DateI, DateI, 10, False)
+        if not flag_Print_on_screen_or_file:
+            print ("Output will be direct to {0}".format(stdoutfnwp))
+            print ("Error will be direct to {0}".format(stderrfnwp))
+
     else:
         print ("Command {0} is not supported".format(command))
     print("Finished")
