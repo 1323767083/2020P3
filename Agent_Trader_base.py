@@ -1,41 +1,36 @@
-import os,json, shutil
+import os,json, shutil,sys
 from collections import OrderedDict
 import config as sc
 import pandas as pd
 import numpy as np
-import tensorflow as tf
+
 import random
 from DBI_Base import DBI_init,hfq_toolbox,StockList
 import DBTP_Reader
 from DBR_Reader import RawData
-from nets import Explore_Brain
+
 from State import AV_Handler_AV1
 from Buy_Strategies import Buy_Strategies
-{
-"selected_strategys":[1,3],
-}
-
+#Strategy_config
 {
     "strategy_name": "ZZZ",
-    "total_invest": 250000,
     "strategy_fun": "Buy_Strategy_multi_time_Direct_sell",
-    "min_invest": 50000,
     "RL_system_name": "SSS",
     "RL_Model_ET": "250",
-    "GPU_idx":0,
     "GPU_mem":2600
 }
 
+#Experiement_config
+{
+    "total_invest": 250000,
+    "min_invest": 50000,
+    "StartI": 20201201,
+    "EndI": 20210228
+}
 class ATFH:
     def __init__(self,Strategy_dir, experiment_name):
         self.AT_account_dir = os.path.join(Strategy_dir, experiment_name)
         if not os.path.exists(self.AT_account_dir): os.mkdir(self.AT_account_dir)
-        self.AT_log_dir=os.path.join(Strategy_dir, "Log")
-        if not os.path.exists(self.AT_log_dir): os.mkdir(self.AT_log_dir)
-        self.AT_model_dir=os.path.join(Strategy_dir,"model")
-        if not os.path.exists(self.AT_model_dir): os.mkdir(self.AT_model_dir)
-        self.RL_config_dir=os.path.join(Strategy_dir,"RL_config")
-        if not os.path.exists(self.RL_config_dir): os.mkdir(self.RL_config_dir)
     def get_SL_fnwp(self):
         return os.path.join(self.AT_account_dir,"SL_in_order.csv")
     def get_account_fnwp(self):
@@ -67,31 +62,29 @@ class ATFH:
         if not os.path.exists(desdir): os.mkdir(desdir)
         return os.path.join(desdir, "Report.txt")
 
-def get_virtual_GPU(GPU_index,memory_limit):
-    assert GPU_index in [0,1]  # This is for the final return logic gpu, current way only support 2 physical GPU
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    try:
-        tf.config.experimental.set_memory_growth(gpus[GPU_index], True)   #Todo this is avoid gpu memory for this process be further allocate after virtual device memory limitation set?
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
-    except RuntimeError as e:
-        assert False, e
-    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-    return logical_gpus[GPU_index]  # if GUP_index is 0 than first VirtualGPI should be 0 if GUP_index=1 than the first virtual GPU on GPI 1 is 1
+class Experiment_Config:
+    AT_base_dir = "/home/rdchujf/n_workspace/AT"
+    total_invest=float("NaN")
+    min_invest=float("NaN")
+    StartI=float("NaN")
+    EndI=float("NaN")
+    def __init__(self, portfolio_name, strategy_name, Experiement_name):
+        self.Experiment_dir=os.path.join(self.AT_base_dir,portfolio_name, strategy_name,Experiement_name)
+        self.Experiement_name = Experiement_name
+        config_fnwp=os.path.join(self.Experiment_dir,"config.json")
+        param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
+        for item in list(param.keys()):
+            if not item.startswith("======="):
+                self.__dict__[item] = param[item]
 
 class Strategy_Config:
     AT_base_dir="/home/rdchujf/n_workspace/AT"
     #set default value for param
-    total_invest=float("NaN")
     strategy_fun=""
-    min_invest=float("NaN")
     RL_system_name=""
     RL_Model_ET=float("NaN")
-    GPU_idx=float("NaN")
     GPU_mem=float("NaN")
-
-    def __init__(self,portfolio_name, strategy_name,experiment_name):
+    def __init__(self,portfolio_name, strategy_name):
         #load strategy config
         self.Strategy_dir=os.path.join(self.AT_base_dir,portfolio_name, strategy_name)
         self.strategy_name = strategy_name
@@ -101,16 +94,44 @@ class Strategy_Config:
             if not item.startswith("======="):
                 self.__dict__[item] = param[item]
 
-        self.iFH = ATFH(self.Strategy_dir,experiment_name)
+        self.AT_log_dir=os.path.join(self.Strategy_dir, "Log")
+        if not os.path.exists(self.AT_log_dir): os.mkdir(self.AT_log_dir)
+        self.AT_model_dir=os.path.join(self.Strategy_dir,"model")
+        if not os.path.exists(self.AT_model_dir): os.mkdir(self.AT_model_dir)
+        self.RL_config_dir=os.path.join(self.Strategy_dir,"RL_config")
+        if not os.path.exists(self.RL_config_dir): os.mkdir(self.RL_config_dir)
+
         #load selected RL config
-        RL_config_fnwp=os.path.join(self.iFH.RL_config_dir, "config.json")
+        RL_config_fnwp=os.path.join(self.RL_config_dir, "config.json")
         if not os.path.exists(RL_config_fnwp):
             src_RL_config_fnwp=os.path.join(sc.base_dir_RL_system, self.RL_system_name, "config.json")
             assert os.path.exists(src_RL_config_fnwp),\
                 "RL {0} config local copy does not exsit and original copy can not found".format(self.RL_system_name)
-            shutil.copy(src_RL_config_fnwp,self.iFH.RL_config_dir)
+            shutil.copy(src_RL_config_fnwp,self.RL_config_dir)
         self.rlc = sc.gconfig()
         self.rlc.read_from_json(RL_config_fnwp,system_name=self.RL_system_name)
+
+        weight_fns = [fn for fn in os.listdir(self.AT_model_dir) if fn.endswith(".h5") and "T{0}".
+            format(self.RL_Model_ET) in fn]
+        if len(weight_fns) != 1:
+            src_weight_fns = [fn for fn in os.listdir(self.rlc.brain_model_dir) if fn.endswith(".h5") and "T{0}".
+                format(self.RL_Model_ET) in fn]
+            assert len(src_weight_fns) == 1, \
+                "Model weight Local copy does not exsit and original copy can not found ET={0}".format(self.RL_Model_ET)
+            shutil.copy(os.path.join(self.rlc.brain_model_dir, src_weight_fns[0]), self.AT_model_dir)
+            weight_fns = [fn for fn in os.listdir(self.AT_model_dir) if fn.endswith(".h5") and "T{0}".
+                format(self.RL_Model_ET) in fn]
+        assert len(weight_fns)==1,"{0} has more than one weight file {1}".format(self.AT_model_dir,weight_fns)
+        self.weight_fnwp=os.path.join(self.AT_model_dir,weight_fns[0])
+
+
+class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
+    def __init__(self, portfolio_name, strategy_name,experiment_name):
+        Strategy_Config.__init__(self, portfolio_name, strategy_name)
+        Experiment_Config.__init__(self, portfolio_name, strategy_name,experiment_name)
+        DBI_init.__init__(self)
+        self.i_hfq_tb =hfq_toolbox()
+        self.iFH = ATFH(self.Strategy_dir, experiment_name)
         self.set_df_params(self.rlc)
 
     def set_df_params(self, rlc):
@@ -143,12 +164,6 @@ class Strategy_Config:
 
         self.AccountDetail_titles= ["DateI","Cash_after_closing", "MarketValue_after_closing"]
         self.AccountDetail_types = {"DateI":int,"Cash_after_closing":float, "MarketValue_after_closing":float}
-
-class Strategy_agent_base(Strategy_Config,DBI_init):
-    def __init__(self, portfolio_name, strategy_name,experiment_name):
-        Strategy_Config.__init__(self, portfolio_name, strategy_name,experiment_name)
-        DBI_init.__init__(self)
-        self.i_hfq_tb =hfq_toolbox()
 
     def init_stock_list(self):
         fnwp_sl = self.iFH.get_SL_fnwp()

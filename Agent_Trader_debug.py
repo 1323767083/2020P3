@@ -1,10 +1,15 @@
 from Agent_Trader import *
-class debug_strategy(Strategy_agent):
-    def __init__(self, portfolio_name, strategy_name,experiment_name):
+from multiprocessing import Process,Manager
+import time
+class debug_strategy(Strategy_agent,Process):
+    def __init__(self, portfolio_name, strategy_name, experiment_name, E_Stop):
+        Process.__init__(self)
         Strategy_agent.__init__(self, portfolio_name, strategy_name,experiment_name)
+        self.E_Stop=E_Stop
         #debug
         self.i_RawData=RawData()
 
+        #self.StartI, self.EndI=StartI, EndI
     def debug_load_df_a2e(self, DateI):
         fnwp_action2exe = self.iFH.get_a2e_fnwp(DateI)
         assert os.path.exists(fnwp_action2exe), "{0} does not exists".format(fnwp_action2exe)
@@ -54,24 +59,85 @@ class debug_strategy(Strategy_agent):
         df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False)
         return
 
-    def debug_main(self, StartI, EndI):
-        AStart_idx, AStartI = self.get_closest_TD(StartI, True)
-        AEnd_idx, AEndI = self.get_closest_TD(EndI, False)
-
+    def run(self):
+        AStart_idx, AStartI = self.get_closest_TD(self.StartI, True)
+        AEnd_idx, AEndI = self.get_closest_TD(self.EndI, False)
         assert AStartI <= AEndI
-        self.start_strategy(AStartI)
-        print ("Init strategy at ", AStartI)
-        YesterdayI = AStartI
-        period = self.nptd[AStart_idx + 1:AEnd_idx+1]
-        for DateI in period:
-            print("Run strategy at ", DateI)
-            if DateI==AEndI:
-                self.Sell_All(YesterdayI)
-            self.debug_sim(YesterdayI, DateI)
-            self.run_strategy(YesterdayI,DateI)
-            YesterdayI = DateI
+        import tensorflow as tf
+        from nets import init_virtual_GPU
+        from nets import Explore_Brain
+        virtual_GPU =init_virtual_GPU(self.GPU_mem)
 
+        with tf.device(virtual_GPU):
+            i_eb = locals()[self.rlc.CLN_brain_explore](self.rlc)
+            i_eb.load_weight(os.path.join(self.weight_fnwp))
+            print("Loaded model from {0} ".format(self.weight_fnwp))
+
+            self.start_strategy(i_eb,AStartI)
+            print ("Init strategy at ", AStartI)
+            YesterdayI = AStartI
+            period = self.nptd[AStart_idx + 1:AEnd_idx+1]
+            for DateI in period:
+                print("Run strategy at ", DateI)
+                if DateI==AEndI:
+                    self.Sell_All(YesterdayI)
+                self.debug_sim(YesterdayI, DateI)
+                self.run_strategy(i_eb,YesterdayI,DateI)
+                YesterdayI = DateI
+            self.E_Stop.set()
+
+def main(argv):
+
+    if len(sys.argv)==5:
+        portfolio   = sys.argv[1]
+        strategy    = sys.argv[2]
+        experiment  = sys.argv[3]
+        GPU_idx     = eval(sys.argv[4])
+        assert GPU_idx in [0,1]
+        os.environ["CUDA_VISIBLE_DEVICES"] =GPU_idx
+
+        iManager = Manager()
+        E_Stop = iManager.Event()
+
+        iProcess=debug_strategy(portfolio, strategy, experiment,E_Stop)
+        iProcess.daemon = True
+        iProcess.start()
+
+        while not E_Stop.is_set():
+            time.sleep(60)
+        iProcess.join()
+    elif len(sys.argv)==3:
+        portfolio   = sys.argv[1]
+        config_name = sys.argv[2]
+        df=pd.read_csv(os.path.join("/home/rdchujf/n_workspace/AT",portfolio, "{0}.csv".format(config_name)))
+        iManager = Manager()
+        iProcesses=[]
+        Stop_Events=[]
+        for _, row in df.iterrows():
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+            E_Stop = iManager.Event()
+            iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"],E_Stop)
+            iProcess.daemon = True
+            iProcess.start()
+            iProcesses.append(iProcess)
+            Stop_Events.append(E_Stop)
+        while not all([E.is_set() for E in Stop_Events]):
+            time.sleep(60)
+        for iP in iProcesses:
+            iP.join()
+    else:
+        print ("python Agent_Trader_debug.py portfolio strategy experiment GPUI")
+        print("python Agent_Trader_debug.py portfolio Config_name")
 
 
 if __name__ == '__main__':
-    debug_strategy("Portfolio_try1","Strategy_1", "experience1").debug_main(20201101, 20201110)
+    #debug_strategy("Portfolio_try1","Strategy_1", "experience1").debug_main(20201101, 20201110)
+    main(sys.argv)
+    '''
+    portfolio   = sys.argv[1]
+    strategy    = sys.argv[2]
+    experiment  = sys.argv[3]
+    StartI      = eval(sys.argv[4])
+    EndI        = eval(sys.argv[5])
+    debug_strategy(portfolio, strategy, experiment).debug_main(StartI, EndI)
+    '''
