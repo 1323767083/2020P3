@@ -59,8 +59,9 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
                                                      df_account.loc[stock]["Holding_Invest"]
                 df_account.at[stock,"Action"] =      df_aresult.loc[stock]["Action"]
                 self.Clean_account_stock_holding_inform(df_account, stock)
-                return "SuccessSoldEarn" if df_account.at[stock, "Sell_Earn"]>0 else "SuccessSoldBalance" \
+                mess="SuccessSoldEarn" if df_account.at[stock, "Sell_Earn"]>0 else "SuccessSoldBalance" \
                     if df_account.at[stock, "Sell_Earn"]==0 else "SuccessSoldLoss"
+                return "{0}_{1:.2f}".format(mess,df_account.at[stock, "Sell_Earn"])
         else:
             assert False, "Action only can be Buy or Sell {0} {1}".format(df_aresult,stock)
 
@@ -98,8 +99,8 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
             flag, datas, mess=self.get_AfterClosing_Nprice_HFQRatio(stock,DateI)
             assert flag, "the HFQ informat for {0} {1} does not exsts. error message:{1}".format(stock, DateI, mess)
             df_account.at[stock, "AfterClosing_NPrice"] =datas[0]
-            df_account.at[stock,"AfterClosing_HFQRatio"]=datas[1]
-
+            df_account.at[stock, "AfterClosing_HFQRatio"]=datas[1]
+            df_account.at[stock, "Tradable_flag"] =datas[2]
         l_holding=[True if Holding_Gu!=0 else False for Holding_Gu in df_account["Holding_Gu"].tolist()]
         assert self.strategy_fun=="Buy_Strategy_multi_time_Direct_sell"
         L_Eval_Profit_low_flag=[False for _ in sl]  # not used in Buy_Strategy_multi_time_Direct_sell
@@ -130,23 +131,25 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         for stock in sl:
             flag, datas, mess=self.get_AfterClosing_Nprice_HFQRatio(stock,DateI)
             assert flag, "the HFQ informat for {0} {1} does not exsts. error message:{1}".format(stock, DateI, mess)
-            assert datas[0]!=0,"{0} {1} {2}".format(stock, DateI, datas)
-            df_account.at[stock, "AfterClosing_NPrice"] =datas[0]
-            df_account.at[stock,"AfterClosing_HFQRatio"]=datas[1]
+            assert datas[0]!=0 or not datas[2],"{0} {1} {2}".format(stock, DateI, datas)
+            df_account.at[stock, "AfterClosing_NPrice"]  = datas[0]
+            df_account.at[stock, "AfterClosing_HFQRatio"]= datas[1]
+            df_account.at[stock, "Tradable_flag"] = datas[2]
             if stock in df_aresult.index:
-                message =self.update_holding_with_action_result(df_account, df_aresult,stock,DateI)
-                if not message.startswith("Success"):
-                    l_log_fail_action.append([stock,message])
+                mess =self.update_holding_with_action_result(df_account, df_aresult,stock,DateI)
+                if not mess.startswith("Success"):
+                    l_log_fail_action.append([stock,mess])
                 else:
-                    if message.endswith("Bought"):
+                    if mess.endswith("Bought"):
                         l_log_bought.append(stock)
                     else:
-                        if message.endswith("Earn"):
-                            l_log_Earnsold.append(stock)
-                        elif message.endswith("Loss"):
-                            l_log_Losssold.append(stock)
+                        mi=mess.split("_")
+                        if mi[0].endswith("Earn"):
+                            l_log_Earnsold.append(stock+":"+mi[1])
+                        elif mi[0].endswith("Loss"):
+                            l_log_Losssold.append(stock+":"+mi[1])
                         else:
-                            l_log_balancesold.append(stock)
+                            l_log_balancesold.append(stock+":"+mi[1])
             else:
                 if df_account.loc[stock]["Holding_Gu"]!=0:
                     l_log_holding_with_no_action.append([stock, "{0} start holding with no action".

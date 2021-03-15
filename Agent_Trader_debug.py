@@ -30,7 +30,7 @@ class debug_strategy(Strategy_agent,Process):
             #print (row)
             stock, gu = row.name, row["Gu"]  # stock is index in Seris it is name
             flag, dfhqr, message = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
-            assert flag
+            assert flag,message
             a = dfhqr[dfhqr["date"] == str(DateI)]
             if not a.empty:
                 flag, dfqz, message = self.i_RawData.get_qz_df_inteface(row.name, DateI)
@@ -68,8 +68,7 @@ class debug_strategy(Strategy_agent,Process):
         AStart_idx, AStartI = self.get_closest_TD(self.StartI, True)
         AEnd_idx, AEndI = self.get_closest_TD(self.EndI, False)
         assert AStartI <= AEndI
-        flag_Print_on_screen_or_file=False
-        if flag_Print_on_screen_or_file:
+        if self.flag_Print_on_screen_or_file:
             newstdout = sys.__stdout__
             newstderr = sys.__stderr__
             stdoutfnwp,stderrfnwp="",""
@@ -82,7 +81,6 @@ class debug_strategy(Strategy_agent,Process):
             newstderr = open(stderrfnwp, "w")
 
         with redirect_stdout(newstdout), redirect_stderr(newstderr):
-            print ("Here")
             virtual_GPU =init_virtual_GPU(self.GPU_mem)
 
             with tf.device(virtual_GPU):

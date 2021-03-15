@@ -36,42 +36,39 @@ class ATFH:
     def __init__(self,Strategy_dir, experiment_name):
         self.AT_account_dir = os.path.join(Strategy_dir, experiment_name)
         if not os.path.exists(self.AT_account_dir): os.mkdir(self.AT_account_dir)
+
+    def _get_month_date_dir(self, base_dir, DateI):
+        monthI=DateI//100
+        dir=base_dir
+        for subdir in [str(monthI), str(DateI)]:
+            dir=os.path.join(dir, subdir)
+            if not os.path.exists(dir): os.mkdir(dir)
+        return dir
     def get_SL_fnwp(self):
         return os.path.join(self.AT_account_dir,"SL_in_order.csv")
     def get_account_fnwp(self):
         return os.path.join(self.AT_account_dir,"AT_account.csv")
     def get_account_backup_fnwp(self,DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir,"AT_account_afterday_backup.csv")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI),"AT_account_afterday_backup.csv")
     def get_aresult_fnwp(self,DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir,"AT_StepResult.csv")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI),"AT_StepResult.csv")
     def get_a2eDone_fnwp(self,DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir,"AT_Action2exeDone.csv")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI),"AT_Action2exeDone.csv")
     def get_a2e_fnwp(self,DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir,"AT_Action2exe.csv")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI),"AT_Action2exe.csv")
     def get_account_detail_fnwp(self):
         return os.path.join(self.AT_account_dir,"AT_AccountDetail.csv")
     def get_account_detail_backup_fnwp(self,DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir, "AT_AccountDetail_backup.csv")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "AT_AccountDetail_backup.csv")
     def get_report_fnwp(self, DateI):
-        desdir=os.path.join(self.AT_account_dir,str(DateI))
-        if not os.path.exists(desdir): os.mkdir(desdir)
-        return os.path.join(desdir, "Report.txt")
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "Report.txt")
 
 class Experiment_Config:
     total_invest=float("NaN")
     min_invest=float("NaN")
     StartI=float("NaN")
     EndI=float("NaN")
+    flag_Print_on_screen_or_file=False
     def __init__(self, portfolio_name, strategy_name, experiment_name):
         self.Experiment_dir=os.path.join(AT_base_dir,portfolio_name, strategy_name,experiment_name)
         self.experiment_name = experiment_name
@@ -148,9 +145,9 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         self.Account_Holding_Items_default = [0, 0, 0.0, 1.0, 0.0, 0,00000000]
         self.Account_Holding_Items_types={**rlc.account_inform_holding_types,**{"HoldingStartDateI":int}}
 
-        self.Account_Inform_Items_title=["AfterClosing_HFQRatio","AfterClosing_NPrice"]
-        self.Account_Inform_Items_default =[1.0,0.0]
-        self.Account_Inform_Items_types={"AfterClosing_HFQRatio":float,"AfterClosing_NPrice":float}
+        self.Account_Inform_Items_title=["AfterClosing_HFQRatio","AfterClosing_NPrice","Tradable_flag"]
+        self.Account_Inform_Items_default =[1.0,0.0,False]
+        self.Account_Inform_Items_types={"AfterClosing_HFQRatio":float,"AfterClosing_NPrice":float,"Tradable_flag":bool}
         # Account_Step_Items=["Buy_Invest","Buy_NPrice","Sell_Return","Sell_NPrice","Sell_Earn","Tinpai_huaizhang", "Action"]
         self.Account_Step_Items_titles = rlc.account_inform_step_titles + ["Action"]
         self.Account_Step_Items_titles.remove("Buy_NPrice")
@@ -222,14 +219,11 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         df_e2a=df_e2a.astype(self.a2e_types)
         df_e2a.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
         for action, stock in zip(l_a,stocklist):
+            if not df_account.at[stock, "Tradable_flag"]:
+                continue
             if action ==0:
                 df_e2a.at[stock, "Action"] = "Buy"
-                try:
-                    df_e2a.at[stock, "Gu"] = (self.min_invest/df_account.loc[stock,"AfterClosing_NPrice"])//100*100
-                except Exception as e:
-                    print (stock,df_account.loc[stock,"AfterClosing_NPrice"])
-                    df_account.to_csv("/home/rdchujf/a.csv")
-                    assert False
+                df_e2a.at[stock, "Gu"] = (self.min_invest/df_account.loc[stock,"AfterClosing_NPrice"])//100*100
             elif action ==2:
                 df_e2a.at[stock, "Action"] = "Sell"
                 df_e2a.at[stock, "Gu"]= self.i_hfq_tb.get_update_volume_on_hfq_ratio_change\
@@ -263,9 +257,11 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         return df_aresult
 
     def Check_all_actionDone_has_result(self,df_a2eDone,df_aresult):
-        aresult_SA= set(df_aresult.apply(lambda x: x.name + x["Action"], axis=1).tolist())
-        a2e_SA = set(df_a2eDone.apply(lambda x: x.name + x["Action"], axis=1).tolist())
-        assert aresult_SA==a2e_SA,"action result and action 2 exe does not match"
+        assert len(df_a2eDone)==len(df_aresult)
+        if len(df_a2eDone)!=0:
+            aresult_SA= set(df_aresult.apply(lambda x: x.name + x["Action"], axis=1).tolist())
+            a2e_SA = set(df_a2eDone.apply(lambda x: x.name + x["Action"], axis=1).tolist())
+            assert aresult_SA==a2e_SA,"action result and action 2 exe does not match"
 
     def Init_df_account_detail(self):
         df_account_detail=pd.DataFrame(columns=self.AccountDetail_titles)
@@ -312,16 +308,13 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         if not flag:
             return False, [], mess
         a=df[df["date"]<=str(DateI)]
-
-        try:
+        if len(a)==0:
+            return True, [0,1.0, False], mess   # Todo this is correct not IPO stock period
+        else:
             Closing_Nprice=a.iloc[-1]["close_price"]/a.iloc[-1]["coefficient_fq"]
             HFQRatio = a.iloc[-1]["coefficient_fq"]
             assert Closing_Nprice!=0,"{0} {1} {2}".format(Stock,DateI,a)
-            return True, [Closing_Nprice, HFQRatio], "Success"
-        except:
-            mess="{0} {1} does not exist in {2}  \n {3}".format(Stock, DateI,fnwp, a)
-            print(mess)
-            return False, [], mess
+            return True, [Closing_Nprice, HFQRatio, True], "Success"
 
 class Strategy_agent_Report:
     def prepare_report(self, DateI, logs, df_e2a, sl, report_fnwp):
