@@ -11,13 +11,18 @@ from DBR_Reader import RawData
 
 from State import AV_Handler_AV1
 from Buy_Strategies import Buy_Strategies
+
+AT_base_dir = "/home/rdchujf/n_workspace/AT"
 #Strategy_config
 {
-    "strategy_name": "ZZZ",
     "strategy_fun": "Buy_Strategy_multi_time_Direct_sell",
     "RL_system_name": "SSS",
     "RL_Model_ET": "250",
-    "GPU_mem":2600
+    "GPU_mem":2600,
+    "SL_Name": "",
+    "SL_Tag": "",
+    "SL_Idx": "",
+    "TPDB_Name": ""
 }
 
 #Experiement_config
@@ -63,14 +68,13 @@ class ATFH:
         return os.path.join(desdir, "Report.txt")
 
 class Experiment_Config:
-    AT_base_dir = "/home/rdchujf/n_workspace/AT"
     total_invest=float("NaN")
     min_invest=float("NaN")
     StartI=float("NaN")
     EndI=float("NaN")
-    def __init__(self, portfolio_name, strategy_name, Experiement_name):
-        self.Experiment_dir=os.path.join(self.AT_base_dir,portfolio_name, strategy_name,Experiement_name)
-        self.Experiement_name = Experiement_name
+    def __init__(self, portfolio_name, strategy_name, experiment_name):
+        self.Experiment_dir=os.path.join(AT_base_dir,portfolio_name, strategy_name,experiment_name)
+        self.experiment_name = experiment_name
         config_fnwp=os.path.join(self.Experiment_dir,"config.json")
         param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
         for item in list(param.keys()):
@@ -78,16 +82,20 @@ class Experiment_Config:
                 self.__dict__[item] = param[item]
 
 class Strategy_Config:
-    AT_base_dir="/home/rdchujf/n_workspace/AT"
-    #set default value for param
     strategy_fun=""
     RL_system_name=""
     RL_Model_ET=float("NaN")
     GPU_mem=float("NaN")
+    SL_Name=""
+    SL_Tag=""
+    SL_Idx=float("NaN")
+    TPDB_Name=""
+
     def __init__(self,portfolio_name, strategy_name):
         #load strategy config
-        self.Strategy_dir=os.path.join(self.AT_base_dir,portfolio_name, strategy_name)
+        self.Strategy_dir=os.path.join(AT_base_dir,portfolio_name, strategy_name)
         self.strategy_name = strategy_name
+        self.portfolio_name=portfolio_name
         config_fnwp=os.path.join(self.Strategy_dir,"config.json")
         param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
         for item in list(param.keys()):
@@ -123,7 +131,6 @@ class Strategy_Config:
                 format(self.RL_Model_ET) in fn]
         assert len(weight_fns)==1,"{0} has more than one weight file {1}".format(self.AT_model_dir,weight_fns)
         self.weight_fnwp=os.path.join(self.AT_model_dir,weight_fns[0])
-
 
 class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
     def __init__(self, portfolio_name, strategy_name,experiment_name):
@@ -166,9 +173,14 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         self.AccountDetail_types = {"DateI":int,"Cash_after_closing":float, "MarketValue_after_closing":float}
 
     def init_stock_list(self):
+
         fnwp_sl = self.iFH.get_SL_fnwp()
-        iSL = StockList(self.rlc.SLName)
-        flag,sl = iSL.get_sub_sl("Train",0)
+        if self.SL_Name == "":
+            iSL = StockList(self.rlc.SLName)
+            flag,sl = iSL.get_sub_sl("Train",0)
+        else:
+            iSL = StockList(self.SL_Name)
+            flag,sl = iSL.get_sub_sl(self.SL_Tag,self.SL_Idx)
         assert flag
         pd.DataFrame(sl, columns=["Stock"]).to_csv(fnwp_sl, index=False)
         return sl

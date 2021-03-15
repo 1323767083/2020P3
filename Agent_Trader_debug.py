@@ -1,6 +1,7 @@
 from Agent_Trader import *
 from multiprocessing import Process,Manager
 import time
+
 class debug_strategy(Strategy_agent,Process):
     def __init__(self, portfolio_name, strategy_name, experiment_name, E_Stop):
         Process.__init__(self)
@@ -60,40 +61,80 @@ class debug_strategy(Strategy_agent,Process):
         return
 
     def run(self):
-        AStart_idx, AStartI = self.get_closest_TD(self.StartI, True)
-        AEnd_idx, AEndI = self.get_closest_TD(self.EndI, False)
-        assert AStartI <= AEndI
+        from contextlib import redirect_stdout, redirect_stderr
         import tensorflow as tf
         from nets import init_virtual_GPU
         from nets import Explore_Brain
-        virtual_GPU =init_virtual_GPU(self.GPU_mem)
+        AStart_idx, AStartI = self.get_closest_TD(self.StartI, True)
+        AEnd_idx, AEndI = self.get_closest_TD(self.EndI, False)
+        assert AStartI <= AEndI
+        flag_Print_on_screen_or_file=False
+        if flag_Print_on_screen_or_file:
+            newstdout = sys.__stdout__
+            newstderr = sys.__stderr__
+            stdoutfnwp,stderrfnwp="",""
+        else:
+            stdoutfnwp=os.path.join(self.Experiment_dir,"Output.txt")
+            stderrfnwp=os.path.join(self.Experiment_dir,"Error.txt")
+            print ("Output will be direct to {0}".format(stdoutfnwp))
+            print ("Error will be direct to {0}".format(stderrfnwp))
+            newstdout = open(stdoutfnwp, "w")
+            newstderr = open(stderrfnwp, "w")
 
-        with tf.device(virtual_GPU):
-            i_eb = locals()[self.rlc.CLN_brain_explore](self.rlc)
-            i_eb.load_weight(os.path.join(self.weight_fnwp))
-            print("Loaded model from {0} ".format(self.weight_fnwp))
+        with redirect_stdout(newstdout), redirect_stderr(newstderr):
+            print ("Here")
+            virtual_GPU =init_virtual_GPU(self.GPU_mem)
 
-            self.start_strategy(i_eb,AStartI)
-            print ("Init strategy at ", AStartI)
-            YesterdayI = AStartI
-            period = self.nptd[AStart_idx + 1:AEnd_idx+1]
-            for DateI in period:
-                print("Run strategy at ", DateI)
-                if DateI==AEndI:
-                    self.Sell_All(YesterdayI)
-                self.debug_sim(YesterdayI, DateI)
-                self.run_strategy(i_eb,YesterdayI,DateI)
-                YesterdayI = DateI
-            self.E_Stop.set()
+            with tf.device(virtual_GPU):
+                i_eb = locals()[self.rlc.CLN_brain_explore](self.rlc)
+                i_eb.load_weight(os.path.join(self.weight_fnwp))
+                print("Loaded model from {0} ".format(self.weight_fnwp))
+
+                self.start_strategy(i_eb,AStartI)
+                print ("Init strategy at ", AStartI)
+                YesterdayI = AStartI
+                period = self.nptd[AStart_idx + 1:AEnd_idx+1]
+                for DateI in period:
+                    print("Run strategy at ", DateI)
+                    if DateI==AEndI:
+                        self.Sell_All(YesterdayI)
+                    self.debug_sim(YesterdayI, DateI)
+                    self.run_strategy(i_eb,YesterdayI,DateI)
+                    YesterdayI = DateI
+                    newstdout.flush()
+                    newstderr.flush()
+                self.E_Stop.set()
+def One_batch_experiment(portfolio,config_name):
+    df = pd.read_csv(os.path.join("/home/rdchujf/n_workspace/AT", portfolio, "{0}.csv".format(config_name)))
+    iManager = Manager()
+    iProcesses = []
+    Stop_Events = []
+    for _, row in df.iterrows():
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+        E_Stop = iManager.Event()
+        iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"], E_Stop)
+        iProcess.daemon = True
+
+        iProcess.start()
+        iProcesses.append(iProcess)
+        Stop_Events.append(E_Stop)
+    while not all([E.is_set() for E in Stop_Events]):
+        time.sleep(10)
+    for iP in iProcesses:
+        iP.join()
+
 
 def main(argv):
-
-    if len(sys.argv)==5:
+    if sys.argv[1]=="Batch":
+        portfolio = sys.argv[2]
+        for config_name in sys.argv[3:]:
+            One_batch_experiment(portfolio, config_name)
+    elif len(sys.argv)==5:
         portfolio   = sys.argv[1]
         strategy    = sys.argv[2]
         experiment  = sys.argv[3]
-        GPU_idx     = eval(sys.argv[4])
-        assert GPU_idx in [0,1]
+        GPU_idx     = sys.argv[4]
+        assert GPU_idx in ["0","1"]
         os.environ["CUDA_VISIBLE_DEVICES"] =GPU_idx
 
         iManager = Manager()
@@ -107,27 +148,13 @@ def main(argv):
             time.sleep(60)
         iProcess.join()
     elif len(sys.argv)==3:
-        portfolio   = sys.argv[1]
+        portfolio = sys.argv[1]
         config_name = sys.argv[2]
-        df=pd.read_csv(os.path.join("/home/rdchujf/n_workspace/AT",portfolio, "{0}.csv".format(config_name)))
-        iManager = Manager()
-        iProcesses=[]
-        Stop_Events=[]
-        for _, row in df.iterrows():
-            os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-            E_Stop = iManager.Event()
-            iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"],E_Stop)
-            iProcess.daemon = True
-            iProcess.start()
-            iProcesses.append(iProcess)
-            Stop_Events.append(E_Stop)
-        while not all([E.is_set() for E in Stop_Events]):
-            time.sleep(60)
-        for iP in iProcesses:
-            iP.join()
+        One_batch_experiment(portfolio, config_name)
     else:
         print ("python Agent_Trader_debug.py portfolio strategy experiment GPUI")
-        print("python Agent_Trader_debug.py portfolio Config_name")
+        print ("python Agent_Trader_debug.py portfolio Config_name")
+        print("python Agent_Trader_debug.py Batch portfolio Config_name1,Config_name2....")
 
 
 if __name__ == '__main__':

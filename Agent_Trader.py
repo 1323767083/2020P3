@@ -4,7 +4,7 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
     def __init__(self, portfolio_name, strategy_name,experiment_name):
         Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name)
         Strategy_agent_Report.__init__(self)
-        self.i_get_data= DBTP_Reader.DBTP_Reader(self.rlc.data_name)   #no logic, only raw read data
+        self.i_get_data= DBTP_Reader.DBTP_Reader(self.rlc.data_name if self.TPDB_Name == "" else self.TPDB_Name)   #no logic, only raw read data
         self.i_cav = globals()[self.rlc.CLN_AV_Handler](self.rlc)
         self.i_buystrategy = Buy_Strategies(self.rlc)
 
@@ -73,26 +73,22 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
             df_account.at[stock,title]=default
 
     def remove_old_experiment_data(self):
-        #choice="Z"
-        #while choice not in ["Y","N"]:
-        #    #choice = input("Remove content experiement{0} (Y) or (N)".format(self.Experiement_name))
-        #    choice = input("Remove content experiement\(Y\) or \(N\)")
-        #if choice=="N":
-        #    return
         for sub_item in os.listdir(self.iFH.AT_account_dir):
-            if sub_item=="config.json": continue
+            if sub_item in ["config.json","Output.txt","Error.txt"]: continue
             sub_itemwp=os.path.join(self.iFH.AT_account_dir,sub_item)
             if os.path.isdir(sub_itemwp):
-                shutil.rmtree(os.path.join(self.iFH.AT_account_dir,sub_itemwp))
+                dir2remove=os.path.join(self.iFH.AT_account_dir, sub_itemwp)
+                shutil.rmtree(dir2remove)
+                print ("removed directory {0}".format(dir2remove))
             elif os.path.isfile(sub_itemwp):
                 os.remove(sub_itemwp)
+                print("removed file {0}".format(sub_itemwp))
             else:
                 assert False, "{0} is neither a file or a directory".format(sub_itemwp)
 
     def start_strategy(self,i_eb,DateI):
         self.remove_old_experiment_data()
         sl=self.init_stock_list()
-        #i_eb=self.load_predict_model()
         df_account = self.Init_df_account(sl)
         df_account_detail =self.Init_df_account_detail()
         Cash_afterclosing=self.total_invest
