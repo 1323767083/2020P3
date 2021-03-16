@@ -160,8 +160,9 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         self.account_types={**{"Stock":str},**self.Account_Holding_Items_types,**self.Account_Inform_Items_types,**self.Account_Step_Items_types}
         self.account_default = [""] + self.Account_Holding_Items_default + self.Account_Inform_Items_default + self.Account_Step_Items_default
 
-        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_Invest","Sell_Return"]
-        self.aresult_types = {"Stock": str, "Action":str, "Action_Result":str, "Buy_Gu":int,"Buy_Invest":float,"Sell_Return":float}
+        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_NPrice","Buy_Invest","Sell_Gu", "Sell_NPrice","Sell_Return"]
+        self.aresult_types = {"Stock": str, "Action":str, "Action_Result":str, "Buy_Gu":int,"Buy_NPrice":float,"Buy_Invest":float,
+                              "Sell_Gu":int, "Sell_NPrice":float,"Sell_Return":float}
 
         self.a2e_Titles = ["Stock", "Action", "Gu"]
         self.a2e_types={"Stock":str, "Action":str, "Gu":int}
@@ -238,22 +239,28 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         fnwp_action2exeDone = self.iFH.get_a2eDone_fnwp(DateI)
         assert os.path.exists(fnwp_action2exeDone), "{0} does not exists".format(fnwp_action2exeDone)
         df_a2eDone=pd.read_csv(fnwp_action2exeDone)
-        df_a2eDone=df_a2eDone.astype(self.a2e_types)
-        df_a2eDone.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
+        if len(df_a2eDone)!=0:
+            df_a2eDone=df_a2eDone.astype(self.a2e_types)
+            df_a2eDone.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
         return df_a2eDone
 
     def load_df_aresult(self, DateI):
+        #        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_NPrice","Buy_Invest","Sell_Gu", "Sell_NPrice","Sell_Return"]
         fnwp_action_result=self.iFH.get_aresult_fnwp(DateI)
         assert os.path.exists(fnwp_action_result), "{0} does not exists".format(fnwp_action_result)
         df_aresult = pd.read_csv(fnwp_action_result)
         df_aresult= df_aresult.astype(self.aresult_types)
-        df_aresult= df_aresult.groupby(["Stock"]).agg(
-            Action=pd.NamedAgg(column='Action', aggfunc=lambda x: [xi for xi in x][0]),
-            Action_Result=pd.NamedAgg(column='Action_Result', aggfunc=lambda x: [xi for xi in x][0]),
-            Buy_Gu=pd.NamedAgg(column='Buy_Gu', aggfunc='sum'),
-            Buy_Invest=pd.NamedAgg(column='Buy_Invest', aggfunc='sum'),
-            Sell_Return=pd.NamedAgg(column='Sell_Return', aggfunc='sum')
-        )
+        if len(df_aresult)!=0:
+            df_aresult= df_aresult.groupby(["Stock"]).agg(
+                Action=pd.NamedAgg(column='Action', aggfunc=lambda x: [xi for xi in x][0]),
+                Action_Result=pd.NamedAgg(column='Action_Result', aggfunc=lambda x: [xi for xi in x][0]),
+                Buy_Gu=pd.NamedAgg(column='Buy_Gu', aggfunc='sum'),
+                Buy_NPrice=pd.NamedAgg(column='Buy_NPrice', aggfunc='mean'),
+                Buy_Invest=pd.NamedAgg(column='Buy_Invest', aggfunc='sum'),
+                Sell_Gu=pd.NamedAgg(column='Sell_Gu', aggfunc='sum'),
+                Sell_NPrice=pd.NamedAgg(column='Sell_NPrice', aggfunc='mean'),
+                Sell_Return=pd.NamedAgg(column='Sell_Return', aggfunc='sum')
+            )
         return df_aresult
 
     def Check_all_actionDone_has_result(self,df_a2eDone,df_aresult):
@@ -324,8 +331,9 @@ class Strategy_agent_Report:
         l_ADlog = logs
         #fnwp = self.iFH.get_report_fnwp(DateI)
         with open(report_fnwp, "w") as f:
-            f.write("Date: {0} Cash After Closing: {1} Market Value: {2}\n Num of Stock could bought tomorrow: {3}\n".
+            f.write("Date: {0} Cash After Closing: {1:.2f} Market Value: {2:.2f}\n Num of Stock could bought tomorrow: {3}\n".
                     format(DateI, Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy))
+            f.write("Total: {0:.2f}".format(Cash_afterclosing+MarketValue_afterclosing))
             f.write("Today Bought {0} stock:\n".format(len(l_log_bought)))
             f.write("    {0}\n".format(",".join(l_log_bought)))
             f.write("Today Sold with Earn {0} stock:\n".format(len(l_log_Earnsold)))

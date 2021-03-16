@@ -49,14 +49,15 @@ class debug_strategy(Strategy_agent,Process):
                 l_Trans_Price = NPrices[:num_trans]
                 if row["Action"] == "Buy":
                     for trans_Gu, trans_Price in zip(l_Trans_Gu, l_Trans_Price):
-                        df_aresult.loc[len(df_aresult)] = [stock, "Buy", "Success", trans_Gu,trans_Gu * trans_Price * 1.0003, 0.0]
+                        #        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_NPrice","Buy_Invest","Sell_Gu", "Sell_NPrice","Sell_Return"]
+                        df_aresult.loc[len(df_aresult)] = [stock, "Buy", "Success", trans_Gu,trans_Price,trans_Gu * trans_Price * 1.0003, 0, 0.0, 0.0]
                 elif row["Action"] == "Sell":
                     for trans_Gu, trans_Price in zip(l_Trans_Gu, l_Trans_Price):
-                        df_aresult.loc[len(df_aresult)] = [stock, "Sell", "Success", 0, 0.0,trans_Gu * trans_Price * (1 - 0.0013)]
+                        df_aresult.loc[len(df_aresult)] = [stock, "Sell", "Success", 0, 0.0, 0.0,trans_Gu,trans_Price,trans_Gu * trans_Price * (1 - 0.0013)]
                 else:
                     assert False, "Action only can by Buy or Sell not {0}".format(row["Action"])
             else:
-                df_aresult.loc[len(df_aresult)] = [stock, row["Action"], "Tinpai", 0, 0.0, 0.0]
+                df_aresult.loc[len(df_aresult)] = [stock, row["Action"], "Tinpai", 0,0.0,0.0,0,0.0,0.0]
         df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False)
         return
 
@@ -108,7 +109,7 @@ def One_batch_experiment(portfolio,config_name):
     iProcesses = []
     Stop_Events = []
     for _, row in df.iterrows():
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(row["GPUI"])
         E_Stop = iManager.Event()
         iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"], E_Stop)
         iProcess.daemon = True
