@@ -1,6 +1,6 @@
 from ftplib import FTP
 #from DB_Base import DB_Base
-import os
+import os,sys
 
 from ftplib import FTP
 from DB_Base import DB_Base
@@ -50,7 +50,7 @@ class FTP_base:
                 self.downloaded_size += len(data)
                 finish_percent = self.downloaded_size / total_size
                 if finish_percent > self.print_threahold:
-                    print("Finish {0:.2f}".format(finish_percent))
+                    print("Finish {0:.2f}".format(finish_percent),file=sys.__stdout__)
                     self.print_threahold += 0.1
             ftp.retrbinary('RETR ' + fn, file_write_with_bar, 8196)  # Enter the filename to download
         ftp.quit()  # Terminate the FTP connection

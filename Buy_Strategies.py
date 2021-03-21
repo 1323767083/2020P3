@@ -93,6 +93,8 @@ class Buy_Strategies:
 
 
     def Buy_Strategy_multi_time_Direct_sell(self, dateI, num_stock_could_invest, l_a_OB, l_a_OS, l_holding,L_Eval_Profit_low_flag):
+        #import pickle,os
+        #pickle.dump([dateI, num_stock_could_invest, l_a_OB, l_a_OS, l_holding], open(os.path.join("/home/rdchujf/","{0}.pickle".format(dateI)),"wb"))
         Sidxs_all = set(list(range(len(l_a_OB))))
         Sidxs_OB_buy = set([idx for idx, action in enumerate(l_a_OB) if action == 0])
         Sidxs_holding = set([idx for idx, holding_flag in enumerate(l_holding) if holding_flag])
@@ -100,6 +102,7 @@ class Buy_Strategies:
         Sidxs_sell = (Sidxs_OS_sell - Sidxs_OB_buy) & Sidxs_holding
 
         Sidxs_buy = Sidxs_OB_buy - Sidxs_holding
+        assert len(Sidxs_sell & Sidxs_buy)==0, "{0} {1}".format(Sidxs_sell , Sidxs_buy)
         Sidxs_not_buy_due_limit = set()
         if len(Sidxs_buy) > num_stock_could_invest:
             lidxs_0 = list(Sidxs_buy)

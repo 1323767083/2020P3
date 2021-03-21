@@ -181,6 +181,7 @@ class gconfig_data:
         self.flag_train_store_AIO_model=True
         self.train_random_explore_prob_buy=0.2
         self.train_total_los_clip=0
+        self.flag_use_av_in_model=True   #default if not in config than True
         self.l_CC_group_invest_total_money=float('nan')
         self.l_CC_group_strategy_fun=float('nan')
         self.l_CC_group_low_profit_threadhold=float("nan")
@@ -279,10 +280,10 @@ class gconfig(gconfig_data):
         else:
             setattr(self, "CLN_brain_buffer", "brain_buffer_reuse")
 
-        assert self.CLN_trainer == "PPO_trainer",self.CLN_trainer
+        assert self.CLN_trainer in ["PPO_trainer"],self.CLN_trainer
 
-        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4"]   #remove "RNN","RCN"
-        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4"] #remove "RNN","RCN"
+        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5"]   #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5"] #remove "RNN","RCN"
         assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
             self.OS_AV_shape = (self.LHP + 1,)

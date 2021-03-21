@@ -287,8 +287,8 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
             format(fnwp_account_detail, DateI,account_day_inform)
         Cash_afterclosing,MarketValue_afterclosing = \
             account_day_inform["Cash_after_closing"],account_day_inform["MarketValue_after_closing"]
-        print ("Loaded account detail before {0} Cash_afterclosing {1:.2f} Market value {2:.2f} total {3:.2f}".format
-               (account_day_inform.name,Cash_afterclosing,MarketValue_afterclosing,Cash_afterclosing+MarketValue_afterclosing))
+        #print ("Loaded account detail before {0} Cash_afterclosing {1:.2f} Market value {2:.2f} total {3:.2f}".format
+        #       (account_day_inform.name,Cash_afterclosing,MarketValue_afterclosing,Cash_afterclosing+MarketValue_afterclosing))
         return df_account_detail,Cash_afterclosing,MarketValue_afterclosing
 
     def update_save_account_detail(self,df_account_detail, DateI,Cash_afterclosing,MarketValue_afterclosing):

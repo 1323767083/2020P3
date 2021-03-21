@@ -173,15 +173,24 @@ class PPO_trainer:
         Pmodel = self.build_predict_model("P")
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name='input_l_view')
         input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name='input_s_view')
-        input_av = keras.Input(shape=self.av_shape, dtype='float32', name='input_account')
         input_a = keras.Input(shape=(self.lc.train_num_action,), dtype='float32', name='input_action')
         input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
-        p, v = Pmodel([input_lv, input_sv, input_av])
-        advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
-        Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
-        con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
-        Tmodel = keras.Model(inputs=[input_lv, input_sv, input_av, input_a,input_r,input_oldAP], outputs=[con_out], name=name)
+        if self.lc.flag_use_av_in_model:
+            input_av = keras.Input(shape=self.av_shape, dtype='float32', name='input_account')
+            p, v = Pmodel([input_lv, input_sv, input_av])
+            advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
+            Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
+            con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
+            Tmodel = keras.Model(inputs=[input_lv, input_sv, input_av, input_a,input_r,input_oldAP], outputs=[con_out], name=name)
+        else:
+            p, v = Pmodel([input_lv, input_sv])
+            advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
+            Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
+            con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
+            Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_r, input_oldAP],
+                                 outputs=[con_out], name=name)
+
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
         return Tmodel, Pmodel
 
@@ -196,14 +205,30 @@ class PPO_trainer:
         assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer" #todo dobule check this original in v2 not in v3
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
-        _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
+        '''
+        if self.lc.flag_use_av_in_model:
+            _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
+        else:
+            _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv})
         rg = self.get_reward(n_r, v, n_s__av,l_support_view)
         n_av=self.get_av(n_s_av)
         assert not any (n_av), " all av should be 0" #todo all s_ av is 1 , this will never go to train"
-        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
-                                                 'input_account': n_av,
-                                                 'input_action': n_a, 'input_reward': rg,
-                                                 "input_oldAP":n_old_ap }, fake_y)
+        '''
+        if self.lc.flag_use_av_in_model:
+            _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
+            rg = self.get_reward(n_r, v, n_s__av, l_support_view)
+            n_av = self.get_av(n_s_av)
+            assert not any(n_av), " all av should be 0"
+            loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+                                                     'input_account': n_av,
+                                                     'input_action': n_a, 'input_reward': rg,
+                                                     "input_oldAP":n_old_ap }, fake_y)
+        else:
+            _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv})
+            rg = self.get_reward(n_r, v, n_s__av, l_support_view)
+            loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+                                                     'input_action': n_a, 'input_reward': rg,
+                                                     "input_oldAP":n_old_ap }, fake_y)
         #n_r # v # rg
         Custom_Dic={
             "Count_minue_r":(n_r<0).sum(),
@@ -217,3 +242,64 @@ class PPO_trainer:
             self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
             self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
         return num_record_to_train,loss_this_round,Custom_Dic
+
+'''
+class PPO_trainer_no_AV(PPO_trainer):
+    def __init__(self, lc):
+        PPO_trainer.__init__(self, lc)
+    def build_train_model(self, name="T"):
+        Pmodel = self.build_predict_model("P")
+        input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name='input_l_view')
+        input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name='input_s_view')
+        #input_av = keras.Input(shape=self.av_shape, dtype='float32', name='input_account')
+        input_a = keras.Input(shape=(self.lc.train_num_action,), dtype='float32', name='input_action')
+        input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
+        input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
+        #p, v = Pmodel([input_lv, input_sv, input_av])
+        p, v = Pmodel([input_lv, input_sv])
+        advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
+        Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
+        con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
+        #Tmodel = keras.Model(inputs=[input_lv, input_sv, input_av, input_a,input_r,input_oldAP], outputs=[con_out], name=name)
+        Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_r, input_oldAP], outputs=[con_out],name=name)
+        Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
+        return Tmodel, Pmodel
+
+    def optimize_com(self, i_train_buffer, Pmodel, Tmodel):
+        flag_data_available, stack_states, raw_states=self._vstack_states(i_train_buffer)
+        if not flag_data_available:
+            return 0, None,None
+        s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
+        n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
+        fake_y = np.ones((self.lc.batch_size, 1))
+        n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
+        assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer" #todo dobule check this original in v2 not in v3
+        num_record_to_train = len(n_s_lv)
+        assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
+        #_, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv, 'P_input_av': self.get_av(n_s__av)})
+        _, v = Pmodel.predict({'P_input_lv': n_s__lv, 'P_input_sv': n_s__sv})
+        rg = self.get_reward(n_r, v, n_s__av,l_support_view)
+        n_av=self.get_av(n_s_av)
+        assert not any (n_av), " all av should be 0" #todo all s_ av is 1 , this will never go to train"
+        #loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+        #                                         'input_account': n_av,
+        #                                         'input_action': n_a, 'input_reward': rg,
+        #                                         "input_oldAP":n_old_ap }, fake_y)
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+                                                 'input_action': n_a, 'input_reward': rg,
+                                                 "input_oldAP":n_old_ap }, fake_y)
+
+        #n_r # v # rg
+        Custom_Dic={
+            "Count_minue_r":(n_r<0).sum(),
+            "Count_0_r":(n_r == 0).sum(),
+            "Count_positive_r": (n_r > 0).sum(),
+            "r_mean":n_r.mean()
+        }
+
+
+        if self.lc.flag_record_state:
+            self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
+            self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
+        return num_record_to_train,loss_this_round,Custom_Dic
+'''

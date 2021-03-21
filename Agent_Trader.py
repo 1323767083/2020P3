@@ -26,6 +26,19 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
                                                              l_holding, L_Eval_Profit_low_flag)
         return l_a,l_ADlog
 
+    def prepare_predict_input(self,df_account,DateI):
+        assert self.rlc.CLN_AV_Handler=="AV_Handler_AV1"
+        raw_av=np.array(self.i_cav.Fresh_Raw_AV()).reshape(1, -1)  #as raw_av all is 0, get_OB_AV in predict will get 0
+        l_av=[]
+        l_lv=[]
+        l_sv=[]
+        for stock in df_account.index:
+            lv,sv,ref=self.i_get_data.read_1day_TP_Data(stock, DateI)
+            l_lv.append(lv)
+            l_sv.append(sv)
+            l_av.append(raw_av)  # not final sate s_ all av should be 0
+        stacked_state = [np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
+        return stacked_state
 
     def update_holding_with_action_result(self,df_account,df_aresult, stock, DateI):
         if df_aresult.loc[stock]["Action"]=="Buy":
@@ -108,7 +121,12 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         self.save_df_account(df_account, DateI)
         self.update_save_account_detail(df_account_detail, DateI, Cash_afterclosing,MarketValue_afterclosing)
 
-        l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account, mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
+        stacked_state=self.prepare_predict_input(df_account,DateI)
+        l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state,calledby="")
+        l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
+                                                             l_holding, L_Eval_Profit_low_flag)
+
+        #l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account, mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
 
         df_e2a=self.save_next_day_action(DateI, l_a, sl, df_account)
 
@@ -169,7 +187,12 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         assert self.strategy_fun=="Buy_Strategy_multi_time_Direct_sell"
         L_Eval_Profit_low_flag=[False for _ in sl]  # not used in Buy_Strategy_multi_time_Direct_sell
 
-        l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account,mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
+        #l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account,mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
+
+        stacked_state=self.prepare_predict_input(df_account,DateI)
+        l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state,calledby="")
+        l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
+                                                             l_holding, L_Eval_Profit_low_flag)
 
         df_e2a=self.save_next_day_action(DateI, l_a, sl, df_account)
 

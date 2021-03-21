@@ -83,9 +83,10 @@ class common_component:
         return output
 
 class LVSV_component:
-    def __init__(self, nc,cc):
+    def __init__(self, nc,cc, lc):
         self.nc=nc
         self.cc=cc
+        self.lc=lc
     def CNN_get_SV_state(self, input, name):
         immediate_sv = input
         for idx, [kernel, filter, maxpool, flag] in enumerate(zip(self.nc.s_kernel_l, self.nc.s_filter_l,
@@ -120,7 +121,7 @@ class LVSV_component:
                     immediate_lv = keras.layers.MaxPool1D(pool_size=maxpool, padding='valid',name=pool_name)(immediate_lv_t) #strides=1,不注明就是和pool_size一样
         lv_sv_joint_state = keras.layers.Reshape((self.nc.l_filter_l[-1],), name=name + "LV_SV_joint")(immediate_lv)
         return lv_sv_joint_state
-
+    '''
     def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type, flag_stride_1):
         assert padding_type in ['same', 'valid']
         immediate = input_vector
@@ -138,6 +139,38 @@ class LVSV_component:
                     else:
                         assert False, "while taking stride 3 not allow to maxpool"
                 immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
+            else:
+                assert kernel == 0
+                immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
+                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
+                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
+        output_sv = keras.layers.Flatten(name=name)(immediate)
+        return output_sv
+        '''
+
+    def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type, flag_stride_1, flag_residence=False):
+        assert padding_type in ['same', 'valid']
+        immediate = input_vector
+        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
+            assert flag in ["C", "I"]
+            prefix=name+str(idx)
+            conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
+            if flag == "C":
+                assert  immediate.shape[1]!=1 or immediate.shape[2]!=1, "should not be all 1, {0}".format(immediate.shape)
+                strides=(1,1) if flag_stride_1 else (kernel if immediate.shape[1]!=1 else 1,kernel if immediate.shape[2]!=1 else 1)
+                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm,strides=strides)(immediate)
+                if maxpool > 1 and a.shape[1] > 1 and a.shape[2] > 1:  # todo dirty solution for 2D only
+                    if flag_stride_1:
+                        a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
+                        immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
+                    else:
+                        assert False, "while taking stride 3 not allow to maxpool"
+                else:
+                    if not flag_residence:
+                        immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
+                    else:
+                        immediate=keras.layers.LeakyReLU(name=relu_nm)(a)
+                        immediate=keras.layers.Concatenate(axis=3, name=prefix+"Res")([input_vector, immediate])  # 2d sampel axis =3
             else:
                 assert kernel == 0
                 immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
@@ -191,29 +224,6 @@ class LVSV_component:
         return input_sv
 
 
-    '''
-    def _get_2D_state_base_try_stride(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type):
-        assert padding_type in ['same', 'valid']
-        immediate = input_vector
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
-            assert flag in ["C", "I"]
-            prefix=name+str(idx)
-            conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
-            if flag == "C":
-                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm, strides=(3,3))(immediate)
-                if maxpool > 1 and a.shape[1] > 1 and a.shape[2] > 1:  # todo dirty solution for 2D only
-                    assert False
-                    #a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
-                immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
-            else:
-                assert False
-                assert kernel == 0
-                immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
-                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
-                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
-        output_sv = keras.layers.Flatten(name=name)(immediate)
-        return output_sv
-    '''
     def CNN2DV4_get_SV_state(self, input_sv, name):
         return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
                                   self.nc.s_maxpool_l, self.nc.flag_s_level,'same',False )
@@ -221,19 +231,31 @@ class LVSV_component:
     def CNN2DV4_get_LV_SV_joint_state(self, inputs, name):
         input_lv, SV_state = inputs
         immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
-
-        #lv_state= self._get_2D_state_base(immediate_lv, name+"LV",self.nc.l_kernel_l, self.nc.l_filter_l,      #todo the lv not change to stride yet
-        #                                                     self.nc.l_maxpool_l, self.nc.flag_l_level,'same')  #todo this is for try_strong_sv_weak_lv_stride3 and try_strong_sv_weak_lv_stride3_enhanced
         lv_state = self._get_2D_state_base(immediate_lv, name + "LV", self.nc.l_kernel_l,
                                            self.nc.l_filter_l,  # todo the lv not change to stride yet
                                            self.nc.l_maxpool_l, self.nc.flag_l_level,'same',False)
         return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
 
+    def CNN2DV5_get_SV_state(self, input_sv, name):
+        return self._get_2D_state_base(input_sv, name+"SV",self.nc.s_kernel_l, self.nc.s_filter_l,
+                                  self.nc.s_maxpool_l, self.nc.flag_s_level,'same',True, flag_residence=True)
+
+    def CNN2DV5_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, SV_state = inputs
+        immediate_lv = keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
+        lv_state = self._get_2D_state_base(immediate_lv, name + "LV", self.nc.l_kernel_l,
+                                           self.nc.l_filter_l,
+                                           self.nc.l_maxpool_l, self.nc.flag_l_level,'same',True,flag_residence=True)
+        return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
+
 
 
     def get_ap_av_HP(self, inputs, name):
-        js, input_av = inputs
-        input_state = keras.layers.Concatenate(axis=-1,                      name=name + "_input")([js, input_av])
+        if self.lc.flag_use_av_in_model:
+            js, input_av = inputs
+            input_state = keras.layers.Concatenate(axis=-1,                      name=name + "_input")([js, input_av])
+        else:
+            input_state = inputs[0]
         state = self.cc.construct_denses(self.nc.dense_l, input_state,       name=name + "_commonD")
         Pre_a = self.cc.construct_denses(self.nc.dense_prob[:-1], state,     name=name + "_Pre_a")
         ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',name="Action_prob")(Pre_a)
@@ -268,7 +290,10 @@ class V2OS_4_OB_agent:
 
     def model_predict(self, state):
         lv, sv, av = state
-        p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
+        if self.lc.flag_use_av_in_model:
+            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
+        else:
+            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
         return p,v
 
 class net_agent_base:
@@ -303,14 +328,18 @@ class net_agent_base:
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
         input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
-        input_av = keras.Input(shape=self.av_shape, dtype='float32', name="{0}_input_av".format(name))
-        i_LVSV = LVSV_component(self.nc, self.cc)
+        i_LVSV = LVSV_component(self.nc, self.cc, self.lc)
         sv_state = getattr(i_LVSV, self.DC["method_SV_state"])(input_sv, name)
-        #lv_sv_state = getattr(i_LVSV, self.DC["method_LV_SV_joint_state"])([input_lv, sv_state], name + "for_ap")
         lv_sv_state = getattr(i_LVSV, self.DC["method_LV_SV_joint_state"])([input_lv, sv_state], name)
-        input_method_ap_sv = [lv_sv_state, input_av]
-        l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name+ self.layer_label)
-        self.model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
+        if self.lc.flag_use_av_in_model:
+            input_av = keras.Input(shape=self.av_shape, dtype='float32', name="{0}_input_av".format(name))
+            input_method_ap_sv = [lv_sv_state, input_av]
+            l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name+ self.layer_label)
+            self.model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
+        else:
+            input_method_ap_sv = [lv_sv_state]
+            l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name+ self.layer_label)
+            self.model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
         return self.model
 
     def load_weight(self, weight_fnwp):
@@ -318,7 +347,10 @@ class net_agent_base:
 
     def predict(self, state):
         lv, sv, av = state
-        p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_av(av)})
+        if self.lc.flag_use_av_in_model:
+            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_av(av)})
+        else:
+            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
         return p,v
 
     def V2_choose_action(self, state, calledby="Eval"):
@@ -391,3 +423,4 @@ class net_agent_base:
         l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
         l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
         return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
+
