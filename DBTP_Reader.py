@@ -165,3 +165,5 @@ class DBTP_Eval_CC_Reader(DBTP_Train_Reader):
             support_view_dic["Flag_Force_Next_Reset"] = False
         return [lv,sv], support_view_dic, Flag_Done
 
+class DBTP_Eval_WR_Reader(DBTP_Eval_CC_Reader):
+    pass

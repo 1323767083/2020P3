@@ -84,8 +84,20 @@ class Client_Datas_Eval(Client_Datas_Common):
             if len(self.l_log_a_r_e[idx]) != 0:
                 self.logger.error("len(self.l_log_a_r_e[{0}]) != 0".format(idx))
                 assert len(self.l_log_a_r_e[idx]) == 0
-
-
+class WR_handler:
+    def __init__(self, lc,process_name, process_working_dir, logger):
+        self.lc=lc
+        self.process_name=process_name
+        self.process_working_dir=process_working_dir
+        self.logger=logger
+        self.log_WR_column=["BW","BZ","BR","NW","NZ","NR","NA"]
+        self.log_WRs=[]
+    def save(self, eval_loop_count):
+        fnwp=os.path.join(self.process_working_dir, "ET{0}.csv".format(eval_loop_count))
+        pd.DataFrame(self.log_WRs, columns=self.log_WR_column).to_csv(fnwp,index=False)
+        self.reset_log_WRS()
+    def reset_log_WRS(self):
+        del self.log_WRs[:]
 class are_ssdi_handler:
     def __init__(self, lc,process_name, process_working_dir, logger):
         self.lc=lc

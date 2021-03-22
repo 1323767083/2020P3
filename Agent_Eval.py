@@ -107,16 +107,26 @@ class EvalSub(Process):
         self.data = Client_Datas_Eval(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],
                                  called_by="Eval")
+        self.Flag_CC_log, self.Flag_WR_log, self.Flag_Lagecy_log=False,False,False
         if self.lc.l_CLN_env_get_data_eval[self.process_group_idx]=="DBTP_Eval_CC_Reader":
             self.Flag_CC_log=True
+        elif self.lc.l_CLN_env_get_data_eval[self.process_group_idx]=="DBTP_Eval_WR_Reader":
+            self.Flag_WR_log=True
         else:
-            self.Flag_CC_log = False
+            assert self.lc.l_CLN_env_get_data_eval[self.process_group_idx] in ["",""],self.lc.l_CLN_env_get_data_eval[self.process_group_idx]
+            self.Flag_Lagecy_log=True
 
-        if not self.Flag_CC_log:
+        if self.Flag_Lagecy_log:
             self.i_are_ssdi = are_ssdi_handler(self.lc, self.process_name, self.process_working_dir, self.logger)
             self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
             self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name,
                                                             self.process_group_name,self.process_idx,self.stock_list,lc)
+        if self.Flag_WR_log:
+            WR_process_working_dir = lc.system_working_dir
+            for sub_dir in ["WR",self.process_group_name]:
+                WR_process_working_dir=os.path.join(WR_process_working_dir,sub_dir)
+                if not os.path.exists(WR_process_working_dir): os.mkdir(WR_process_working_dir)
+            self.i_WRH= WR_handler(self.lc, self.process_name, WR_process_working_dir, self.logger)
         self.i_ac = actionOBOS(self.lc.train_action_type)
         self.i_av_handler=AV_Handler(self.lc)
 
@@ -129,7 +139,7 @@ class EvalSub(Process):
         while not self.E_stop.is_set():
             if self.CurrentPhase==0:  #wait for round start
                 if self.E_Start1Round.is_set():
-                    if not self.Flag_CC_log:
+                    if self.Flag_Lagecy_log:
                         self.i_are_ssdi.start_round(self.Share_eval_loop_count.value)
                     self.data.eval_reset_data()
                     self.CurrentPhase=1
@@ -151,7 +161,7 @@ class EvalSub(Process):
                         self.data.l_a, self.data.l_ap, self.data.l_sv = result
                         self.Flag_Wait_GPU_Response= False
                         if not any(self.data.l_idx_valid_flag):
-                            if not self.Flag_CC_log:
+                            if self.Flag_Lagecy_log:
                                 fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(
                                     self.Share_eval_loop_count.value,
                                     self.process_idx % self.lc.eval_num_process_each_group)
@@ -163,6 +173,8 @@ class EvalSub(Process):
                                 else:
                                     self.logger.info("finish eval_loop_count {0} but fail in generate 1ET summary due to {1}".
                                                      format(self.Share_eval_loop_count.value,Summery_count__mess))
+                            elif self.Flag_WR_log:
+                                self.i_WRH.save(self.Share_eval_loop_count.value)
                             self.E_Start1Round.clear()
                             self.CurrentPhase = 0
                     else:
@@ -174,46 +186,53 @@ class EvalSub(Process):
         self.logger.info("stopped")
 
     def run_env_one_step(self):
+        l_WR=[] # only used in Flag_WR_log is True
         for idx, i_env in enumerate(self.data.l_i_env):
             if not self.data.l_idx_valid_flag[idx]:
-                continue
-            if self.data.l_done_flag[idx]:
-                s, support_view_dic = i_env.reset()
-                self.data.l_s[idx] = s
-                if support_view_dic["flag_all_period_explored"]:
-                    if not self.Flag_CC_log:
-                        self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
-                        self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
-                    self.data.l_idx_valid_flag[idx] = False
-                else:
-                    if self.data.l_i_episode_init_flag[idx]:
-                        self.data.l_i_episode_init_flag[idx] = False
-                    else:
-                        if not self.Flag_CC_log:
-                            self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
-                            self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
-                if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
-                    self.data.l_done_flag[idx] = True
-                else:
-                    self.data.l_done_flag[idx] = False
-
+                if self.Flag_WR_log:
+                    state, support_view_dic=i_env.WR_get_data()
             else:
-                #s = self.data.l_s[idx]
-                a = self.data.l_a[idx]
-                ap =self.data.l_ap[idx]
-                s_, r, done, support_view_dic, actual_action = i_env.step(a)
-                self.data.l_s[idx] = s_
-                if not self.Flag_CC_log:
-                    self.data.l_t[idx] += 1
-                    self.data.l_r[idx].append(r)
-                    flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
-                    trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
-                    self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
-                if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
-                    self.data.l_done_flag[idx] = True
-                else:
-                    self.data.l_done_flag[idx] = done
+                if self.data.l_done_flag[idx]:
+                    s, support_view_dic = i_env.reset()
+                    self.data.l_s[idx] = s
+                    if support_view_dic["flag_all_period_explored"]:
+                        if self.Flag_Lagecy_log:
+                            self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
+                            self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
+                        self.data.l_idx_valid_flag[idx] = False
+                    else:
+                        if self.data.l_i_episode_init_flag[idx]:
+                            self.data.l_i_episode_init_flag[idx] = False
+                        else:
+                            if self.Flag_Lagecy_log:
+                                self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
+                                self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
+                    if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                        self.data.l_done_flag[idx] = True
+                    else:
+                        self.data.l_done_flag[idx] = False
 
+                else:
+                    #s = self.data.l_s[idx]
+                    a = self.data.l_a[idx]
+                    ap =self.data.l_ap[idx]
+                    s_, r, done, support_view_dic, actual_action = i_env.step(a)
+                    self.data.l_s[idx] = s_
+                    if self.Flag_Lagecy_log:
+                        self.data.l_t[idx] += 1
+                        self.data.l_r[idx].append(r)
+                        flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
+                        trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
+                        self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
+                    if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                        self.data.l_done_flag[idx] = True
+                    else:
+                        self.data.l_done_flag[idx] = done
+            if self.Flag_WR_log:
+                l_WR.append(i_env.iRW.check_right_or_wrong())
+        if self.Flag_WR_log:
+            #["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
+            self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])
     def name_pipe_cmd(self):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:

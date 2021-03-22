@@ -3,7 +3,7 @@ import config as sc
 from recorder import record_sim_stock_data
 from State import *
 from action_comm import actionOBOS
-from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader,DBTP_Eval_CC_Reader
+from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader,DBTP_Eval_CC_Reader,DBTP_Eval_WR_Reader
 from DBI_Base import hfq_toolbox
 from Eval_CC import Eval_CC
 #roughly buy 0.0003
@@ -125,25 +125,6 @@ class env_account:
     def get_inform_for_AV(self):
         return [getattr(self,title) for title in self.lc.account_inform_titles]
 
-class env_reward_old:  #todo to delete
-    def __init__(self,scale_factor,shift_factor, flag_clip, flag_punish_no_action):
-        self.scale_factor,self.shift_factor, self.flag_clip=scale_factor, shift_factor, flag_clip
-        if flag_punish_no_action:
-            self.Sucess_buy = 0.0
-            self.Fail_buy,self.Fail_sell,self.No_action,self.Tinpai   = -0.0001,-0.0001,-0.0001,-0.0001
-        else:
-            self.Sucess_buy = 0.0
-            self.Fail_buy,self.Fail_sell,self.No_action,self.Tinpai   = 0.0,0.0,0.0,0.0
-
-    def Success_sell(self,profit):
-        raw_profit = (profit - self.shift_factor) * self.scale_factor
-        if self.flag_clip:
-            return  1 if raw_profit > 1 else -1 if raw_profit < -1 else raw_profit
-        else:
-            return raw_profit
-
-    def hist_scale(self):
-        return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor
 
 class env_reward:
     def __init__(self,scale_factor,shift_factor, flag_clip, flag_new_or_old):  # old reward from -1 to 1  new from -10 to 10
@@ -170,6 +151,30 @@ class env_reward:
     def hist_scale(self):
         return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor
 
+class RightorWrong:
+    def __init__(self):
+        self.YNprice, self.YHFQratio, self.YFlag_Tradable, self.Yaction= float("NaN"),float("NaN"),False,float("NaN")
+        self.TNprice, self.THFQratio, self.TFlag_Tradable, self.Taction= float("NaN"),float("NaN"),False,float("NaN")
+        self.ifhqconvert=hfq_toolbox()
+
+    def update_today(self,Nprice,HFQratio,Flag_Tradable, Acutal_action):
+        self.YNprice, self.YHFQratio,self.YFlag_Tradable, self.Yaction = self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction
+        self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction = Nprice, HFQratio, Flag_Tradable,Acutal_action
+
+    def check_right_or_wrong(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
+            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
+            if self.Yaction==0:
+                #return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
+                return 0 if YHPrice<THPrice else 1 if YHPrice==THPrice else 2
+            else:
+                # return "NW" if YHPrice<THPrice else "NZ" if YHPrice==THPrice else "NR"
+                return 10 if YHPrice<THPrice else 11 if YHPrice==THPrice else 12
+        else:
+            return -1
+
+
 
 class Simulator_intergrated:
     def __init__(self, data_name, stock,StartI, EndI,CLN_get_data,lc,calledby):
@@ -177,6 +182,7 @@ class Simulator_intergrated:
         self.calledby=calledby
         self.i_PSS = globals()[lc.CLN_AV_state](self.lc,self.calledby)
         self.i_Eval_CC=Eval_CC(self.lc)
+        self.iRW=RightorWrong()
         if self.calledby == "Explore":
             assert CLN_get_data == "DBTP_Train_Reader"
             self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=False)
@@ -186,7 +192,7 @@ class Simulator_intergrated:
             self.CC_flag=False
         else:
             assert self.calledby == "Eval"
-            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader", "DBTP_Eval_CC_Reader"]
+            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader", "DBTP_Eval_CC_Reader","DBTP_Eval_WR_Reader"]
             self.i_reward = env_reward(lc.eval_scale_factor, lc.eval_shift_factor, lc.eval_flag_clip,
                                              lc.eval_flag_punish_no_action)
             self.i_get_data = globals()[CLN_get_data](data_name, stock, StartI, EndI, lc.PLen,
@@ -204,6 +210,8 @@ class Simulator_intergrated:
     def reset(self):
         self.i_account.reset()  # clear account inform if last period not sold out finally
         state, support_view_dic = self.i_get_data.reset_get_data()
+        self.iRW.update_today(support_view_dic["Nprice"], support_view_dic["HFQRatio"],
+                              support_view_dic["Flag_Tradable"], 1) # 1 means not buy take no action
         support_view_dic["action"] = "Reset"  # True?
         support_view_dic["action_return_message"] = "from reset"  # True?
         l_av_inform=self.i_account.get_inform_for_AV()
@@ -223,6 +231,7 @@ class Simulator_intergrated:
     def step_comm(self, adj_action):
         action_str = self.lc.action_type_dict[adj_action]
         state, support_view_dic, _ = self.i_get_data.next_get_data()
+        self.iRW.update_today(support_view_dic["Nprice"],support_view_dic["HFQRatio"],support_view_dic["Flag_Tradable"],adj_action)
         support_view_dic["action_taken"] = action_str
 
         if not support_view_dic["Flag_Tradable"]:
@@ -287,3 +296,8 @@ class Simulator_intergrated:
         state.append(raw_av)
         return state, reward,Done_flag,support_view_dic,actual_action
 
+    def WR_get_data(self):
+        state, support_view_dic = self.i_get_data.reset_get_data()
+        return state, support_view_dic
+        #self.iRW.update_today(support_view_dic["Nprice"], support_view_dic["HFQRatio"],
+        #                      support_view_dic["Flag_Tradable"], 1) # 1 means not buy take no action, similar as reset as it called like reset
