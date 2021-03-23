@@ -69,14 +69,23 @@ class Experiment_Config:
     StartI=float("NaN")
     EndI=float("NaN")
     flag_Print_on_screen_or_file=False
-    def __init__(self, portfolio_name, strategy_name, experiment_name):
-        self.Experiment_dir=os.path.join(AT_base_dir,portfolio_name, strategy_name,experiment_name)
+    def __init__(self, portfolio_name, strategy_name, experiment_name, experiment_config_params):
+        self.Experiment_dir = os.path.join(AT_base_dir, portfolio_name, strategy_name, experiment_name)
         self.experiment_name = experiment_name
-        config_fnwp=os.path.join(self.Experiment_dir,"config.json")
-        param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
-        for item in list(param.keys()):
-            if not item.startswith("======="):
-                self.__dict__[item] = param[item]
+        config_fnwp = os.path.join(self.Experiment_dir, "config.json")
+        if len(experiment_config_params)==0:
+            param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
+            for item in list(param.keys()):
+                if not item.startswith("======="):
+                    self.__dict__[item] = param[item]
+        else:
+            self.total_invest, self.min_invest, self.StartI, self.EndI, self.flag_Print_on_screen_or_file=experiment_config_params
+            if not os.path.exists(self.Experiment_dir): os.mkdir(self.Experiment_dir)
+            a=OrderedDict()
+            for title in ["total_invest","min_invest","StartI","EndI","flag_Print_on_screen_or_file"]:
+                a[title]=getattr(self,title)
+            json.dump(a,open(config_fnwp, "w"))
+
 
 class Strategy_Config:
     strategy_fun=""
@@ -130,9 +139,9 @@ class Strategy_Config:
         self.weight_fnwp=os.path.join(self.AT_model_dir,weight_fns[0])
 
 class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
-    def __init__(self, portfolio_name, strategy_name,experiment_name):
+    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params):
         Strategy_Config.__init__(self, portfolio_name, strategy_name)
-        Experiment_Config.__init__(self, portfolio_name, strategy_name,experiment_name)
+        Experiment_Config.__init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params)
         DBI_init.__init__(self)
         self.i_hfq_tb =hfq_toolbox()
         self.iFH = ATFH(self.Strategy_dir, experiment_name)

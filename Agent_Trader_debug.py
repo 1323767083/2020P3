@@ -3,9 +3,9 @@ from multiprocessing import Process,Manager
 import time
 
 class debug_strategy(Strategy_agent,Process):
-    def __init__(self, portfolio_name, strategy_name, experiment_name, E_Stop):
+    def __init__(self, portfolio_name, strategy_name, experiment_name, experiment_config_params,E_Stop):
         Process.__init__(self)
-        Strategy_agent.__init__(self, portfolio_name, strategy_name,experiment_name)
+        Strategy_agent.__init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params)
         self.E_Stop=E_Stop
         #debug
         self.i_RawData=RawData()
@@ -111,7 +111,8 @@ def One_batch_experiment(portfolio,config_name):
     for _, row in df.iterrows():
         os.environ["CUDA_VISIBLE_DEVICES"] = str(row["GPUI"])
         E_Stop = iManager.Event()
-        iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"], E_Stop)
+        experiment_config_params=row["total_invest"], row["min_invest"], row["StartI"], row["EndI"], row["flag_Print_on_screen_or_file"]
+        iProcess = debug_strategy(portfolio, row["strategy"], row["experiment"], experiment_config_params,E_Stop)
         iProcess.daemon = True
 
         iProcess.start()

@@ -1,8 +1,8 @@
 from Agent_Trader_base import *
 
 class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
-    def __init__(self, portfolio_name, strategy_name,experiment_name):
-        Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name)
+    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params):
+        Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name,experiment_config_params)
         Strategy_agent_Report.__init__(self)
         self.i_get_data= DBTP_Reader.DBTP_Reader(self.rlc.data_name if self.TPDB_Name == "" else self.TPDB_Name)   #no logic, only raw read data
         self.i_cav = globals()[self.rlc.CLN_AV_Handler](self.rlc)

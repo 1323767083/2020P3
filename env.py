@@ -167,10 +167,10 @@ class RightorWrong:
             THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
             if self.Yaction==0:
                 #return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
-                return 0 if YHPrice<THPrice else 1 if YHPrice==THPrice else 2
+                return 0 if YHPrice>THPrice else 1 if YHPrice==THPrice else 2
             else:
                 # return "NW" if YHPrice<THPrice else "NZ" if YHPrice==THPrice else "NR"
-                return 10 if YHPrice<THPrice else 11 if YHPrice==THPrice else 12
+                return 10 if YHPrice>THPrice else 11 if YHPrice==THPrice else 12
         else:
             return -1
 
