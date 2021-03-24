@@ -1,14 +1,12 @@
-import os,json, shutil,sys
+import os,json, shutil,sys,random,setproctitle,time
 from collections import OrderedDict
-import config as sc
 import pandas as pd
 import numpy as np
-
-import random
+from multiprocessing import Process,Event
+import config as sc
 from DBI_Base import DBI_init,hfq_toolbox,StockList
 import DBTP_Reader
 from DBR_Reader import RawData
-
 from State import AV_Handler_AV1
 from Buy_Strategies import Buy_Strategies
 
@@ -332,6 +330,91 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
             assert Closing_Nprice!=0,"{0} {1} {2}".format(Stock,DateI,a)
             return True, [Closing_Nprice, HFQRatio, True], "Success"
 
+class Trader_GPU(Process):
+    def __init__(self, iStrategy,E_Stop_GPU, L_Agent2GPU,LL_GPU2Agent):
+        Process.__init__(self)
+        self.iStrategy,self.E_Stop_GPU,self.L_Agent2GPU,self.LL_GPU2Agent=\
+            iStrategy,E_Stop_GPU, L_Agent2GPU,LL_GPU2Agent
+        self.process_name=self.__class__.__name__
+
+    def run(self):
+        setproctitle.setproctitle(self.process_name)
+        import tensorflow as tf
+        from nets import Explore_Brain,init_virtual_GPU
+        tf.random.set_seed(2)
+        random.seed(2)
+        np.random.seed(2)
+        virtual_GPU = init_virtual_GPU(self.iStrategy.GPU_mem)
+        with tf.device(virtual_GPU):
+            i_eb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
+            i_eb.load_weight(os.path.join(self.iStrategy.weight_fnwp))
+            self.i_wb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
+            self.i_wb.load_weight(self.iStrategy.weight_fnwp)
+            print("Loaded model from {0} ".format(self.iStrategy.weight_fnwp))
+            while not self.E_Stop_GPU.is_set():
+                if len(self.L_Agent2GPU)!=0:
+                    process_idx,stacked_state=self.L_Agent2GPU.pop()
+                    #result = self.i_wb.choose_action(stacted_state, "Explore")
+                    l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state, calledby="")
+                    self.LL_GPU2Agent[process_idx].append([l_a_OB, l_a_OS])
+                else:
+                    time.sleep(0.1)
+
+class strategy_sim(DBI_init):
+    def __init__(self, iFH,a2e_types,aresult_Titles):
+        DBI_init.__init__(self)
+        self.iFH,self.a2e_types,self.aresult_Titles=iFH,a2e_types,aresult_Titles
+        self.i_RawData=RawData()
+    def sim_load_df_a2e(self, DateI):
+        fnwp_action2exe = self.iFH.get_a2e_fnwp(DateI)
+        assert os.path.exists(fnwp_action2exe), "{0} does not exists".format(fnwp_action2exe)
+        df_a2e = pd.read_csv(fnwp_action2exe)
+        df_a2e = df_a2e.astype(self.a2e_types)
+        df_a2e.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
+        print("Loaded a2e from ", fnwp_action2exe)
+        return df_a2e
+
+    def sim(self, YesterdayI, DateI):
+        df_a2e = self.sim_load_df_a2e(YesterdayI)
+        df_a2e.to_csv(self.iFH.get_a2eDone_fnwp(DateI))
+        df_aresult = pd.DataFrame(columns=self.aresult_Titles)
+        # roughly buy 0.0003
+        # roughly sell 0.0013
+        for idx, row in df_a2e.iterrows():
+            #print (row)
+            stock, gu = row.name, row["Gu"]  # stock is index in Seris it is name
+            flag, dfhqr, message = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
+            assert flag,message
+            a = dfhqr[dfhqr["date"] == str(DateI)]
+            if not a.empty:
+                flag, dfqz, message = self.i_RawData.get_qz_df_inteface(row.name, DateI)
+                assert flag
+                for low, high in [[93000, 93500], [93500, 94000], [94000, 94500], [94500, 95000], [95000, 95500],
+                                  [95500, 96000]]:
+                    a = dfqz[(dfqz["Time"] >= 93000) & (dfqz["Time"] < 93500)]
+                    if not a.empty: break
+                num_trans = min(np.random.choice([1, 2, 3], p=[1 / 3, 1 / 3, 1 / 3]), len(a))
+                NPrices = a["Price"].to_list()
+                random.shuffle(NPrices)
+
+                gu_avg = gu // num_trans
+                l_Trans_Gu = [gu_avg if idx < num_trans - 1 else gu - (num_trans - 1) * gu_avg for idx in
+                              list(range(num_trans))]
+                l_Trans_Price = NPrices[:num_trans]
+                if row["Action"] == "Buy":
+                    for trans_Gu, trans_Price in zip(l_Trans_Gu, l_Trans_Price):
+                        #        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_NPrice","Buy_Invest","Sell_Gu", "Sell_NPrice","Sell_Return"]
+                        df_aresult.loc[len(df_aresult)] = [stock, "Buy", "Success", trans_Gu,trans_Price,trans_Gu * trans_Price * 1.0003, 0, 0.0, 0.0]
+                elif row["Action"] == "Sell":
+                    for trans_Gu, trans_Price in zip(l_Trans_Gu, l_Trans_Price):
+                        df_aresult.loc[len(df_aresult)] = [stock, "Sell", "Success", 0, 0.0, 0.0,trans_Gu,trans_Price,trans_Gu * trans_Price * (1 - 0.0013)]
+                else:
+                    assert False, "Action only can by Buy or Sell not {0}".format(row["Action"])
+            else:
+                df_aresult.loc[len(df_aresult)] = [stock, row["Action"], "Tinpai", 0,0.0,0.0,0,0.0,0.0]
+        df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False)
+        return
+
 class Strategy_agent_Report:
     def prepare_report(self, DateI, logs, df_e2a, sl, report_fnwp):
         Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy, \
@@ -382,3 +465,4 @@ class Strategy_agent_Report:
                 for sidx in l_multibuy:
                     f.write("    {0}\n".format(sl[int(sidx)]))
         print("{0} Report stored at {1}\n".format(DateI, report_fnwp))
+

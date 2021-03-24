@@ -1,14 +1,15 @@
 from Agent_Trader_base import *
-
-class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
-    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params):
+class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
+    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params,process_idx,L_Agent2GPU,L_GPU2Agent, E_Stop):
         Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name,experiment_config_params)
         Strategy_agent_Report.__init__(self)
+        Process.__init__(self)
+        self.process_idx,self.L_Agent2GPU,self.L_GPU2Agent, self.E_Stop=process_idx,L_Agent2GPU,L_GPU2Agent,E_Stop
         self.i_get_data= DBTP_Reader.DBTP_Reader(self.rlc.data_name if self.TPDB_Name == "" else self.TPDB_Name)   #no logic, only raw read data
         self.i_cav = globals()[self.rlc.CLN_AV_Handler](self.rlc)
         self.i_buystrategy = Buy_Strategies(self.rlc)
-
-    def get_next_day_action(self,i_eb,DateI,df_account, mumber_of_stock_could_buy,l_holding, L_Eval_Profit_low_flag):
+        self.i_sim=strategy_sim(self.iFH,self.a2e_types,self.aresult_Titles)
+    def get_next_day_action(self,DateI,df_account, mumber_of_stock_could_buy,l_holding, L_Eval_Profit_low_flag):
         assert self.rlc.CLN_AV_Handler=="AV_Handler_AV1"
         raw_av=np.array(self.i_cav.Fresh_Raw_AV()).reshape(1, -1)  #as raw_av all is 0, get_OB_AV in predict will get 0
         l_av=[]
@@ -21,24 +22,13 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
             l_av.append(raw_av)  # not final sate s_ all av should be 0
         stacked_state = [np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
 
-        l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state,calledby="")
+        self.L_Agent2GPU.append([self.process_idx, stacked_state])
+        while len(self.L_GPU2Agent)==0:
+            time.sleep(0.1)
+        l_a_OB, l_a_OS=self.L_GPU2Agent.pop()
         l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
                                                              l_holding, L_Eval_Profit_low_flag)
         return l_a,l_ADlog
-
-    def prepare_predict_input(self,df_account,DateI):
-        assert self.rlc.CLN_AV_Handler=="AV_Handler_AV1"
-        raw_av=np.array(self.i_cav.Fresh_Raw_AV()).reshape(1, -1)  #as raw_av all is 0, get_OB_AV in predict will get 0
-        l_av=[]
-        l_lv=[]
-        l_sv=[]
-        for stock in df_account.index:
-            lv,sv,ref=self.i_get_data.read_1day_TP_Data(stock, DateI)
-            l_lv.append(lv)
-            l_sv.append(sv)
-            l_av.append(raw_av)  # not final sate s_ all av should be 0
-        stacked_state = [np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
-        return stacked_state
 
     def update_holding_with_action_result(self,df_account,df_aresult, stock, DateI):
         if df_aresult.loc[stock]["Action"]=="Buy":
@@ -100,7 +90,7 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
             else:
                 assert False, "{0} is neither a file or a directory".format(sub_itemwp)
 
-    def start_strategy(self,i_eb,DateI):
+    def start_strategy(self,DateI):
         self.remove_old_experiment_data()
         sl=self.init_stock_list()
         df_account = self.Init_df_account(sl)
@@ -121,12 +111,7 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         self.save_df_account(df_account, DateI)
         self.update_save_account_detail(df_account_detail, DateI, Cash_afterclosing,MarketValue_afterclosing)
 
-        stacked_state=self.prepare_predict_input(df_account,DateI)
-        l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state,calledby="")
-        l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
-                                                             l_holding, L_Eval_Profit_low_flag)
-
-        #l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account, mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
+        l_a,l_ADlog=self.get_next_day_action(DateI, df_account, mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
 
         df_e2a=self.save_next_day_action(DateI, l_a, sl, df_account)
 
@@ -134,7 +119,7 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         report_fnwp=self.iFH.get_report_fnwp(DateI)
         self.prepare_report(DateI,logs, df_e2a,sl,report_fnwp)
 
-    def run_strategy(self, i_eb,YesterDayI,DateI):
+    def run_strategy(self, YesterDayI,DateI):
         sl = self.load_stock_list()
         df_account = self.load_df_account()
         df_a2eDone = self.load_df_a2eDone(DateI)
@@ -178,7 +163,9 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         #是不是 就用 "Holding_Invest" 来做 market value？
         Cash_afterclosing +=df_aresult["Sell_Return"].sum()-df_aresult["Buy_Invest"].sum()
         MarketValue_afterclosing=df_account["Holding_Invest"].sum()
-        mumber_of_stock_could_buy = int(Cash_afterclosing//self.min_invest)
+        #mumber_of_stock_could_buy = int(Cash_afterclosing//self.min_invest)
+        cash_to_use=Cash_afterclosing if Cash_afterclosing<self.total_invest/2 else min((Cash_afterclosing+ MarketValue_afterclosing)/2,Cash_afterclosing)
+        mumber_of_stock_could_buy = int(cash_to_use // self.min_invest)
         self.save_df_account(df_account, DateI)
         self.update_save_account_detail(df_account_detail, DateI, Cash_afterclosing,MarketValue_afterclosing)
         print ("After_Closing, Cash {0:.2f} Market Value {1:.2f}, total {2:.2f}".format(Cash_afterclosing,
@@ -187,12 +174,7 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         assert self.strategy_fun=="Buy_Strategy_multi_time_Direct_sell"
         L_Eval_Profit_low_flag=[False for _ in sl]  # not used in Buy_Strategy_multi_time_Direct_sell
 
-        #l_a,l_ADlog=self.get_next_day_action(i_eb,DateI, df_account,mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
-
-        stacked_state=self.prepare_predict_input(df_account,DateI)
-        l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state,calledby="")
-        l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
-                                                             l_holding, L_Eval_Profit_low_flag)
+        l_a,l_ADlog=self.get_next_day_action(DateI, df_account,mumber_of_stock_could_buy, l_holding, L_Eval_Profit_low_flag)
 
         df_e2a=self.save_next_day_action(DateI, l_a, sl, df_account)
 
@@ -208,3 +190,35 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report):
         df_account = self.load_df_account()
         l_a= [2 if df_account.loc[stock]["Holding_Gu"] != 0 else  3  for stock in sl]
         df_e2a = self.save_next_day_action(DateI, l_a, sl, df_account)
+
+    def run(self):
+        from contextlib import redirect_stdout, redirect_stderr
+        AStart_idx, AStartI = self.get_closest_TD(self.StartI, True)
+        AEnd_idx, AEndI = self.get_closest_TD(self.EndI, False)
+        assert AStartI <= AEndI
+        if self.flag_Print_on_screen_or_file:
+            newstdout = sys.__stdout__
+            newstderr = sys.__stderr__
+            stdoutfnwp,stderrfnwp="",""
+        else:
+            stdoutfnwp=os.path.join(self.Experiment_dir,"Output.txt")
+            stderrfnwp=os.path.join(self.Experiment_dir,"Error.txt")
+            print ("Output will be direct to {0}".format(stdoutfnwp))
+            print ("Error will be direct to {0}".format(stderrfnwp))
+            newstdout = open(stdoutfnwp, "w")
+            newstderr = open(stderrfnwp, "w")
+        with redirect_stdout(newstdout), redirect_stderr(newstderr):
+            self.start_strategy(AStartI)
+            print ("Init strategy at ", AStartI)
+            YesterdayI = AStartI
+            period = self.nptd[AStart_idx + 1:AEnd_idx+1]
+            for DateI in period:
+                print("Run strategy at ", DateI)
+                if DateI==AEndI:
+                    self.Sell_All(YesterdayI)
+                self.i_sim.sim(YesterdayI, DateI)
+                self.run_strategy(YesterdayI,DateI)
+                YesterdayI = DateI
+                newstdout.flush()
+                newstderr.flush()
+            self.E_Stop.set()
