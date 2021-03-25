@@ -176,7 +176,7 @@ update Addon data
         这两个选择只有 stock list 里  SL_Definition.json 定义了TSL_from_caculate 才和Initial_DBI 结果有关， 否则它们是独立的任何时间都能执行
         "Create_Total_SL SLV1",
         "Create_Sub_SL SLV1"
-        DBTP 结果对它们的修正是在读取它们的list 时， 查找 Adj_to_Remove.csv （DBTP Error） 和 Price_to_Remove.csv （手工生成）
+        DBTP 结果对它们的修正是在读取它们的list 时， 查找 Adj_to_Remove.csv （DBTP Error） 和 Price_to_Remove.csv （Get_SL_Exceed_MaxPrice）
     
     添加新的element DBI和DBTP
     1. 在DBI_Creater 里建立新的element函数

@@ -300,6 +300,14 @@ class stock_code:
         ["Eval", 1, 20200101, 20200531]]
 }
 
+{
+    "FunGenTSL":"TSL_from_300",
+    "ParamGenTSL":{
+    },
+    "DBTP_Generator":
+        [["Train", 0, 20180101, 20210226]]
+}
+
 
 class StockList(DBI_init):
     def __init__(self, SLName):
@@ -314,7 +322,9 @@ class StockList(DBI_init):
             self.generate_Train_Eval_SL=self.generate_Train_Eval_SL_for_TSL_from_caculate
         else:
             self.generate_Train_Eval_SL = self.generate_Train_Eval_SL_for_TSL_from_src
+            assert len(self.SLDef["ParamGenTSL"])==0
 
+    #common
     def TL_fnwp(self):
         return os.path.join(self.SL_wdn,"Total.csv")
 
@@ -333,6 +343,24 @@ class StockList(DBI_init):
             sl= list(set(sl) - set(sl_remove))
         return sl
 
+    def Get_Total_SL(self):
+        slfnwp=self.TL_fnwp()
+        if os.path.exists(slfnwp):
+            df = pd.read_csv(slfnwp, header=0, names=["stock"])
+            return df["stock"].tolist()
+
+        df=getattr(self,self.SLDef["FunGenTSL"])()
+        df.to_csv(slfnwp, index=False, header=["stock"])
+        return df["stock"].tolist()
+
+    def get_sub_sl(self, tag, index):
+        fnwp=self.Sub_fnwp(tag, index)
+        if not os.path.exists(fnwp):
+            return False, ""
+        else:
+            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist(),
+                                              flag_remove_adj=True, flag_remove_price=True)
+    #legacy
     def TSL_from_caculate(self):
         try:
             StartI = self.SLDef["ParamGenSL"]["TLStartI"]
@@ -365,33 +393,6 @@ class StockList(DBI_init):
         adj_Total_List = [stock for stock in sl_result if filter in stock]
         assert len(adj_Total_List) >= 1
         return pd.DataFrame(adj_Total_List, columns=["stock"])
-
-    def TSL_from_50(self):
-        assert len(self.SLDef["ParamGenTSL"])==0, "TSL_from_50 does not need param"
-        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock50.csv"))[["stock"]]
-
-    def TSL_from_try(self):
-        assert len(self.SLDef["ParamGenTSL"])==0, "TSL_from_try does not need param"
-        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "StockTry.csv"))[["stock"]]
-
-    def TSL_from_300(self):
-        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
-        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock300.csv"))[["stock"]]
-
-    def TSL_from_500(self):
-        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
-        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock500.csv"))[["stock"]]
-
-    def Get_Total_SL(self):
-        slfnwp=self.TL_fnwp()
-        if os.path.exists(slfnwp):
-            df = pd.read_csv(slfnwp, header=0, names=["stock"])
-            return df["stock"].tolist()
-
-        df=getattr(self,self.SLDef["FunGenTSL"])()
-        df.to_csv(slfnwp, index=False, header=["stock"])
-        return df["stock"].tolist()
-
     def generate_Train_Eval_SL_for_TSL_from_caculate(self):
         l_Train_num = self.SLDef["ParamGenSL"]["TrainNums"]
         l_Eval_num  = self.SLDef["ParamGenSL"]["EvalNums"]
@@ -411,15 +412,34 @@ class StockList(DBI_init):
                 Total_list=Total_list[num:]
         return True
 
+
+    # 50, 300, 500
+    def TSL_from_50(self):
+        assert len(self.SLDef["ParamGenTSL"])==0, "TSL_from_50 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock50.csv"))[["stock"]]
+    def TSL_from_300(self):
+        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock300.csv"))[["stock"]]
+
+    def TSL_from_500(self):
+        assert len(self.SLDef["ParamGenTSL"]) == 0, "TSL_from_300 does not need param"
+        return pd.read_csv(os.path.join(self.Dir_DBI_SL, "Stock500.csv"))[["stock"]]
+
     def generate_Train_Eval_SL_for_TSL_from_src(self):
         Total_list = self.Get_Total_SL()
         for tag in ["Train", "Eval"]:
             fnwp=self.Sub_fnwp(tag,0)
             pd.DataFrame(Total_list,columns=["stock"]).to_csv(fnwp, index=False)
             print("Create Sub Stock List in {0}".format(fnwp))
+        random.shuffle(Total_list)
+        total_num=len(Total_list)
+        fnwp = self.Sub_fnwp("Train", 1)
+        pd.DataFrame(Total_list[:int(total_num*0.7)], columns=["stock"]).to_csv(fnwp, index=False)
+        print("Create Sub Stock List in {0}".format(fnwp))
+        fnwp = self.Sub_fnwp("Eval", 1)
+        pd.DataFrame(Total_list[int(total_num*0.7):], columns=["stock"]).to_csv(fnwp, index=False)
+        print("Create Sub Stock List in {0}".format(fnwp))
         return True
-
-
 
     def Get_Stocks_Error_Generate_DBTP(self):
         logdn=os.path.join(self.SL_wdn,"CreateLog")
@@ -436,15 +456,6 @@ class StockList(DBI_init):
         else:
             print("All Stocks succesfully generate TPDB")
         return
-
-
-    def get_sub_sl(self, tag, index):
-        fnwp=self.Sub_fnwp(tag, index)
-        if not os.path.exists(fnwp):
-            return False, ""
-        else:
-            return True, self.Sanity_Check_SL(pd.read_csv(fnwp, header=0, names=["stock"])["stock"].tolist(),
-                                              flag_remove_adj=True, flag_remove_price=True)
 
     def Get_Eval_SubProcess_SL(self, lc,process_group_idx,process_idx):
         process_idx_left = process_idx % lc.eval_num_process_each_group

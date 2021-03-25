@@ -2,7 +2,7 @@ import os,json, shutil,sys,random,setproctitle,time
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
-from multiprocessing import Process,Event
+from multiprocessing import Process,Event,Manager
 import config as sc
 from DBI_Base import DBI_init,hfq_toolbox,StockList
 import DBTP_Reader
