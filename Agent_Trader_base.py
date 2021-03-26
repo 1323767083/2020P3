@@ -348,8 +348,8 @@ class Trader_GPU(Process):
         with tf.device(virtual_GPU):
             i_eb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
             i_eb.load_weight(os.path.join(self.iStrategy.weight_fnwp))
-            self.i_wb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
-            self.i_wb.load_weight(self.iStrategy.weight_fnwp)
+            #self.i_wb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
+            #self.i_wb.load_weight(self.iStrategy.weight_fnwp)
             print("Loaded model from {0} ".format(self.iStrategy.weight_fnwp))
             while not self.E_Stop_GPU.is_set():
                 if len(self.L_Agent2GPU)!=0:

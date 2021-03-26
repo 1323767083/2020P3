@@ -46,7 +46,7 @@ class Remove_DNFN_Explore_Agent(Remove_DNFN):
     SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=[],["ExploreAgent"],["ExploreAgent"],["ExploreAgent"]
 
 class Remove_DNFN_Eval_Agent(Remove_DNFN):
-    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=["analysis","CC"],["EvalAgent"],["EvalAgent"],["EvalAgent"]
+    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=["analysis","CC","WR"],["EvalAgent"],["EvalAgent"],["EvalAgent"]
 
 class Remove_DNFN_Main(Remove_DNFN):
     SubDNs, SubDN_Tags, FNPip_Tags, FNLog_Tags = [], [], [], []
