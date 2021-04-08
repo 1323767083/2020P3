@@ -24,27 +24,27 @@ def init_virtual_GPU(memory_limit):
 
 
 class Train_Brain:
-    def __init__(self, lc, GPU_per_program, load_fnwps,train_count_init):
+    def __init__(self, lc, load_fnwps,train_count_init):
         keras.backend.set_learning_phase(1)  # add by john for error solved by
-        self.lc=lc
+        self.lc,self.load_fnwps,self.train_count_init=lc,load_fnwps,train_count_init
         self.mc=globals()[lc.CLN_trainer](lc)
         self.tb = globals()[lc.CLN_brain_buffer](lc)
         self.train_push_many = self.tb.train_push_many
         self.get_buffer_size = self.tb.get_buffer_size
-        if len(load_fnwps) == 0:
+        if len(self.load_fnwps) == 0:
             self.Tmodel, self.Pmodel = self.build_model()
         else:
-            assert len(load_fnwps) == 3
-            self.Tmodel, self.Pmodel = self.load_model(load_fnwps)
+            assert len(self.load_fnwps) == 3
+            self.Tmodel, self.Pmodel = self.load_model(self.load_fnwps)
         self.i_wait = check_model_save_finish_write(time_out=600)
 
         self.tensorboard = keras.callbacks.TensorBoard(
-                log_dir=lc.tensorboard_dir,
+                log_dir=self.lc.tensorboard_dir,
                 histogram_freq=0,
                 write_graph=True
         )
         self.tensorboard.set_model(self.Tmodel)
-        self.tensorboard_batch_id = train_count_init
+        self.tensorboard_batch_id = self.train_count_init
 
     def build_model(self):
         return self.mc.build_train_model(name="T")

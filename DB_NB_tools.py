@@ -84,37 +84,36 @@ from DBI_Base import Raw_HFQ_Index, DBI_init
 
 IRHFQ = Raw_HFQ_Index("HFQ")
 IRIdx = Raw_HFQ_Index("Index")
-
-# index_code="SH000001"
-index_code = "SZ399001"
-for DayI in [20210301, 20210302, 20210303, 20210304, 20210305, 20210308, 20210309, 20210310, 20210311, 20210312,
-             20210315, 20210316, 20210317, 20210318, 20210319]:
-    hfq_flag, hfq_rawdf, hfq_mess = IRHFQ.get_addon_df(DayI)
-    if not hfq_flag:
-        Error_mess = "{0} {1} {2}".format(hfq_mess, DayI, hfq_mess)
-        assert False
-        # return False, Error_mess
-    else:
-        print(hfq_mess)
-
-    i = DBI_init()
-    fnwp = i.get_DBI_index_fnwp(index_code)
-    print(fnwp)
-    flag, DBIdf, mess = i.get_index_df(fnwp)
-    if not flag:
-        assert False, mess
-    if DBIdf[DBIdf["date"] == str(DayI)].empty:
-        df_found = hfq_rawdf[hfq_rawdf["code"] == index_code]
-        assert len(df_found) == 1, "{0}raw HFQ_index file {1} record {2}".format(DayI, index_code, len(df_found))
-        input = df_found.iloc[0].values
-        if input.size == 0:
-            print(input)
+DateIs= [20210301, 20210302, 20210303, 20210304, 20210305, 20210308, 20210309, 20210310, 20210311, 20210312,
+                 20210315, 20210316, 20210317, 20210318, 20210319]
+for index_code in ["SH000001","SZ399001"]:
+    for DayI in DateIs:
+        hfq_flag, hfq_rawdf, hfq_mess = IRHFQ.get_addon_df(DayI)
+        if not hfq_flag:
+            Error_mess = "{0} {1} {2}".format(hfq_mess, DayI, hfq_mess)
             assert False
-            # return False, "No Data for {0} at {1} in addon HFQ_index file".format(index_code, DayI)
-        DBIdf.loc[len(DBIdf)] = input[:-3]  # the last three column is HFQ related inform
-        DBIdf.sort_values(by="date", inplace=True)
-        DBIdf.to_csv(fnwp, index=False)
-        print(["Addon indexes Update", index_code, True, "Success"])
-    else:
-        print(["Addon indexes Update", index_code, True, "Already updated"])
+            # return False, Error_mess
+        else:
+            print(hfq_mess)
+
+        i = DBI_init()
+        fnwp = i.get_DBI_index_fnwp(index_code)
+        print(fnwp)
+        flag, DBIdf, mess = i.get_index_df(fnwp)
+        if not flag:
+            assert False, mess
+        if DBIdf[DBIdf["date"] == str(DayI)].empty:
+            df_found = hfq_rawdf[hfq_rawdf["code"] == index_code]
+            assert len(df_found) == 1, "{0}raw HFQ_index file {1} record {2}".format(DayI, index_code, len(df_found))
+            input = df_found.iloc[0].values
+            if input.size == 0:
+                print(input)
+                assert False
+                # return False, "No Data for {0} at {1} in addon HFQ_index file".format(index_code, DayI)
+            DBIdf.loc[len(DBIdf)] = input[:-3]  # the last three column is HFQ related inform
+            DBIdf.sort_values(by="date", inplace=True)
+            DBIdf.to_csv(fnwp, index=False)
+            print(["Addon indexes Update", index_code, True, "Success"])
+        else:
+            print(["Addon indexes Update", index_code, True, "Already updated"])
 

@@ -97,7 +97,10 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
         df_account_detail =self.Init_df_account_detail()
         Cash_afterclosing=self.total_invest
         MarketValue_afterclosing=0
-        mumber_of_stock_could_buy = int(Cash_afterclosing//self.min_invest)
+        cash_to_use=Cash_afterclosing if Cash_afterclosing<self.total_invest/2 else min((Cash_afterclosing+ MarketValue_afterclosing)/2,Cash_afterclosing)
+        mumber_of_stock_could_buy = int(cash_to_use // self.min_invest)
+
+        #mumber_of_stock_could_buy = int(Cash_afterclosing//self.min_invest)
         for stock in sl:
             flag, datas, mess=self.get_AfterClosing_Nprice_HFQRatio(stock,DateI)
             assert flag, "the HFQ informat for {0} {1} does not exsts. error message:{1}".format(stock, DateI, mess)

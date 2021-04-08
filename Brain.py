@@ -23,10 +23,11 @@ class Train_Process(Process):
         virtual_GPU = init_virtual_GPU(self.lc.Brian_gpu_percent)
         with tf.device(virtual_GPU):
             self.logger.info("{0} started".format(self.process_name))
-            if self.lc.load_AIO_fnwp != "" and self.lc.load_config_fnwp != "" and self.lc.load_weight_fnwp != "":
+            if self.lc.load_AIO_fnwp != "":
                 l_load_fnwp = [self.lc.load_AIO_fnwp, self.lc.load_config_fnwp, self.lc.load_weight_fnwp]
                 #train_count_init = self.lc.start_train_count
                 self.train_count_init=int(re.findall(r'T(\d+)', self.lc.load_AIO_fnwp)[0])
+                if not os.path.exists(self.lc.brain_model_dir):os.makedirs(self.lc.brain_model_dir)
                 self.logger.info("To load brain from {0}".format(l_load_fnwp))
             else:
                 l_load_fnwp = []
@@ -35,9 +36,7 @@ class Train_Process(Process):
                     shutil.rmtree(self.lc.brain_model_dir)  ## otherwise the eval process might not start due to more than 2 _T0 found
                 os.makedirs(self.lc.brain_model_dir)
                 self.logger.info("clean model directory and create new brain")
-            i_brain=locals()[self.lc.CLN_brain_train](self.lc,GPU_per_program=self.lc.Brian_gpu_percent,
-                                                      load_fnwps=l_load_fnwp,train_count_init=self.train_count_init)
-
+            i_brain=locals()[self.lc.CLN_brain_train](self.lc,load_fnwps=l_load_fnwp,train_count_init=self.train_count_init)
             #flag_weight_ready = False
             Ds={"train_count":                          self.train_count_init,
                 "saved_trc":                            self.train_count_init,
@@ -168,8 +167,11 @@ class Train_Process(Process):
 
                 print("Brain hold buffer size {0}".format(i_brain.tb.get_buffer_size()))
             elif cmd_list[0][:-1] == "save":
-                AIO_fnwp=os.path.join(self.lc.brain_model_dir,"AIO{0}.h5".format(Ds["train_count"]))
+                AIO_model_dir=os.path.join(self.lc.system_working_dir,"Saved_AIO")
+                if not os.path.exists(AIO_model_dir): os.mkdir(AIO_model_dir)
+                AIO_fnwp = os.path.join(AIO_model_dir, "AIO_T{0}.h5".format(
+                    (Ds["train_count"] // self.lc.num_train_to_save_model + 1) * self.lc.num_train_to_save_model))
                 i_brain.save_AIO_model(AIO_fnwp)
-                print ("AIO model saved in {0}".format(AIO_fnwp))
+                print ("model saved to {0}".format(AIO_fnwp))
             else:
                 print("Unknown command: {0} receive from name pipe: {1}".format(cmd_list, self.inp.np_fnwp))

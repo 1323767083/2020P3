@@ -235,14 +235,6 @@ class gconfig(gconfig_data):
         assert self.P2_current_phase in  ["Train_Sell","Train_Buy"]
         assert self.env_max_invest_per_round==self.env_min_invest_per_round,"Only support single buy"
 
-        if self.load_AIO_fnwp!="" and self.load_config_fnwp!="" and self.load_weight_fnwp!="":
-            fn = os.path.basename(self.load_AIO_fnwp)
-            start_train_count_indication1=int(re.findall(r'\w+T(\d+).h5', fn)[0])
-            fn = os.path.basename(self.load_weight_fnwp)
-            start_train_count_indication2=int(re.findall(r'\w+T(\d+).h5', fn)[0])
-            assert start_train_count_indication1==start_train_count_indication2
-            #self.start_train_count=start_train_count_indication1
-
         new_action_type_dict={}
         for item in list(self.action_type_dict.keys()):
             new_action_type_dict[int(item)]=self.action_type_dict[item]

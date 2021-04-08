@@ -204,7 +204,7 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
             df_account.loc[len(df_account)]=row
         df_account = df_account.astype(dtype=self.account_types)
         df_account.set_index(["Stock"],drop=True,inplace=True,verify_integrity=True)
-        df_account.to_csv(fnwp_account)
+        df_account.to_csv(fnwp_account,float_format='%.2f')
         return df_account
 
     def load_df_account(self):
@@ -218,8 +218,8 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
     def save_df_account(self, df_account, DateI):
         fnwp_account = self.iFH.get_account_fnwp()
         fnwp_account_backup = self.iFH.get_account_backup_fnwp(DateI)
-        df_account.to_csv(fnwp_account)   #here need to save index, it is stock
-        df_account.to_csv(fnwp_account_backup) #here need to save index, it is stock
+        df_account.to_csv(fnwp_account,float_format='%.2f')   #here need to save index, it is stock
+        df_account.to_csv(fnwp_account_backup,float_format='%.2f') #here need to save index, it is stock
 
     def save_next_day_action(self, DateI, l_a,stocklist,df_account):
         a2e_fnwp=self.iFH.get_a2e_fnwp(DateI)
@@ -239,7 +239,7 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
                      df_account.loc[stock]["Holding_Gu"])
             else:
                 continue
-        df_e2a.to_csv(a2e_fnwp)
+        df_e2a.to_csv(a2e_fnwp,float_format='%.2f')
         return df_e2a
 
     def load_df_a2eDone(self, DateI):
@@ -302,8 +302,8 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
         df_account_detail.loc[DateI]=[Cash_afterclosing,MarketValue_afterclosing]
         fnwp_account_detail=self.iFH.get_account_detail_fnwp()
         fnwp_account_detail_backup = self.iFH.get_account_detail_backup_fnwp(DateI)
-        df_account_detail.to_csv(fnwp_account_detail) #here need to save index, it is DateI
-        df_account_detail.to_csv(fnwp_account_detail_backup) #here need to save index, it is DateI
+        df_account_detail.to_csv(fnwp_account_detail,float_format='%.2f') #here need to save index, it is DateI
+        df_account_detail.to_csv(fnwp_account_detail_backup,float_format='%.2f') #here need to save index, it is DateI
 
     def get_AfterClosing_Nprice_HFQRatio(self,Stock,DateI):
         #Check Whether addon DBI HFQ_index update finalized, otherwise return False
@@ -348,8 +348,6 @@ class Trader_GPU(Process):
         with tf.device(virtual_GPU):
             i_eb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
             i_eb.load_weight(os.path.join(self.iStrategy.weight_fnwp))
-            #self.i_wb = locals()[self.iStrategy.rlc.CLN_brain_explore](self.iStrategy.rlc)
-            #self.i_wb.load_weight(self.iStrategy.weight_fnwp)
             print("Loaded model from {0} ".format(self.iStrategy.weight_fnwp))
             while not self.E_Stop_GPU.is_set():
                 if len(self.L_Agent2GPU)!=0:
@@ -376,7 +374,7 @@ class strategy_sim(DBI_init):
 
     def sim(self, YesterdayI, DateI):
         df_a2e = self.sim_load_df_a2e(YesterdayI)
-        df_a2e.to_csv(self.iFH.get_a2eDone_fnwp(DateI))
+        df_a2e.to_csv(self.iFH.get_a2eDone_fnwp(DateI),float_format='%.2f')
         df_aresult = pd.DataFrame(columns=self.aresult_Titles)
         # roughly buy 0.0003
         # roughly sell 0.0013
@@ -385,16 +383,18 @@ class strategy_sim(DBI_init):
             stock, gu = row.name, row["Gu"]  # stock is index in Seris it is name
             flag, dfhqr, message = self.get_hfq_df(self.get_DBI_hfq_fnwp(stock))
             assert flag,message
-            a = dfhqr[dfhqr["date"] == str(DateI)]
-            if not a.empty:
+            ahqr = dfhqr[dfhqr["date"] == str(DateI)]
+            if not ahqr.empty:
                 flag, dfqz, message = self.i_RawData.get_qz_df_inteface(row.name, DateI)
                 assert flag
                 for low, high in [[93000, 93500], [93500, 94000], [94000, 94500], [94500, 95000], [95000, 95500],
                                   [95500, 96000]]:
-                    a = dfqz[(dfqz["Time"] >= 93000) & (dfqz["Time"] < 93500)]
-                    if not a.empty: break
-                num_trans = min(np.random.choice([1, 2, 3], p=[1 / 3, 1 / 3, 1 / 3]), len(a))
-                NPrices = a["Price"].to_list()
+                    aqz = dfqz[(dfqz["Time"] >= low) & (dfqz["Time"] < high)]
+                    if not aqz.empty: break
+                else:
+                    assert False, "QZ first half hour does not have trade record {0} {1} {2}".format(stock, gu, DateI)
+                num_trans = min(np.random.choice([1, 2, 3], p=[1 / 3, 1 / 3, 1 / 3]), len(aqz))
+                NPrices = aqz["Price"].to_list()
                 random.shuffle(NPrices)
 
                 gu_avg = gu // num_trans
@@ -412,7 +412,7 @@ class strategy_sim(DBI_init):
                     assert False, "Action only can by Buy or Sell not {0}".format(row["Action"])
             else:
                 df_aresult.loc[len(df_aresult)] = [stock, row["Action"], "Tinpai", 0,0.0,0.0,0,0.0,0.0]
-        df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False)
+        df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False,float_format='%.2f')
         return
 
 class Strategy_agent_Report:

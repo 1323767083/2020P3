@@ -67,7 +67,7 @@ class main(Process):
         random.seed(2)
         np.random.seed(2)
 
-        l_fun_menu = ["learn", "eval","learneval","create_train", "remote_copy", "DataBase"]
+        l_fun_menu = ["learn", "eval","learneval"]
         fun_selected = getselected_item_name(l_fun_menu, colum_per_row=1,flag_sort=False) if len(argv)==0 else argv[0]
         if fun_selected in ["learn", "eval","learneval"]:
             self.fun_label = fun_selected
@@ -77,30 +77,29 @@ class main(Process):
                 raise ValueError("{0} does not exisit".format(param_fnwp))
             self.lc = sc.gconfig()
             self.lc.read_from_json(param_fnwp)
-
+            if "learn" in fun_selected:
+                Remove_DNFN_Main(self.lc, fun_selected).Remove()
+                if self.lc.load_AIO_fnwp == "":
+                    Remove_DNFN_Explore_Agent(self.lc).Remove()
+                    Remove_DNFN_Eval_Agent(self.lc).Remove()
+            elif fun_selected=="eval":
+                Remove_DNFN_Main(self.lc, fun_selected).Remove()
+                if self.lc.start_eval_count==0:
+                    Remove_DNFN_Eval_Agent(self.lc).Remove()
+                return
+            else:
+                assert False
+            '''
             if input("Clean all the sub dir Enter Yes or no: ") == "Yes":
                 Remove_DNFN_Main(self.lc,fun_selected).Remove()
                 if "learn" in fun_selected:
                     Remove_DNFN_Explore_Agent(self.lc).Remove()
                 if "eval" in fun_selected:
                     Remove_DNFN_Eval_Agent(self.lc).Remove()
-
-        elif fun_selected == "create_train":
-            create_system(sc.base_dir_RL_system)
-            self.run=self.fake_run
-        elif fun_selected == "remote_copy":
-            #copy_between_two_machine().copy_between_two_machine("192.168.199.100","")
-            copy_between_two_machine().copy_between_two_machine()
-            self.run = self.fake_run
-        elif fun_selected == "DataBase":
-            DB_main.main(argv[1:])
-            self.run = self.fake_run
+            '''
         else:
             raise ValueError("not support arg {0}".format(argv[1]))
 
-
-    def fake_run(self):
-        return
     def run(self):
         assert self.fun_label in ["learn", "eval","learneval"],"fun_label received is {0}".format(self.fun_label)
         logging.getLogger().setLevel(logging.INFO)

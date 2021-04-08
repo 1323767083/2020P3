@@ -328,19 +328,33 @@ class net_agent_base:
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
         input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
-        i_LVSV = LVSV_component(self.nc, self.cc, self.lc)
-        sv_state = getattr(i_LVSV, self.DC["method_SV_state"])(input_sv, name)
-        lv_sv_state = getattr(i_LVSV, self.DC["method_LV_SV_joint_state"])([input_lv, sv_state], name)
         if self.lc.flag_use_av_in_model:
             input_av = keras.Input(shape=self.av_shape, dtype='float32', name="{0}_input_av".format(name))
-            input_method_ap_sv = [lv_sv_state, input_av]
-            l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name+ self.layer_label)
+            l_agent_output=self.layers_with_av([input_lv,input_sv,input_av], name)
             self.model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
         else:
-            input_method_ap_sv = [lv_sv_state]
-            l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name+ self.layer_label)
+            l_agent_output = self.layers_without_av([input_lv, input_sv], name)
             self.model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
         return self.model
+
+    def layers_with_av(self, inputs, name):
+        lv,sv,av=inputs
+        i_LVSV = LVSV_component(self.nc, self.cc, self.lc)
+        sv_state = getattr(i_LVSV, self.DC["method_SV_state"])(sv, name)
+        lv_sv_state = getattr(i_LVSV, self.DC["method_LV_SV_joint_state"])([lv, sv_state], name)
+        input_method_ap_sv = [lv_sv_state, av]
+        l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name + self.layer_label)
+        return l_agent_output
+
+    def layers_without_av(self, inputs, name):
+        lv,sv=inputs
+        i_LVSV = LVSV_component(self.nc, self.cc, self.lc)
+        sv_state = getattr(i_LVSV, self.DC["method_SV_state"])(sv, name)
+        lv_sv_state = getattr(i_LVSV, self.DC["method_LV_SV_joint_state"])([lv, sv_state], name)
+        input_method_ap_sv = [lv_sv_state]
+        l_agent_output = getattr(i_LVSV, self.DC["method_ap_sv"])(input_method_ap_sv, name + self.layer_label)
+        return l_agent_output
+
 
     def load_weight(self, weight_fnwp):
         self.model.load_weights(weight_fnwp)
