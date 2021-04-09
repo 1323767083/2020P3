@@ -43,14 +43,6 @@ class DBI_init(DB_Base):
         self.IRD=RawData()
         self.IRHFQ=Raw_HFQ_Index("HFQ")
         self.IRIdx = Raw_HFQ_Index("Index")
-        flag, mess=self.check_DBI_lumpsum_inited_Indexes()
-        if not flag:
-            print ("lumpsum idexes not inited yet {0}".format(mess))
-            return
-        flag_HFQ_inited_fnwp =self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
-        if not os.path.exists(flag_HFQ_inited_fnwp):
-            print ("lumpsum HFQs not inited yet {0} not exist".format(flag_HFQ_inited_fnwp))
-            return
 
 
     def get_DBI_index_fnwp(self, index_code):
@@ -249,6 +241,13 @@ class DBI_init(DB_Base):
 class DBI_init_with_TD(DBI_init):
     def __init__(self):
         DBI_init.__init__(self)
+        flag, mess=self.check_DBI_lumpsum_inited_Indexes()
+        if not flag:
+            assert False,"lumpsum idexes not inited yet {0}".format(mess)
+        flag_HFQ_inited_fnwp =self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
+        if not os.path.exists(flag_HFQ_inited_fnwp):
+            assert False,"lumpsum HFQs not inited yet {0} not exist".format(flag_HFQ_inited_fnwp)
+
         flag, self.nptd, mess=self.generate_TD()
         if not flag:
             raise  ValueError("Fail to generate TD with mess {0}".format(mess))
