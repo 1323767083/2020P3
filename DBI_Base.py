@@ -43,12 +43,15 @@ class DBI_init(DB_Base):
         self.IRD=RawData()
         self.IRHFQ=Raw_HFQ_Index("HFQ")
         self.IRIdx = Raw_HFQ_Index("Index")
-        flag, mess=self.init_DBI_lumpsum_Indexes()
-        assert flag,("inital lumpsum index in DBI fail with {0}".format(mess))
-        self.init_DBI_lumpsum_HFQs()
-        flag, self.nptd, mess=self.generate_TD()
+        flag, mess=self.check_DBI_lumpsum_inited_Indexes()
         if not flag:
-            raise  ValueError("Fail to generate TD with mess {0}".format(mess))
+            print ("lumpsum idexes not inited yet {0}".format(mess))
+            return
+        flag_HFQ_inited_fnwp =self.get_DBI_Lumpsum_Log_HFQ_Index_fnwp()
+        if not os.path.exists(flag_HFQ_inited_fnwp):
+            print ("lumpsum HFQs not inited yet {0} not exist".format(flag_HFQ_inited_fnwp))
+            return
+
 
     def get_DBI_index_fnwp(self, index_code):
         assert index_code in self.DBI_Index_Code_List
@@ -242,6 +245,14 @@ class DBI_init(DB_Base):
         assert len(dflog)== CSuccess+ CSuccessNew+ CAlredayExist+CError
         return True, "Success"
 
+
+class DBI_init_with_TD(DBI_init):
+    def __init__(self):
+        DBI_init.__init__(self)
+        flag, self.nptd, mess=self.generate_TD()
+        if not flag:
+            raise  ValueError("Fail to generate TD with mess {0}".format(mess))
+
     ##TD related
     def generate_TD(self, input_index="SH000001"):
         fnwp=self.get_DBI_index_fnwp(input_index)
@@ -266,6 +277,7 @@ class DBI_init(DB_Base):
             assert len(lidx[0]) >= 1
             idx=lidx[0][-1]
         return idx, self.nptd[idx]
+
 
 class hfq_toolbox:
     def get_Nprice_from_hfq_price(self, hfq_price, hfq_ratio):
@@ -309,9 +321,9 @@ class stock_code:
 }
 
 
-class StockList(DBI_init):
+class StockList(DBI_init_with_TD):
     def __init__(self, SLName):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.SLName=SLName
         self.SL_wdn=os.path.join(self.Dir_DBI_SL,self.SLName)
         assert os.path.exists(self.SL_wdn), self.SL_wdn
@@ -492,9 +504,9 @@ class StockList(DBI_init):
         print ("stock has max price exceed {0} be stored in {1}".format(set_max_price,fnwp))
 
 
-class DBI_Base(DBI_init):
+class DBI_Base(DBI_init_with_TD):
     def __init__(self, DBI_name):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.DBI_name=DBI_name
         self.Dir_DBI_WP=os.path.join(self.Dir_IDB,self.DBI_name)
         self.Dir_DBI_WP_Data=os.path.join(self.Dir_DBI_WP,"Data")

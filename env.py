@@ -161,6 +161,7 @@ class RightorWrong:
         self.YNprice, self.YHFQratio,self.YFlag_Tradable, self.Yaction = self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction
         self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction = Nprice, HFQratio, Flag_Tradable,Acutal_action
 
+
     def check_right_or_wrong(self):
         if self.YFlag_Tradable and self.TFlag_Tradable:
             YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
@@ -173,7 +174,40 @@ class RightorWrong:
                 return 10 if YHPrice>THPrice else 11 if YHPrice==THPrice else 12
         else:
             return -1
-
+    '''
+    def check_right_or_wrong_tinpai_wrong(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
+            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
+            if self.Yaction==0:
+                #return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
+                return 0 if YHPrice>THPrice else 1 if YHPrice==THPrice else 2
+            else:
+                # return "NW" if YHPrice<THPrice else "NZ" if YHPrice==THPrice else "NR"
+                return 10 if YHPrice>THPrice else 11 if YHPrice==THPrice else 12
+        elif self.YFlag_Tradable and not self.TFlag_Tradable:
+            if self.Yaction==0:
+                # return "BW"
+                return 0
+            else:
+                # return "NW" 
+                return 10
+        else:
+            return -1
+    '''
+    def check_profit(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
+            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
+            if self.Yaction==0:
+                shift_factor=0
+                return THPrice/YHPrice-1 +shift_factor      # [-5 to 5]  centralized at 0  should be in [-1 to 1]
+            else:
+                shift_factor=10
+                return THPrice/YHPrice-1 +shift_factor      # [5, 15]    centralized at 10  should be in [9 to 11]
+        else:
+            shift_factor = -10
+            return shift_factor                              # [-10]      centralized at -10  should be ==-10
 
 
 class Simulator_intergrated:

@@ -8,7 +8,7 @@ import re,os
 import vresult_data_reward
 import config as sc
 #from data_common import API_HFQ_from_file,hfq_toolbox
-from DBI_Base import DBI_init
+from DBI_Base import DBI_init_with_TD
 from vcomm import Checkbar,label_entry,img_tool,one_label_entry,one_radion_box,param_input
 class vEreward(tk.Frame):
     def __init__(self, container, param):
@@ -131,9 +131,9 @@ class vEreward(tk.Frame):
         return next_button_core
 
 
-class anaExtreR(DBI_init):
+class anaExtreR(DBI_init_with_TD):
     def __init__(self,system_name, process_name, threadhold,compare_operation,Lstock, LEvalT, LYM,lgc):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         #system_name="LHPP2V2_PPO3_LOSSV05P3R10_SV_Deep_SG_round_6_reward_same_2_Eval3_3"
         #process_name="Eval_0"
         #threadhold=-20

@@ -9,13 +9,13 @@ import progressbar
 import pickle
 from env import env_reward
 from vresult_data_com import get_data_start_end,are_esi_reader
-from DBI_Base import DBI_init,DBI_Base,StockList
+from DBI_Base import DBI_init_with_TD,DBI_Base,StockList
 import config as sc
 def natural_keys(text):
     return [ int(c) if c.isdigit() else c for c in re.split(r'(\d+)',text) ]
-class ana_reward_data(are_esi_reader, DBI_init):
+class ana_reward_data(are_esi_reader, DBI_init_with_TD):
     def __init__(self, system_name, process_group_name,process_idx,Lstock, LEvalT, LYM,lgc):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         are_esi_reader.__init__(self,system_name, process_group_name)
         self.process_group_name,self.process_idx,self.Lstock, self.LEvalT, self.LYM,self.lgc = \
             process_group_name,process_idx,Lstock, LEvalT, LYM, lgc

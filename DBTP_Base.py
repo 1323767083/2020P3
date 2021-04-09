@@ -1,4 +1,4 @@
-from DBI_Base import DBI_init
+from DBI_Base import DBI_init_with_TD
 from DBR_Reader import Raw_HFQ_Index
 from DBI_Creater import *
 import os,json, random
@@ -33,9 +33,9 @@ import numpy as np
     }
 }
 
-class DBTP_Base(DBI_init):
+class DBTP_Base(DBI_init_with_TD):
     def __init__(self, DBTP_Name):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.DBTP_Name=DBTP_Name
         self.Dir_DBTP_WP=os.path.join(self.Dir_TPDB,self.DBTP_Name)
         DBTP_fnwp = os.path.join(self.Dir_DBTP_WP, "DBTP_Definition.json")

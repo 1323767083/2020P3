@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from multiprocessing import Process,Event,Manager
 import config as sc
-from DBI_Base import DBI_init,hfq_toolbox,StockList
+from DBI_Base import DBI_init_with_TD,hfq_toolbox,StockList
 import DBTP_Reader
 from DBR_Reader import RawData
 from State import AV_Handler_AV1
@@ -136,11 +136,11 @@ class Strategy_Config:
         assert len(weight_fns)==1,"{0} has more than one weight file {1}".format(self.AT_model_dir,weight_fns)
         self.weight_fnwp=os.path.join(self.AT_model_dir,weight_fns[0])
 
-class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init):
+class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init_with_TD):
     def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params):
         Strategy_Config.__init__(self, portfolio_name, strategy_name)
         Experiment_Config.__init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params)
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.i_hfq_tb =hfq_toolbox()
         self.iFH = ATFH(self.Strategy_dir, experiment_name)
         self.set_df_params(self.rlc)
@@ -358,9 +358,9 @@ class Trader_GPU(Process):
                 else:
                     time.sleep(0.1)
 
-class strategy_sim(DBI_init):
+class strategy_sim(DBI_init_with_TD):
     def __init__(self, iFH,a2e_types,aresult_Titles):
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.iFH,self.a2e_types,self.aresult_Titles=iFH,a2e_types,aresult_Titles
         self.i_RawData=RawData()
     def sim_load_df_a2e(self, DateI):

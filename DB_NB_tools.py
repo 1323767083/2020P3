@@ -81,11 +81,18 @@ lrwxrwxrwx  1 rdchujf rdchujf        38 3月  11 08:37 RL_data_additional -> /mn
 import os
 
 from DBI_Base import Raw_HFQ_Index, DBI_init
+DateIs=[]
+for mdir in ["/mnt/pdata_disk2Tw/DB_raw_addon/HFQ_Index/202103/","/mnt/pdata_disk2Tw/DB_raw_addon/HFQ_Index/202104/"]:
+    itemdateIs=[int(fn[:-4]) for fn in os.listdir(mdir) if fn.endswith(".rar")]
+    itemdateIs.sort()
+    DateIs.extend(itemdateIs)
+DateIs.pop(-1)
+print (DateIs)
 
 IRHFQ = Raw_HFQ_Index("HFQ")
 IRIdx = Raw_HFQ_Index("Index")
-DateIs= [20210301, 20210302, 20210303, 20210304, 20210305, 20210308, 20210309, 20210310, 20210311, 20210312,
-                 20210315, 20210316, 20210317, 20210318, 20210319]
+#DateIs= [20210301, 20210302, 20210303, 20210304, 20210305, 20210308, 20210309, 20210310, 20210311, 20210312,
+#                 20210315, 20210316, 20210317, 20210318, 20210319, 20210322, 20210323, 20210324, 20210325, 20210326]
 for index_code in ["SH000001","SZ399001"]:
     for DayI in DateIs:
         hfq_flag, hfq_rawdf, hfq_mess = IRHFQ.get_addon_df(DayI)

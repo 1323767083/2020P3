@@ -84,8 +84,9 @@ class main(Process):
                     Remove_DNFN_Eval_Agent(self.lc).Remove()
             elif fun_selected=="eval":
                 Remove_DNFN_Main(self.lc, fun_selected).Remove()
-                if self.lc.start_eval_count==0:
-                    Remove_DNFN_Eval_Agent(self.lc).Remove()
+                if self.lc.start_eval_count == 0:
+                    if input("Clean all the sub dir Enter Yes or no: ") == "Yes":
+                        Remove_DNFN_Eval_Agent(self.lc).Remove()
                 return
             else:
                 assert False

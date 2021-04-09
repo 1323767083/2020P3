@@ -10,15 +10,15 @@ import env
 import numpy as np
 import re,os,pickle
 import config as sc
-from DBI_Base import DBI_init
+from DBI_Base import DBI_init_with_TD
 #import Stocklist_comm as scom
 #from data_T5 import R_T5,R_T5_scale,R_T5_balance,R_T5_skipSwh,R_T5_skipSwh_balance
 #from data_common import API_trade_date
 from DBTP_Reader import DBTP_Reader
-class vstate(tk.Frame,DBI_init):
+class vstate(tk.Frame,DBI_init_with_TD):
     def __init__(self, container, param):
         tk.Frame.__init__(self, container)
-        DBI_init.__init__(self)
+        DBI_init_with_TD.__init__(self)
         self.data_name=param["data_name"]
 
 

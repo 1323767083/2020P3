@@ -122,11 +122,7 @@ class EvalSub(Process):
             self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name,
                                                             self.process_group_name,self.process_idx,self.stock_list,lc)
         if self.Flag_WR_log:
-            WR_process_working_dir = lc.system_working_dir
-            for sub_dir in ["WR",self.process_group_name]:
-                WR_process_working_dir=os.path.join(WR_process_working_dir,sub_dir)
-                if not os.path.exists(WR_process_working_dir): os.mkdir(WR_process_working_dir)
-            self.i_WRH= WR_handler(self.lc, self.process_name, WR_process_working_dir, self.logger)
+            self.i_WRH= WR_handler(self.lc, self.process_name, self.process_group_name, self.logger)
         self.i_ac = actionOBOS(self.lc.train_action_type)
         self.i_av_handler=AV_Handler(self.lc)
 
@@ -186,7 +182,7 @@ class EvalSub(Process):
         self.logger.info("stopped")
 
     def run_env_one_step(self):
-        l_WR=[] # only used in Flag_WR_log is True
+        l_WR,l_PA=[],[] # only used in Flag_WR_log is True
         for idx, i_env in enumerate(self.data.l_i_env):
             if not self.data.l_idx_valid_flag[idx]:
                 if self.Flag_WR_log:
@@ -230,9 +226,11 @@ class EvalSub(Process):
                         self.data.l_done_flag[idx] = done
             if self.Flag_WR_log:
                 l_WR.append(i_env.iRW.check_right_or_wrong())
+                l_PA.append(i_env.iRW.check_profit())
         if self.Flag_WR_log:
             #["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
-            self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])
+            #self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])
+            self.i_WRH.add_log([l_WR,l_PA])
     def name_pipe_cmd(self):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:

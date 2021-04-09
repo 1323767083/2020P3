@@ -1,6 +1,6 @@
 from DB_Base import DB_Base
 from DBTP_Base import DBTP_Base
-from DBI_Base import DBI_init,StockList,hfq_toolbox
+from DBI_Base import StockList,hfq_toolbox
 from sklearn.preprocessing import minmax_scale
 #from data_common import hfq_toolbox
 import numpy as np
