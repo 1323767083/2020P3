@@ -1,4 +1,4 @@
-import os,json, shutil,sys,random,setproctitle,time
+import os,json, shutil,sys,random,setproctitle,time, pickle
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
@@ -60,6 +60,8 @@ class ATFH:
         return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "AT_AccountDetail_backup.csv")
     def get_report_fnwp(self, DateI):
         return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "Report.txt")
+    def get_machine_report_fnwp(self, DateI):
+        return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "Report.pikle")
 
 class Experiment_Config:
     total_invest=float("NaN")
@@ -330,6 +332,58 @@ class Strategy_agent_base(Strategy_Config,Experiment_Config,DBI_init_with_TD):
             assert Closing_Nprice!=0,"{0} {1} {2}".format(Stock,DateI,a)
             return True, [Closing_Nprice, HFQRatio, True], "Success"
 
+#class Strategy_agent_Report:
+    def prepare_report(self, DateI, logs, df_e2a, sl):
+        Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy, \
+        l_log_bought, l_log_Earnsold, l_log_balancesold, l_log_Losssold, \
+        l_log_fail_action, l_log_holding_with_no_action, \
+        l_ADlog = logs
+        report_fnwp = self.iFH.get_report_fnwp(DateI)
+        with open(report_fnwp, "w") as f:
+            f.write("Date: {0} Cash After Closing: {1:.2f} Market Value: {2:.2f}\n Num of Stock could bought tomorrow: {3}\n".
+                    format(DateI, Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy))
+            f.write("Total: {0:.2f}".format(Cash_afterclosing+MarketValue_afterclosing))
+            f.write("Today Bought {0} stock:\n".format(len(l_log_bought)))
+            f.write("    {0}\n".format(",".join(l_log_bought)))
+            f.write("Today Sold with Earn {0} stock:\n".format(len(l_log_Earnsold)))
+            f.write("    {0}\n".format(",".join(l_log_Earnsold)))
+            f.write("Today Sold with Loss {0} stock:\n".format(len(l_log_Losssold)))
+            f.write("    {0}\n".format(",".join(l_log_Losssold)))
+            f.write("Today Sold with Balance {0} stock:\n".format(len(l_log_balancesold)))
+            f.write("    {0}\n".format(",".join(l_log_balancesold)))
+            f.write("Today {0} Action with Fail :\n".format(len(l_log_fail_action)))
+            for log_fail in l_log_fail_action:
+                f.write("    {0} {1}\n".format(log_fail[0], log_fail[1]))
+            f.write("\n")  # For look better
+            f.write("Today Error holding without sell action {0} :\n".format(len(l_log_holding_with_no_action)))
+            for holding_with_no_action in l_log_holding_with_no_action:
+                f.write("    {0} {1}\n".format(holding_with_no_action[0], holding_with_no_action[1]))
+            f.write("\n")  # For look better
+            f.write("Tommorow to Buy {0}\n".format(len(df_e2a[df_e2a["Action"] == "Buy"])))
+            f.write("    {0}\n".format(",".join(df_e2a[df_e2a["Action"] == "Buy"].index.tolist())))
+            f.write("Tommorow to Sell {0}\n".format(len(df_e2a[df_e2a["Action"] == "Sell"])))
+            f.write("    {0}\n".format(",".join(df_e2a[df_e2a["Action"] == "Sell"].index.tolist())))
+
+            assert l_ADlog[0] == DateI
+            l_not_buy_due_limit = l_ADlog[1].split("_")
+            if l_not_buy_due_limit == ['']:
+                f.write("Tommorow not_buy_due_limit {0}\n".format(0))
+                f.write("\n")  # For look better
+            else:
+                f.write("Tommorow not_buy_due_limit {0}\n".format(len(l_not_buy_due_limit)))
+                for sidx in l_not_buy_due_limit:
+                    f.write("    {0}\n".format(sl[int(sidx)]))
+            l_multibuy = l_ADlog[4].split("_")
+            if l_multibuy == ['']:
+                f.write("Tommorow multibuy(not sell due to multibuy) {0}\n".format(0))
+                f.write("\n")  # For look better
+            else:
+                f.write("Tommorow multibuy(not sell due to multibuy) {0}\n".format(len(l_multibuy)))
+                for sidx in l_multibuy:
+                    f.write("    {0}\n".format(sl[int(sidx)]))
+        print("{0} Report stored at {1}\n".format(DateI, report_fnwp))
+
+
 class Trader_GPU(Process):
     def __init__(self, iStrategy,E_Stop_GPU, L_Agent2GPU,LL_GPU2Agent):
         Process.__init__(self)
@@ -414,55 +468,4 @@ class strategy_sim(DBI_init_with_TD):
                 df_aresult.loc[len(df_aresult)] = [stock, row["Action"], "Tinpai", 0,0.0,0.0,0,0.0,0.0]
         df_aresult.to_csv(self.iFH.get_aresult_fnwp(DateI), index=False,float_format='%.2f')
         return
-
-class Strategy_agent_Report:
-    def prepare_report(self, DateI, logs, df_e2a, sl, report_fnwp):
-        Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy, \
-        l_log_bought, l_log_Earnsold, l_log_balancesold, l_log_Losssold, \
-        l_log_fail_action, l_log_holding_with_no_action, \
-        l_ADlog = logs
-        #fnwp = self.iFH.get_report_fnwp(DateI)
-        with open(report_fnwp, "w") as f:
-            f.write("Date: {0} Cash After Closing: {1:.2f} Market Value: {2:.2f}\n Num of Stock could bought tomorrow: {3}\n".
-                    format(DateI, Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy))
-            f.write("Total: {0:.2f}".format(Cash_afterclosing+MarketValue_afterclosing))
-            f.write("Today Bought {0} stock:\n".format(len(l_log_bought)))
-            f.write("    {0}\n".format(",".join(l_log_bought)))
-            f.write("Today Sold with Earn {0} stock:\n".format(len(l_log_Earnsold)))
-            f.write("    {0}\n".format(",".join(l_log_Earnsold)))
-            f.write("Today Sold with Loss {0} stock:\n".format(len(l_log_Losssold)))
-            f.write("    {0}\n".format(",".join(l_log_Losssold)))
-            f.write("Today Sold with Balance {0} stock:\n".format(len(l_log_balancesold)))
-            f.write("    {0}\n".format(",".join(l_log_balancesold)))
-            f.write("Today {0} Action with Fail :\n".format(len(l_log_fail_action)))
-            for log_fail in l_log_fail_action:
-                f.write("    {0} {1}\n".format(log_fail[0], log_fail[1]))
-            f.write("\n")  # For look better
-            f.write("Today Error holding without sell action {0} :\n".format(len(l_log_holding_with_no_action)))
-            for holding_with_no_action in l_log_holding_with_no_action:
-                f.write("    {0} {1}\n".format(holding_with_no_action[0], holding_with_no_action[1]))
-            f.write("\n")  # For look better
-            f.write("Tommorow to Buy {0}\n".format(len(df_e2a[df_e2a["Action"] == "Buy"])))
-            f.write("    {0}\n".format(",".join(df_e2a[df_e2a["Action"] == "Buy"].index.tolist())))
-            f.write("Tommorow to Sell {0}\n".format(len(df_e2a[df_e2a["Action"] == "Sell"])))
-            f.write("    {0}\n".format(",".join(df_e2a[df_e2a["Action"] == "Sell"].index.tolist())))
-
-            assert l_ADlog[0] == DateI
-            l_not_buy_due_limit = l_ADlog[1].split("_")
-            if l_not_buy_due_limit == ['']:
-                f.write("Tommorow not_buy_due_limit {0}\n".format(0))
-                f.write("\n")  # For look better
-            else:
-                f.write("Tommorow not_buy_due_limit {0}\n".format(len(l_not_buy_due_limit)))
-                for sidx in l_not_buy_due_limit:
-                    f.write("    {0}\n".format(sl[int(sidx)]))
-            l_multibuy = l_ADlog[4].split("_")
-            if l_multibuy == ['']:
-                f.write("Tommorow multibuy(not sell due to multibuy) {0}\n".format(0))
-                f.write("\n")  # For look better
-            else:
-                f.write("Tommorow multibuy(not sell due to multibuy) {0}\n".format(len(l_multibuy)))
-                for sidx in l_multibuy:
-                    f.write("    {0}\n".format(sl[int(sidx)]))
-        print("{0} Report stored at {1}\n".format(DateI, report_fnwp))
 

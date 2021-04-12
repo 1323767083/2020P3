@@ -1,8 +1,7 @@
 from Agent_Trader_base import *
-class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
+class Strategy_agent(Strategy_agent_base,Process):
     def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params,process_idx,L_Agent2GPU,L_GPU2Agent, E_Stop):
         Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name,experiment_config_params)
-        Strategy_agent_Report.__init__(self)
         Process.__init__(self)
         self.process_idx,self.L_Agent2GPU,self.L_GPU2Agent, self.E_Stop=process_idx,L_Agent2GPU,L_GPU2Agent,E_Stop
         self.i_get_data= DBTP_Reader.DBTP_Reader(self.rlc.data_name if self.TPDB_Name == "" else self.TPDB_Name)   #no logic, only raw read data
@@ -26,6 +25,12 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
         while len(self.L_GPU2Agent)==0:
             time.sleep(0.1)
         l_a_OB, l_a_OS=self.L_GPU2Agent.pop()
+
+        #for idx, row in df_account.iterrows():
+        for idx in list(range(len(df_account))):
+            if not df_account.iloc[idx]["Tradable_flag"]: #this is handle not IPO stock
+                l_a_OB[idx]=1
+                l_a_OS[idx]=3
         l_a, l_ADlog = getattr(self.i_buystrategy, self.strategy_fun)(DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,
                                                              l_holding, L_Eval_Profit_low_flag)
         return l_a,l_ADlog
@@ -119,8 +124,9 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
         df_e2a=self.save_next_day_action(DateI, l_a, sl, df_account)
 
         logs=[Cash_afterclosing,MarketValue_afterclosing,mumber_of_stock_could_buy,[], [], [], [], [], [], l_ADlog]
-        report_fnwp=self.iFH.get_report_fnwp(DateI)
-        self.prepare_report(DateI,logs, df_e2a,sl,report_fnwp)
+        self.prepare_report(DateI,logs, df_e2a,sl)
+        machine_report_fnwp=self.iFH.get_machine_report_fnwp(DateI)
+        pickle.dump(logs+[l_a], open(machine_report_fnwp, 'wb'))
 
     def run_strategy(self, YesterDayI,DateI):
         sl = self.load_stock_list()
@@ -185,8 +191,10 @@ class Strategy_agent(Strategy_agent_base,Strategy_agent_Report,Process):
               l_log_bought, l_log_Earnsold, l_log_balancesold, l_log_Losssold,
               l_log_fail_action, l_log_holding_with_no_action,
               l_ADlog]
-        report_fnwp = self.iFH.get_report_fnwp(DateI)
-        self.prepare_report(DateI,logs, df_e2a,sl,report_fnwp)
+        self.prepare_report(DateI,logs, df_e2a,sl)
+        machine_report_fnwp=self.iFH.get_machine_report_fnwp(DateI)
+        pickle.dump(logs+[l_a], open(machine_report_fnwp, 'wb'))
+
 
     def Sell_All(self,DateI):
         sl = self.load_stock_list()

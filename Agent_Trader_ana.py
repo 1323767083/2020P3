@@ -35,7 +35,7 @@ def ana_earning(portfolio,strategy,experiment):
     dfm=df[["MonthI","Total"]].groupby(["MonthI"]).agg(monthly_start=pd.NamedAgg(column="Total", aggfunc="first"),
                                                  monthly_end=pd.NamedAgg(column="Total", aggfunc="last"))
 
-    dfm["Month_earn"]=dfm["monthly_end"]-dfm["monthly_start"]
+    dfm["Month_earn"]=(dfm["monthly_end"]-dfm["monthly_start"])/dfm["monthly_start"]
     dfm.reset_index(inplace=True)
 
     plt.rcParams["figure.figsize"] = (20, 10)
@@ -63,28 +63,36 @@ def ana_earning(portfolio,strategy,experiment):
 
 
 def get_data_from_report(fnwp):
-    patterns=[r'Today Sold with Earn (\d+)',
+    one_time_patterns=[r'Today Sold with Earn (\d+)',
              r'Today Sold with Loss (\d+)',
              r'Today Sold with Balance (\d+)',
              r'Tommorow to Buy (\d+)',
              r'Tommorow to Sell (\d+)',
              r'Tommorow not_buy_due_limit (\d+)',
              r'Tommorow multibuy\(not sell due to multibuy\) (\d+)']
+    multi_time_patterns= [r"Fail to buy due to ",r"Fail to sell due to "]
+
     with open(fnwp,"r") as f:
-        flag_found=[False for _ in patterns]
-        results=[np.NaN for _ in patterns]
+        flag_found=[False for _ in one_time_patterns]
+        results=[np.NaN for _ in one_time_patterns]
+        multi_time_counts = [0 for _ in multi_time_patterns]
         for line in f.readlines():
-            for idx in list(range(len(patterns))):
+            for idx in list(range(len(one_time_patterns))):
                 if flag_found[idx]:
                     continue
                 else:
-                    a=re.findall(patterns[idx],line)
+                    a=re.findall(one_time_patterns[idx],line)
                     if len(a)!=0:
                         assert results[idx]!=results[idx]
                         results[idx]=int(a[0])
                         flag_found[idx]=True
+            for idx in list(range(len(multi_time_patterns))):
+                a = re.findall(multi_time_patterns[idx], line)
+                if len(a) != 0:
+                    multi_time_counts[idx]+=1
+
         assert all(flag_found),flag_found
-    return results
+    return results+multi_time_counts
 #get_data_from_report("/mnt/data_disk2/n_workspace/AT/p1/s17/eF1/201801/20180102/Report.txt")
 
 def get_datas_for_experiment(portfolio, strategy, experiment):
@@ -102,17 +110,19 @@ def get_datas_for_experiment(portfolio, strategy, experiment):
     for DateI in DateIs:
         fnwp=os.path.join(ednwp,str(DateI//100), str(DateI),"Report.txt")
         Datas.append(get_data_from_report(fnwp)+[DateI])
-    df=pd.DataFrame(Datas, columns=["SoldE","SoldL","SoldB","ToBuy","ToSell","NotToBuy_due_limit","Multibuy","DateI"])
+    df=pd.DataFrame(Datas, columns=["SoldE","SoldL","SoldB","ToBuy","ToSell","NotToBuy_due_limit","Multibuy","Fail_Buy", "Fail_Sell","DateI"])
 
     df["MonthI"] = df["DateI"] // 100
-    dfm = df[["MonthI", "SoldE", "SoldL", "SoldB", "ToBuy","ToSell","NotToBuy_due_limit","Multibuy"]].groupby(["MonthI"]).agg(
+    dfm = df[["MonthI", "SoldE", "SoldL", "SoldB", "ToBuy","ToSell","NotToBuy_due_limit","Multibuy","Fail_Buy", "Fail_Sell"]].groupby(["MonthI"]).agg(
         CEarn=pd.NamedAgg(column="SoldE", aggfunc=sum),
         CLoss=pd.NamedAgg(column="SoldL", aggfunc=sum),
         CBalance=pd.NamedAgg(column="SoldB", aggfunc=sum),
         CToBuy=pd.NamedAgg(column="ToBuy", aggfunc=sum),
         CToSell=pd.NamedAgg(column="ToSell", aggfunc=sum),
         CNotToBuy_due_limit=pd.NamedAgg(column="NotToBuy_due_limit", aggfunc=sum),
-        CMultibuy=pd.NamedAgg(column="Multibuy", aggfunc=sum)
+        CMultibuy=pd.NamedAgg(column="Multibuy", aggfunc=sum),
+        CFailBuy=pd.NamedAgg(column="Fail_Buy", aggfunc=sum),
+        CFailSell=pd.NamedAgg(column="Fail_Sell", aggfunc=sum)
     )
 
     dfm["CTotal"] = dfm.CEarn + dfm.CLoss + dfm.CBalance
