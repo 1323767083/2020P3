@@ -4,33 +4,32 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from DBI_Base import DBI_init_with_TD
-
+AT_dir="/mnt/data_disk2/n_workspace/AT"
 def List_Strategies_Config(portfolio):
-    dnwp=os.path.join("/mnt/data_disk2/n_workspace/AT",portfolio)
+    dnwp=os.path.join(AT_dir,portfolio)
     dirs=[item for item in os.listdir(dnwp) if os.path.isdir(os.path.join(dnwp,item))]
-    df=[]
-    titles=[]
+    dfr=[]
     for dir in dirs:
-        param=json.load(open(os.path.join(dnwp, dir,"config.json"),"r"),object_pairs_hook=OrderedDict)
-        if len(titles)==0:
-            titles=list(param.keys())
-            titles.remove("strategy_fun")
-            titles.remove("GPU_mem")
-        item =[param[key] for key in titles]+[dir]
-        if len(df)==0:
-            df=pd.DataFrame([item],columns=titles+["strategy_name"])
+        df=pd.read_csv(os.path.join(dnwp, dir,"strategy_config.csv"))
+        df["Strategy"]=dir
+        if len(dfr)==0:
+            dfr=df
         else:
-            df.loc[len(df)]=item
-    df.sort_values(["RL_system_name"],inplace=True)
-    df.reset_index(inplace=True, drop=True)
-    return df
+            dfr = pd.concat([dfr, df], axis=0, ignore_index=True)
+    dfr.sort_values(["Strategy","RL_system_name"],inplace=True)
+    dfr.reset_index(inplace=True, drop=True)
+    dfr=dfr[["Strategy","RL_system_name","RL_Model_ET","GPU_idx","GPU_mem","TPDB_Name","SL_Name","SL_Tag","SL_Idx","strategy_fun"]]
+    return dfr
 
 def ana_earning(portfolio,strategy,experiment):
-    base_dir="/mnt/data_disk2/n_workspace/AT/"
-    account_detail_fnwp=os.path.join(base_dir,portfolio,strategy,experiment,"AT_AccountDetail.csv")
+    account_detail_fnwp=os.path.join(AT_dir,portfolio,strategy,experiment,"AT_AccountDetail.csv")
+    dfc = pd.read_csv(os.path.join(AT_dir, portfolio,strategy, "strategy_config.csv"))
 
     df=pd.read_csv(account_detail_fnwp)
-    df["Total"]=df["Cash_after_closing"]+df["MarketValue_after_closing"]
+    #df["Total"]=df["Cash_after_closing"]+df["MarketValue_after_closing"]
+    df["Total"] = df["Cash_after_closing"]
+    for i in list(range(len(dfc))):
+        df["Total"]+=df["MarketValue_after_closing_M{0}".format(i)]
     df["MonthI"]=df["DateI"]//100
     dfm=df[["MonthI","Total"]].groupby(["MonthI"]).agg(monthly_start=pd.NamedAgg(column="Total", aggfunc="first"),
                                                  monthly_end=pd.NamedAgg(column="Total", aggfunc="last"))
@@ -46,11 +45,13 @@ def ana_earning(portfolio,strategy,experiment):
 
     allaxes[0].set_title("Total, Cash and Market Value")
     allaxes[0].plot(df["Cash_after_closing"],label="Cash_after_closing",color='m')
-    allaxes[0].plot(df["MarketValue_after_closing"],label="MarketValue_after_closing",color='r')
+    for i in list(range(len(dfc))):
+        title="MarketValue_after_closing_M{0}".format(i)
+        allaxes[0].plot(df[title],label=title)
 
     allaxes[0].legend(loc='upper left')
     ax2=allaxes[0].twinx()
-    ax2.plot(df["Total"],label="Total")
+    ax2.plot(df["Total"],label="Total",color='r')
     ax2.legend(loc='upper right')
 
     allaxes[1].set_title("Monthly Earning")
@@ -96,8 +97,7 @@ def get_data_from_report(fnwp):
 #get_data_from_report("/mnt/data_disk2/n_workspace/AT/p1/s17/eF1/201801/20180102/Report.txt")
 
 def get_datas_for_experiment(portfolio, strategy, experiment):
-    dnwp="/mnt/data_disk2/n_workspace/AT/"
-    ednwp=os.path.join(dnwp,portfolio, strategy, experiment)
+    ednwp=os.path.join(AT_dir,portfolio, strategy, experiment)
     monthIs=[int(item) for item in os.listdir(ednwp) if os.path.isdir(os.path.join(ednwp,item))]
     monthIs.sort()
     DateIs=[]
@@ -139,7 +139,9 @@ def get_datas_for_experiment(portfolio, strategy, experiment):
 
 
 def get_per_tran_result(portfolio, strategy, experiment):
-    dnwp = os.path.join("/mnt/data_disk2/n_workspace/AT", portfolio, strategy, experiment)
+    dfc = pd.read_csv(os.path.join(AT_dir, portfolio, strategy, "strategy_config.csv"))
+
+    dnwp = os.path.join(AT_dir, portfolio, strategy, experiment)
     monthSs = [item for item in os.listdir(dnwp) if os.path.isdir(os.path.join(dnwp, item))]
     monthSs.sort()
     trans = []
@@ -150,18 +152,18 @@ def get_per_tran_result(portfolio, strategy, experiment):
         for DateS in DateSs:
             pfnwp = os.path.join(wdnwp, DateS, "Report.pikle")
             datas = pickle.load(open(pfnwp, "rb"))
-            Cash_afterclosing, MarketValue_afterclosing, mumber_of_stock_could_buy, \
-            l_log_bought, l_log_Earnsold, l_log_balancesold, l_log_Losssold, \
-            l_log_fail_action, l_log_holding_with_no_action, \
-            l_ADlog, l_a = datas
-            for logs in [l_log_Earnsold, l_log_Losssold]:
-                if len(logs) != 0:
-                    for log in logs:
-                        a = re.findall(r'(\w+):([-+]?[0-9]+[.][0-9]*)', log)
-                        if len(a) != 0:
-                            trans.append([int(DateS), a[0][0], eval(a[0][1])])
-
-    df = pd.DataFrame(trans, columns=["dateI", "Stock", "profit"])
+            Cash_afterclosing, l_MarketValue_afterclosing, mumber_of_stock_could_buy,\
+            ll_log_bought, ll_log_Earnsold, ll_log_balancesold, ll_log_Losssold,\
+            ll_log_fail_action, ll_log_holding_with_no_action,\
+            ll_ADlog, ll_a, adj_ll_a = datas
+            for Model_idx in list(range(len(dfc))):
+                for logs in [ll_log_Earnsold[Model_idx], ll_log_Losssold[Model_idx]]:
+                    if len(logs) != 0:
+                        for log in logs:
+                            a = re.findall(r'(\w+):([-+]?[0-9]+[.][0-9]*)', log)
+                            if len(a) != 0:
+                                trans.append([int(DateS), Model_idx,a[0][0], eval(a[0][1])])
+    df = pd.DataFrame(trans, columns=["dateI","model", "Stock", "profit"])
     return df
 
 
@@ -175,14 +177,14 @@ def get_tran_detail(portfolio, strategy, experiment, threadhold):
     else:
         dfr = df[df["profit"] >= threadhold]
     for _, row in dfr.iterrows():
-        dateI, stock, profit = row[0], row[1], row[2]
+        dateI, ModelI, stock, profit = row[0], row[1], row[2], row[3]
         B1dateI = nptd[nptd < dateI][-1]
-        account_backup_fnwp = os.path.join("/home/rdchujf/n_workspace/AT", portfolio, strategy, experiment,
-                                           str(B1dateI // 100), str(B1dateI), "AT_account_afterday_backup.csv")
+        account_backup_fnwp = os.path.join(AT_dir, portfolio, strategy, experiment,
+                                           str(B1dateI // 100), str(B1dateI), "AT{0}_account_afterday_backup.csv".format(ModelI))
         df = pd.read_csv(account_backup_fnwp)
         df.set_index(["Stock"], drop=True, inplace=True)
         buy_dateI = df.loc[stock]["HoldingStartDateI"]
-        result = [buy_dateI, dateI, len(nptd[(nptd >= buy_dateI) & (nptd < dateI)]), profit]
+        result = [buy_dateI, dateI, ModelI,len(nptd[(nptd >= buy_dateI) & (nptd < dateI)]), profit]
         print(result)
         results.append(result)
     return df, results
