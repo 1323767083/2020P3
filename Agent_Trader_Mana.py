@@ -190,3 +190,25 @@ def get_tran_detail(portfolio, strategy, experiment, threadhold):
     return df, results
 
 
+'''
+from DBI_Base import DBI_init_with_TD
+import pandas as pd
+monthIs=[202101,202102,202103]
+shidx_fnwp="/mnt/pdata_disk2Tw/RL_data_additional/index/SH000001.csv"
+szidx_fnwp="/mnt/pdata_disk2Tw/RL_data_additional/index/SZ399001.csv"
+
+i=DBI_init_with_TD()
+i.nptd
+MonthI=202101
+_,SDateI=i.get_closest_TD(MonthI*100+1, True)
+_,EDateI=i.get_closest_TD(MonthI*100+31, False)
+dfi=pd.read_csv(shidx_fnwp)#, encoding="gb18030")
+dfim=dfi[(dfi["date"]>=SDateI)&(dfi["date"]<=EDateI)]
+dfim.reset_index(drop=True, inplace=True)
+print(dfim.iloc[0]["open_price"],dfim.iloc[-1]["open_price"])
+print(dfim["open_price"].max(), dfim["open_price"].min())
+
+Sidx=dfim.iloc[0]["open_price"]
+
+[dfim.iloc[-1]["open_price"]/Sidx-1,dfim["open_price"].max()/Sidx-1, dfim["open_price"].min()/Sidx-1]
+'''

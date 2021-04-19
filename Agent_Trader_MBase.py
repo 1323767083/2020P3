@@ -382,13 +382,20 @@ class Strategy_agent_base(DBI_init_with_TD):
             for print_format_str, ll_log in [["Today Bought {0} stock:\n",ll_log_bought],
                                              ["Today Sold with Earn {0} stock:\n",ll_log_Earnsold],
                                              ["Today Sold with Loss {0} stock:\n",ll_log_Losssold],
-                                             ["Today Sold with Balance {0} stock:\n",ll_log_balancesold],
-                                             ["Today {0} Action with Fail :\n",ll_log_fail_action],
-                                             ["Today holding without sell action {0} :\n",ll_log_holding_with_no_action]]:
+                                             ["Today Sold with Balance {0} stock:\n",ll_log_balancesold]]:
                 f.write(print_format_str.format(sum([len(l_log) for l_log in ll_log])))
                 for Model_idx, l_log in enumerate(ll_log):
                     if len(l_log)!=0:
                         f.write("\tModel{0} {1}\n".format(Model_idx,",".join(l_log)))
+
+            for print_format_str, lll_log in [["Today {0} Action with Fail :\n",ll_log_fail_action],
+                                             ["Today holding without sell action {0} :\n",ll_log_holding_with_no_action]]:
+                f.write(print_format_str.format(sum([len(ll_log) for ll_log in lll_log])))
+                for Model_idx, ll_log in enumerate(lll_log):
+                    if len(ll_log)!=0:
+                        for l_log in ll_log:
+                            f.write("\tModel{0} {1}\n".format(Model_idx,",".join(l_log)))
+
 
             for action_str in ["Buy","Sell"]:
                 f.write("Tommorow to {0} {1}\n".format(action_str,sum([len(df_e2a[df_e2a["Action"] == action_str]) for df_e2a in l_df_e2a])))
