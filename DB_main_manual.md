@@ -1,4 +1,4 @@
-'''
+
 Guide to update DBI
     一。拷贝原始文件 （raw data）
     1. 把交易的 原始压缩数据按月拷贝到  /home/rdchujf/DB_raw/Normal
@@ -223,5 +223,9 @@ update Addon data
     
     注意这些filter的函数 都要返回的
 
-
-'''
+DBI 里增加指数
+    第一步 在/mnt/pdata_disk2Tw/RL_data_additional/index/ 生成指数文件：
+        from DB_main_fun import Add_new_index_to_DBI
+        l_df=Add_new_index_to_DBI(["SH000300", "SH000905"])
+    第二步 修改DB_Base.py 把指数加入 DBI_Index_Code_List
+        DBI_Index_Code_List=["SH000001","SZ399001""SH000300","SH000905"]   #SH000905 is 500

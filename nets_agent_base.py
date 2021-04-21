@@ -438,3 +438,13 @@ class net_agent_base:
         l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
         return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
 
+    def V3_get_AP_AT(self,state,calledby):
+        assert self.lc.P2_current_phase == "Train_Buy"
+        buy_probs, buy_SVs = self.predict(state)
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        #sel_probs, sell_SVs = self.OS_agent.predict(state)
+        sel_probs, _ = self.OS_agent.predict(state)
+        return buy_probs,sel_probs  # This only used in CC eval ,so AP and sv information in not necessary
+

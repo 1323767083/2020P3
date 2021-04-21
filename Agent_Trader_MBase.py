@@ -3,6 +3,7 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 from multiprocessing import Process,Event,Manager
+from itertools import accumulate
 import config as sc
 from DBI_Base import DBI_init_with_TD,hfq_toolbox,StockList
 import DBTP_Reader
@@ -11,19 +12,14 @@ from State import AV_Handler_AV1
 from Buy_Strategies import Buy_Strategies
 
 AT_base_dir = "/home/rdchujf/n_workspace/AT"
-#Strategy_config
 ''' strategy_config.csv
-RL_system_name,RL_Model_ET,GPU_idx,GPU_mem,TPDB_Name,SL_Name,SL_Tag,SL_Idx,strategy_fun
+RL_system_name,RL_Model_ET,GPU_idx,GPU_mem,TPDB_Name,SL_Name
 '''
 
-#Experiement_config
-{
-    "total_invest": 250000,
-    "min_invest": 50000,
-    "StartI": 20201201,
-    "EndI": 20210228
-}
 
+'''Experiement_config
+Model_idx,SL_Tag,SL_Idx,total_invest,min_invest,StartI,EndI,flag_Print_on_screen_or_file,strategy_fun
+'''
 
 class ATFH:
     def __init__(self,Strategy_dir, experiment_name):
@@ -59,38 +55,41 @@ class ATFH:
         return os.path.join(self._get_month_date_dir(self.AT_account_dir,DateI), "Report.pikle")
 
 class Experiment_Config:
-    total_invest=float("NaN")
-    min_invest=float("NaN")
-    StartI=float("NaN")
-    EndI=float("NaN")
-    flag_Print_on_screen_or_file=False
-    def __init__(self, portfolio_name, strategy_name, experiment_name, experiment_config_params):
+    Experiment_titles=["Model_idx","SL_Tag","SL_Idx","total_invest","min_invest","StartI","EndI","flag_Print_on_screen_or_file","strategy_fun"]
+    def __init__(self, portfolio_name, strategy_name, experiment_name, DEcofig):
         self.Experiment_dir = os.path.join(AT_base_dir, portfolio_name, strategy_name, experiment_name)
+        if not os.path.exists(self.Experiment_dir): os.mkdir(self.Experiment_dir)
         self.experiment_name = experiment_name
-        config_fnwp = os.path.join(self.Experiment_dir, "config.json")
-        if len(experiment_config_params)==0:
-            param = json.load(open(config_fnwp, "r"), object_pairs_hook=OrderedDict)
-            for item in list(param.keys()):
-                if not item.startswith("======="):
-                    self.__dict__[item] = param[item]
+        config_fnwp = os.path.join(self.Experiment_dir, "experiment_config.csv")
+        if len(DEcofig)==0 :
+            self.dfec=pd.read_csv(config_fnwp)
         else:
-            self.total_invest, self.min_invest, self.StartI, self.EndI, self.flag_Print_on_screen_or_file=experiment_config_params
-            if not os.path.exists(self.Experiment_dir): os.mkdir(self.Experiment_dir)
-            a=OrderedDict()
-            for title in ["total_invest","min_invest","StartI","EndI","flag_Print_on_screen_or_file"]:
-                a[title]=getattr(self,title)
-            json.dump(a,open(config_fnwp, "w"))
+            self.dfec=pd.DataFrame(columns=self.Experiment_titles)
+            assert(DEcofig["EP_titles"]==self.Experiment_titles[:3])
+            dfcontent=pd.DataFrame(DEcofig["EP_values"],columns=DEcofig["EP_titles"])
+            for idx, row in dfcontent.iterrows():
+                self.dfec.loc[len(self.dfec)]=[row["Model_idx"],row["SL_Tag"],row["SL_Idx"],
+                                DEcofig["total_invest"],DEcofig["min_invest"],DEcofig["StartI"],DEcofig["EndI"],
+                                               DEcofig["flag_Print_on_screen_or_file"],DEcofig["strategy_fun"]]
+            self.dfec.to_csv(config_fnwp,index=False)
+        #Model_idx, SL_Tag, SL_Idx, total_invest, min_invest, StartI, EndI, flag_Print_on_screen_or_file
+        for title in ["Model_idx", "SL_Idx", "total_invest", "min_invest", "StartI", "EndI"]:
+            self.dfec[title]=self.dfec[title].astype(int)
 
 
 class Strategy_Config:
-    def __init__(self,portfolio_name, strategy_name):
+    def __init__(self,portfolio_name, strategy_name, l_GPUs=""):
         self.Strategy_dir=os.path.join(AT_base_dir,portfolio_name, strategy_name)
         config_fnwp=os.path.join(self.Strategy_dir,"strategy_config.csv")
         self.dfsc=pd.read_csv(config_fnwp)
-        self.NumModel=len(self.dfsc)
-        #RL_system_name,RL_Model_ET,GPU_idx,GPU_mem,TPDB_Name,SL_Name,SL_Tag,SL_Idx,strategy_fun
-        for title in  ["RL_Model_ET","GPU_idx","GPU_mem","SL_Idx"]:
+        # RL_system_name,RL_Model_ET,GPU_idx,GPU_mem,TPDB_Name,SL_Name
+        for title in ["RL_Model_ET", "GPU_idx", "GPU_mem"]:
             self.dfsc[title]=self.dfsc[title].astype(int)
+        if len(l_GPUs)!=0:
+            assert len(l_GPUs)==len(self.dfsc), "lengh suould match {0} {1}".format(l_GPUs,self.dfsc)
+            for Model_idx in list(range(len(l_GPUs))):
+                self.dfsc.at[Model_idx,"GPU_idx"]=l_GPUs[Model_idx]
+            self.dfsc.to_csv(config_fnwp, index=False)
 
     def initialization_strategy(self):
         self.strategy_setup(flag_init=True)
@@ -138,11 +137,11 @@ class Strategy_Config:
 
 
 class Strategy_agent_base(DBI_init_with_TD):
-    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params):
+    def __init__(self, portfolio_name, strategy_name,experiment_name,DEcofig):
         DBI_init_with_TD.__init__(self)
         self.isc=Strategy_Config(portfolio_name, strategy_name)
         self.isc.load_strategy()
-        self.iec=Experiment_Config(portfolio_name, strategy_name,experiment_name,experiment_config_params)
+        self.iec=Experiment_Config(portfolio_name, strategy_name,experiment_name,DEcofig)
         self.i_hfq_tb =hfq_toolbox()
         self.iFH = ATFH(self.isc.Strategy_dir, experiment_name)
         self.set_df_params(self.isc.rlcs)
@@ -182,13 +181,14 @@ class Strategy_agent_base(DBI_init_with_TD):
 
         self.AccountDetail_titles= ["DateI","Cash_after_closing"]
         self.AccountDetail_types = {"DateI": int, "Cash_after_closing": float}
-        for Model_idx in list(range(len(rlcs))):
-            add_title="MarketValue_after_closing_M{0}".format(Model_idx)
+        #for Model_idx in list(range(len(rlcs))):
+        for emidx,row  in self.iec.dfec.iterrows():
+            add_title="MarketValue_after_closing_M{0}".format(emidx)
             self.AccountDetail_titles.append(add_title)
             self.AccountDetail_types[add_title]=float
         #self.AccountDetail_types = {"DateI":int,"Cash_after_closing":float, "MarketValue_after_closing":float}
 
-
+    '''
     def init_stock_list(self):
         l_sl=[]
         for Model_idx, row in self.isc.dfsc.iterrows():
@@ -199,21 +199,33 @@ class Strategy_agent_base(DBI_init_with_TD):
             pd.DataFrame(sl, columns=["Stock"]).to_csv(fnwp_sl, index=False)
             l_sl.append(sl)
         return l_sl
+    '''
+    def init_stock_list(self):
+        l_sl=[]
+        for emidx,row  in self.iec.dfec.iterrows():
+            fnwp_sl = self.iFH.get_SL_fnwp(emidx)
+            iSL = StockList(self.isc.dfsc.loc[row["Model_idx"]]["SL_Name"])
+            flag,sl = iSL.get_sub_sl(row["SL_Tag"],row["SL_Idx"])
+            assert flag
+            pd.DataFrame(sl, columns=["Stock"]).to_csv(fnwp_sl, index=False)
+            l_sl.append(sl)
+        return l_sl
+
 
     def load_stock_list(self):
-        sls=[]
-        for idx, row in self.isc.dfsc.iterrows():
-            fnwp_sl = self.iFH.get_SL_fnwp(idx)
+        l_sl=[]
+        for emidx,row  in self.iec.dfec.iterrows():
+            fnwp_sl = self.iFH.get_SL_fnwp(emidx)
             assert os.path.exists(fnwp_sl)
-            sls.append(pd.read_csv(fnwp_sl)["Stock"].tolist())
-        return sls
+            l_sl.append(pd.read_csv(fnwp_sl)["Stock"].tolist())
+        return l_sl
 
     def Init_df_account(self, l_sl):
         l_df_account=[]
-        for Model_idx, row in self.isc.dfsc.iterrows():
-            fnwp_account = self.iFH.get_account_fnwp(Model_idx)
+        for emidx,_  in self.iec.dfec.iterrows():
+            fnwp_account = self.iFH.get_account_fnwp(emidx)
             df_account=pd.DataFrame(columns=self.account_Titles)
-            for stock in l_sl[Model_idx]:
+            for stock in l_sl[emidx]:
                 row=list(self.account_default)
                 row[0]=stock
                 df_account.loc[len(df_account)]=row
@@ -225,8 +237,8 @@ class Strategy_agent_base(DBI_init_with_TD):
 
     def load_df_account(self):
         l_df_account=[]
-        for idx, row in self.isc.dfsc.iterrows():
-            fnwp_account=self.iFH.get_account_fnwp(idx)
+        for emidx,_  in self.iec.dfec.iterrows():
+            fnwp_account=self.iFH.get_account_fnwp(emidx)
             assert os.path.exists(fnwp_account),fnwp_account
             df_account = pd.read_csv(fnwp_account)
             df_account = df_account.astype(dtype=self.account_types)
@@ -235,22 +247,22 @@ class Strategy_agent_base(DBI_init_with_TD):
         return l_df_account
 
     def save_df_account(self, l_df_account, DateI):
-        for Model_idx, df_account in enumerate(l_df_account):
-            fnwp_account = self.iFH.get_account_fnwp(Model_idx)
-            fnwp_account_backup = self.iFH.get_account_backup_fnwp(DateI,Model_idx)
+        for emidx, df_account in enumerate(l_df_account):
+            fnwp_account = self.iFH.get_account_fnwp(emidx)
+            fnwp_account_backup = self.iFH.get_account_backup_fnwp(DateI,emidx)
             df_account.to_csv(fnwp_account,float_format='%.2f')   #here need to save index, it is stock
             df_account.to_csv(fnwp_account_backup,float_format='%.2f') #here need to save index, it is stock
 
     def save_next_day_action(self, DateI, ll_a,l_sl,l_df_account):
         l_df_e2a=[]
-        for Model_idx, row in self.isc.dfsc.iterrows():
-            a2e_fnwp=self.iFH.get_a2e_fnwp(DateI,Model_idx)
+        for emidx,row  in self.iec.dfec.iterrows():
+            a2e_fnwp=self.iFH.get_a2e_fnwp(DateI,emidx)
             df_e2a=pd.DataFrame(columns=self.a2e_Titles)
             df_e2a=df_e2a.astype(self.a2e_types)
             df_e2a.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
-            df_account=l_df_account[Model_idx]
-            min_invest=self.iec.min_invest
-            for action, stock in zip(ll_a[Model_idx],l_sl[Model_idx]):
+            df_account=l_df_account[emidx]
+            min_invest=row["min_invest"]
+            for action, stock in zip(ll_a[emidx],l_sl[emidx]):
                 if not df_account.at[stock, "Tradable_flag"]:
                     print("these situation should already be removed before call save_next_day_action {0} {1}".format(stock, DateI), file=sys.__stdout__)
                     continue
@@ -269,22 +281,22 @@ class Strategy_agent_base(DBI_init_with_TD):
         return l_df_e2a
 
     def load_df_a2eDone(self, DateI):
-        df_e2aDones=[]
-        for idx, row in self.isc.dfsc.iterrows():
-            fnwp_action2exeDone = self.iFH.get_a2eDone_fnwp(DateI,idx)
+        l_df_e2aDone=[]
+        for emidx,row  in self.iec.dfec.iterrows():
+            fnwp_action2exeDone = self.iFH.get_a2eDone_fnwp(DateI,emidx)
             assert os.path.exists(fnwp_action2exeDone), "{0} does not exists".format(fnwp_action2exeDone)
             df_a2eDone=pd.read_csv(fnwp_action2exeDone)
             if len(df_a2eDone)!=0:
                 df_a2eDone=df_a2eDone.astype(self.a2e_types)
                 df_a2eDone.set_index(["Stock"], drop=True, inplace=True,verify_integrity=True)
-            df_e2aDones.append(df_a2eDone)
-        return df_e2aDones
+            l_df_e2aDone.append(df_a2eDone)
+        return l_df_e2aDone
 
     def load_df_aresult(self, DateI):
         #        self.aresult_Titles = ["Stock", "Action", "Action_Result", "Buy_Gu", "Buy_NPrice","Buy_Invest","Sell_Gu", "Sell_NPrice","Sell_Return"]
-        df_aresults=[]
-        for idx, row in self.isc.dfsc.iterrows():
-            fnwp_action_result=self.iFH.get_aresult_fnwp(DateI,idx)
+        l_df_aresult=[]
+        for emidx,_  in self.iec.dfec.iterrows():
+            fnwp_action_result=self.iFH.get_aresult_fnwp(DateI,emidx)
             assert os.path.exists(fnwp_action_result), "{0} does not exists".format(fnwp_action_result)
             df_aresult = pd.read_csv(fnwp_action_result)
             df_aresult= df_aresult.astype(self.aresult_types)
@@ -299,8 +311,8 @@ class Strategy_agent_base(DBI_init_with_TD):
                     Sell_NPrice=pd.NamedAgg(column='Sell_NPrice', aggfunc='mean'),
                     Sell_Return=pd.NamedAgg(column='Sell_Return', aggfunc='sum')
                 )
-            df_aresults.append(df_aresult)
-        return df_aresults
+            l_df_aresult.append(df_aresult)
+        return l_df_aresult
 
     def Check_all_actionDone_has_result(self,df_a2eDones,df_aresults):
         for df_a2eDone,df_aresult in zip(df_a2eDones,df_aresults):
@@ -326,7 +338,7 @@ class Strategy_agent_base(DBI_init_with_TD):
         assert not account_day_inform.empty, "the last record of {0} is not for {1} {2}".\
             format(fnwp_account_detail, DateI,account_day_inform)
         Cash_afterclosing=account_day_inform["Cash_after_closing"]
-        l_MarketValue_afterclosing=[account_day_inform["MarketValue_after_closing_M{0}".format(idx)] for idx,_ in self.isc.dfsc.iterrows()]
+        l_MarketValue_afterclosing=[account_day_inform["MarketValue_after_closing_M{0}".format(emidx)] for emidx,_  in self.iec.dfec.iterrows()]
         #Cash_afterclosing,MarketValue_afterclosing = \
         #    account_day_inform["Cash_after_closing"],account_day_inform["MarketValue_after_closing"]
         #print ("Loaded account detail before {0} Cash_afterclosing {1:.2f} Market value {2:.2f} total {3:.2f}".format
@@ -374,8 +386,8 @@ class Strategy_agent_base(DBI_init_with_TD):
         report_fnwp = self.iFH.get_report_fnwp(DateI)
         with open(report_fnwp, "w") as f:
             f.write("Date: {0} Cash After Closing: {1:.2f} ".format(DateI, Cash_afterclosing))
-            for Model_idx, MarketValue_afterclosing in enumerate(l_MarketValue_afterclosing):
-                f.write("Model{0} Market Value: {1:.2f} ".format(Model_idx,MarketValue_afterclosing))
+            for emidx, MarketValue_afterclosing in enumerate(l_MarketValue_afterclosing):
+                f.write("Model{0} Market Value: {1:.2f} ".format(emidx,MarketValue_afterclosing))
             f.write("Total: {0:.2f}\n".format(Cash_afterclosing+sum(l_MarketValue_afterclosing)))
             f.write("Num of Stock could bought tomorrow: {0}\n".format(mumber_of_stock_could_buy))
 
@@ -408,14 +420,14 @@ class Strategy_agent_base(DBI_init_with_TD):
 
             for print_format_str, ADlog_ll_idx in [["Tommorow not_buy_due_limit {0}\n",1],[ "Tommorow multibuy(not sell due to multibuy) {0}\n",4]]:
                 ll_result=[]
-                for Model_idx in list(range(len(ll_ADlog))):
-                    ll_result.append(ll_ADlog[Model_idx][ADlog_ll_idx].split("_"))
+                for emidx in list(range(len(ll_ADlog))):
+                    ll_result.append(ll_ADlog[emidx][ADlog_ll_idx].split("_"))
                 count=sum([len(l_result[0]) for l_result in ll_result])
                 f.write(print_format_str.format(count))
-                for Model_idx in list(range(len(ll_result))):
-                    if len(ll_result[Model_idx][0])!=0:
+                for emidx in list(range(len(ll_result))):
+                    if len(ll_result[emidx][0])!=0:
                         #print (ll_result[Model_idx],file=sys.__stdout__)
-                        f.write("\tModel{0}: {1}\n".format(Model_idx,",".join([l_sl[Model_idx][int(sidx)] for sidx in ll_result[Model_idx]])))
+                        f.write("\tModel{0}: {1}\n".format(emidx,",".join([l_sl[emidx][int(sidx)] for sidx in ll_result[emidx]])))
 
         print("{0} Report stored at {1}\n".format(DateI, report_fnwp))
 
@@ -441,24 +453,30 @@ class Trader_GPU(Process):
             i_eb = locals()[self.iStrategy.rlcs[self.Model_idx].CLN_brain_explore](self.iStrategy.rlcs[self.Model_idx])
             i_eb.load_weight(self.iStrategy.RL_weights_fnwps[self.Model_idx])
             print("Loaded model from {0} ".format(self.iStrategy.RL_weights_fnwps[self.Model_idx]))
+            current_DateI=0
+            AP_buffer=[]
             while not self.E_Stop_GPU.is_set():
                 if len(self.L_Agent2GPU)!=0:
                     process_idx,stacked_state=self.L_Agent2GPU.pop()
-                    l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state, calledby="")
-                    self.LL_GPU2Agent[process_idx].append([l_a_OB, l_a_OS])
+                    l_AP_OB, l_AP_OS = i_eb.V3_get_AP_AT(stacked_state, calledby="")
+                    self.LL_GPU2Agent[process_idx].append([l_AP_OB, l_AP_OS])
+
+                    #l_a_OB, l_a_OS = i_eb.V3_choose_action_CC(stacked_state, calledby="")
+                    #self.LL_GPU2Agent[process_idx].append([l_a_OB, l_a_OS])
+
                 else:
                     time.sleep(0.1)
 
 class strategy_sim(DBI_init_with_TD):
-    def __init__(self, Strategy_dir, experiment_name,NumModel,a2e_types,aresult_Titles):
+    def __init__(self, Strategy_dir, experiment_name,NumEModel,a2e_types,aresult_Titles):
         DBI_init_with_TD.__init__(self)
         self.iFH = ATFH(Strategy_dir, experiment_name)
-        self.NumModel,self.a2e_types,self.aresult_Titles=NumModel,a2e_types,aresult_Titles
+        self.NumEModel,self.a2e_types,self.aresult_Titles=NumEModel,a2e_types,aresult_Titles
         self.i_RawData=RawData()
     def sim_load_df_a2e(self, DateI):
         l_df_a2e=[]
-        for Model_idx in list(range(self.NumModel)):
-            fnwp_action2exe = self.iFH.get_a2e_fnwp(DateI,Model_idx)
+        for emidx in list(range(self.NumEModel)):
+            fnwp_action2exe = self.iFH.get_a2e_fnwp(DateI,emidx)
             assert os.path.exists(fnwp_action2exe), "{0} does not exists".format(fnwp_action2exe)
             df_a2e = pd.read_csv(fnwp_action2exe)
             df_a2e = df_a2e.astype(self.a2e_types)

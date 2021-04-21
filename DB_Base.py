@@ -78,7 +78,7 @@ class DB_Base:
                         "close_price": float, "amount_gu": int, "amount_yuan": float}
 
     ##DBI related
-    DBI_Index_Code_List=["SH000001","SZ399001"]
+    DBI_Index_Code_List=["SH000001","SZ399001""SH000300","SH000905"]   #SH000905 is 500
     DBI_HFQ_Inited_flag="lumpsum_HFQ_Inited_log.csv"  #should under addonlog dir
     title_DBI_HFQ_Inited_flag=    ["operation", "code", "result", "message"]
 

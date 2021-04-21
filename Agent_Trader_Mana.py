@@ -18,17 +18,17 @@ def List_Strategies_Config(portfolio):
             dfr = pd.concat([dfr, df], axis=0, ignore_index=True)
     dfr.sort_values(["Strategy","RL_system_name"],inplace=True)
     dfr.reset_index(inplace=True, drop=True)
-    dfr=dfr[["Strategy","RL_system_name","RL_Model_ET","GPU_idx","GPU_mem","TPDB_Name","SL_Name","SL_Tag","SL_Idx","strategy_fun"]]
+    dfr=dfr[["Strategy","RL_system_name","RL_Model_ET","GPU_idx","GPU_mem","TPDB_Name","SL_Name"]]
     return dfr
 
 def ana_earning(portfolio,strategy,experiment):
     account_detail_fnwp=os.path.join(AT_dir,portfolio,strategy,experiment,"AT_AccountDetail.csv")
-    dfc = pd.read_csv(os.path.join(AT_dir, portfolio,strategy, "strategy_config.csv"))
+    dfec = pd.read_csv(os.path.join(AT_dir, portfolio,strategy, experiment,"experiment_config.csv"))
 
     df=pd.read_csv(account_detail_fnwp)
     #df["Total"]=df["Cash_after_closing"]+df["MarketValue_after_closing"]
     df["Total"] = df["Cash_after_closing"]
-    for i in list(range(len(dfc))):
+    for i in list(range(len(dfec))):
         df["Total"]+=df["MarketValue_after_closing_M{0}".format(i)]
     df["MonthI"]=df["DateI"]//100
     dfm=df[["MonthI","Total"]].groupby(["MonthI"]).agg(monthly_start=pd.NamedAgg(column="Total", aggfunc="first"),
@@ -45,7 +45,7 @@ def ana_earning(portfolio,strategy,experiment):
 
     allaxes[0].set_title("Total, Cash and Market Value")
     allaxes[0].plot(df["Cash_after_closing"],label="Cash_after_closing",color='m')
-    for i in list(range(len(dfc))):
+    for i in list(range(len(dfec))):
         title="MarketValue_after_closing_M{0}".format(i)
         allaxes[0].plot(df[title],label=title)
 
@@ -139,7 +139,7 @@ def get_datas_for_experiment(portfolio, strategy, experiment):
 
 
 def get_per_tran_result(portfolio, strategy, experiment):
-    dfc = pd.read_csv(os.path.join(AT_dir, portfolio, strategy, "strategy_config.csv"))
+    dfec = pd.read_csv(os.path.join(AT_dir, portfolio, strategy,experiment, "experiment_config.csv"))
 
     dnwp = os.path.join(AT_dir, portfolio, strategy, experiment)
     monthSs = [item for item in os.listdir(dnwp) if os.path.isdir(os.path.join(dnwp, item))]
@@ -156,13 +156,17 @@ def get_per_tran_result(portfolio, strategy, experiment):
             ll_log_bought, ll_log_Earnsold, ll_log_balancesold, ll_log_Losssold,\
             ll_log_fail_action, ll_log_holding_with_no_action,\
             ll_ADlog, ll_a, adj_ll_a = datas
-            for Model_idx in list(range(len(dfc))):
-                for logs in [ll_log_Earnsold[Model_idx], ll_log_Losssold[Model_idx]]:
+            print(dfec)
+            for emidx in list(range(len(dfec))):
+                print (emidx)
+                print (ll_log_Earnsold[emidx])
+                print(ll_log_Losssold[emidx])
+                for logs in [ll_log_Earnsold[emidx], ll_log_Losssold[emidx]]:
                     if len(logs) != 0:
                         for log in logs:
                             a = re.findall(r'(\w+):([-+]?[0-9]+[.][0-9]*)', log)
                             if len(a) != 0:
-                                trans.append([int(DateS), Model_idx,a[0][0], eval(a[0][1])])
+                                trans.append([int(DateS), emidx,a[0][0], eval(a[0][1])])
     df = pd.DataFrame(trans, columns=["dateI","model", "Stock", "profit"])
     return df
 

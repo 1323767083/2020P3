@@ -1,43 +1,80 @@
 from Agent_Trader_MBase import *
-from itertools import accumulate
+
 class Experiment(Strategy_agent_base,Process):
-    #self.isb=Strategy_agent_base(portfolio_name, strategy_name,experiment_name,experiment_config_params)
-    def __init__(self, portfolio_name, strategy_name,experiment_name,experiment_config_params,process_idx,LL_Agent2GPU,LL_GPU2Agent, E_Stop):
+    def __init__(self, portfolio, strategy,experiment,DEcofig,process_idx,LL_Agent2GPU,LL_GPU2Agent, E_Stop):
         Process.__init__(self)
-        Strategy_agent_base.__init__(self,portfolio_name, strategy_name,experiment_name,experiment_config_params)
+        Strategy_agent_base.__init__(self,portfolio, strategy,experiment,DEcofig)
         self.process_idx,self.LL_Agent2GPU,self.LL_GPU2Agent, self.E_Stop=process_idx,LL_Agent2GPU,LL_GPU2Agent,E_Stop
-        self.l_i_get_data= [DBTP_Reader.DBTP_Reader(self.isc.rlcs[idx].data_name if row["TPDB_Name"] == "" else row["TPDB_Name"])
-                            for idx,row in self.isc.dfsc.iterrows()]   #no logic, only raw read data
+        self.l_i_get_data= [DBTP_Reader.DBTP_Reader(self.isc.rlcs[row["Model_idx"]].data_name
+                            if self.isc.dfsc.loc[row["Model_idx"]]["TPDB_Name"] == "" else self.isc.dfsc.loc[row["Model_idx"]]["TPDB_Name"])
+                            for _,row in self.iec.dfec.iterrows()]   #no logic, only raw read data
         assert all([rlc.CLN_AV_Handler=="AV_Handler_AV1" for rlc in self.isc.rlcs])
         self.i_cav = globals()["AV_Handler_AV1"](self.isc.rlcs[0])
-        assert all([row["strategy_fun"] == "Buy_Strategy_multi_time_Direct_sell" for _, row in self.isc.dfsc.iterrows()])
+        assert all([row["strategy_fun"] == "Buy_Strategy_multi_time_Direct_sell" for _, row in self.iec.dfec.iterrows()])
         self.i_buystrategy = Buy_Strategies(self.isc.rlcs[0])
-        self.i_sim=strategy_sim(self.isc.Strategy_dir, experiment_name,self.isc.NumModel,self.a2e_types,self.aresult_Titles)
+        self.i_sim=strategy_sim(self.isc.Strategy_dir, experiment,len(self.iec.dfec),self.a2e_types,self.aresult_Titles)
     def get_next_day_action(self,DateI,l_df_account, mumber_of_stock_could_buy,ll_holding, ll_Eval_Profit_low_flag):
         ll_a,ll_ADlog=[],[]
-        for Model_idx in list(range(self.isc.NumModel)):
+        #for Model_idx in list(range(self.isc.NumModel)):
+        l_APs=[[] for _ in list(range(len(self.isc.dfsc)))]
+        for emidx,row in self.iec.dfec.iterrows():
             raw_av=np.array(self.i_cav.Fresh_Raw_AV()).reshape(1, -1)  #as raw_av all is 0, get_OB_AV in predict will get 0
             l_av,l_lv,l_sv=[],[],[]
-            for stock in l_df_account[Model_idx].index:
-                lv,sv,ref=self.l_i_get_data[Model_idx].read_1day_TP_Data(stock, DateI)
+            for stock in l_df_account[emidx].index:
+                lv,sv,ref=self.l_i_get_data[emidx].read_1day_TP_Data(stock, DateI)
+                l_lv.append(lv)
+                l_sv.append(sv)
+                l_av.append(raw_av)  # not final sate s_ all av should be 0
+            stacked_state = [np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
+            if len(l_APs[row["Model_idx"]])==0:
+                self.LL_Agent2GPU[row["Model_idx"]].append([self.process_idx, stacked_state])
+                while len(self.LL_GPU2Agent[row["Model_idx"]])==0:
+                    time.sleep(0.01)
+                l_AP_OB, l_AP_OS=self.LL_GPU2Agent[row["Model_idx"]].pop()
+                l_APs[row["Model_idx"]]=[l_AP_OB, l_AP_OS]
+            else:
+                l_AP_OB, l_AP_OS=l_APs[row["Model_idx"]]
+
+            l_a_OB = [np.random.choice([0, 1], p=buy_prob) for buy_prob in l_AP_OB]
+            l_a_OS = [2 for sell_prob in l_AP_OS]
+
+            for idx in list(range(len(l_df_account[emidx]))): #this is handle not IPO stock
+                if not l_df_account[emidx].iloc[idx]["Tradable_flag"]:
+                    l_a_OB[idx]=1
+                    l_a_OS[idx]=3
+            l_a, l_ADlog = getattr(self.i_buystrategy, row["strategy_fun"])(
+                DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,ll_holding[emidx], ll_Eval_Profit_low_flag[emidx])
+            ll_a.append(l_a)
+            ll_ADlog.append(l_ADlog)
+        return ll_a,ll_ADlog
+    '''
+    def get_next_day_action_old(self,DateI,l_df_account, mumber_of_stock_could_buy,ll_holding, ll_Eval_Profit_low_flag):
+        ll_a,ll_ADlog=[],[]
+        for emidx,row in self.iec.dfec.iterrows():
+            raw_av=np.array(self.i_cav.Fresh_Raw_AV()).reshape(1, -1)  #as raw_av all is 0, get_OB_AV in predict will get 0
+            l_av,l_lv,l_sv=[],[],[]
+            for stock in l_df_account[emidx].index:
+                lv,sv,ref=self.l_i_get_data[emidx].read_1day_TP_Data(stock, DateI)
                 l_lv.append(lv)
                 l_sv.append(sv)
                 l_av.append(raw_av)  # not final sate s_ all av should be 0
             stacked_state = [np.concatenate(l_lv, axis=0), np.concatenate(l_sv, axis=0), np.concatenate(l_av, axis=0)]
 
-            self.LL_Agent2GPU[Model_idx].append([self.process_idx, stacked_state])
-            while len(self.LL_GPU2Agent[Model_idx])==0:
-                time.sleep(0.1)
-            l_a_OB, l_a_OS=self.LL_GPU2Agent[Model_idx].pop()
-            for idx in list(range(len(l_df_account[Model_idx]))): #this is handle not IPO stock
-                if not l_df_account[Model_idx].iloc[idx]["Tradable_flag"]:
+            self.LL_Agent2GPU[row["Model_idx"]].append([self.process_idx, stacked_state])
+            while len(self.LL_GPU2Agent[row["Model_idx"]])==0:
+                time.sleep(0.01)
+            l_a_OB, l_a_OS=self.LL_GPU2Agent[row["Model_idx"]].pop()
+
+            for idx in list(range(len(l_df_account[emidx]))): #this is handle not IPO stock
+                if not l_df_account[emidx].iloc[idx]["Tradable_flag"]:
                     l_a_OB[idx]=1
                     l_a_OS[idx]=3
-            l_a, l_ADlog = getattr(self.i_buystrategy, self.isc.dfsc.loc[Model_idx]["strategy_fun"])(
-                DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,ll_holding[Model_idx], ll_Eval_Profit_low_flag[Model_idx])
+            l_a, l_ADlog = getattr(self.i_buystrategy, row["strategy_fun"])(
+                DateI, mumber_of_stock_could_buy, l_a_OB, l_a_OS,ll_holding[emidx], ll_Eval_Profit_low_flag[emidx])
             ll_a.append(l_a)
             ll_ADlog.append(l_ADlog)
         return ll_a,ll_ADlog
+        '''
 
     def update_holding_with_action_result(self,df_account,df_aresult, stock, DateI):
         if not (stock in df_aresult.index):
@@ -89,7 +126,7 @@ class Experiment(Strategy_agent_base,Process):
 
     def remove_old_experiment_data(self):
         for sub_item in os.listdir(self.iFH.AT_account_dir):
-            if sub_item in ["config.json","Output.txt","Error.txt"]: continue
+            if sub_item in ["experiment_config.csv","Output.txt","Error.txt"]: continue
             sub_itemwp=os.path.join(self.iFH.AT_account_dir,sub_item)
             if os.path.isdir(sub_itemwp):
                 dir2remove=os.path.join(self.iFH.AT_account_dir, sub_itemwp)
@@ -106,21 +143,22 @@ class Experiment(Strategy_agent_base,Process):
         l_sl=self.init_stock_list()
         l_df_account = self.Init_df_account(l_sl)
         df_account_detail =self.Init_df_account_detail()
-        Cash_afterclosing=self.iec.total_invest
-        l_MarketValue_afterclosing=[0 for _ in list(range(self.isc.NumModel))]
+        Cash_afterclosing=self.iec.dfec.loc[0]["total_invest"]
+        l_MarketValue_afterclosing=[0 for _,_ in self.iec.dfec.iterrows()]
         cash_to_use=Cash_afterclosing/2
-        mumber_of_stock_could_buy = int(cash_to_use // self.iec.min_invest)
+        mumber_of_stock_could_buy = int(cash_to_use // self.iec.dfec.loc[0]["min_invest"])
 
-        for Model_idx,sl in enumerate(l_sl):
+        for emidx,sl in enumerate(l_sl):
+
             for stock in sl:
                 flag, datas, mess=self.get_AfterClosing_Nprice_HFQRatio(stock,DateI)
                 assert flag, "the HFQ informat for {0} {1} does not exsts. error message:{1}".format(stock, DateI, mess)
-                l_df_account[Model_idx].at[stock, "AfterClosing_NPrice"] =datas[0]
-                l_df_account[Model_idx].at[stock, "AfterClosing_HFQRatio"]=datas[1]
-                l_df_account[Model_idx].at[stock, "Tradable_flag"] =datas[2]
+                l_df_account[emidx].at[stock, "AfterClosing_NPrice"] =datas[0]
+                l_df_account[emidx].at[stock, "AfterClosing_HFQRatio"]=datas[1]
+                l_df_account[emidx].at[stock, "Tradable_flag"] =datas[2]
 
         ll_holding=[[True if Holding_Gu!=0 else False for Holding_Gu in df_account["Holding_Gu"].tolist()]for df_account in l_df_account]
-        assert all ([row["strategy_fun"]=="Buy_Strategy_multi_time_Direct_sell" for Model_idx,row in self.isc.dfsc.iterrows() ])
+        #assert all ([row["strategy_fun"]=="Buy_Strategy_multi_time_Direct_sell" for Model_idx,row in self.iec.dfec.iterrows() ])
         ll_Eval_Profit_low_flag=[[False for _ in sl] for sl in l_sl]  # not used in Buy_Strategy_multi_time_Direct_sell
 
         self.save_df_account(l_df_account, DateI)
@@ -129,7 +167,7 @@ class Experiment(Strategy_agent_base,Process):
         ll_a,ll_ADlog=self.get_next_day_action(DateI, l_df_account, mumber_of_stock_could_buy, ll_holding, ll_Eval_Profit_low_flag)
         adj_ll_a = self.Filter_ll_a(mumber_of_stock_could_buy, ll_a)
         l_df_e2a=self.save_next_day_action(DateI, adj_ll_a, l_sl, l_df_account)
-        fake_ll=[[] for _ in list(range(self.isc.NumModel))]
+        fake_ll=[[] for _ in list(range(len(self.iec.dfec)))]
         logs=[Cash_afterclosing,l_MarketValue_afterclosing,mumber_of_stock_could_buy,fake_ll, fake_ll, fake_ll, fake_ll, fake_ll, fake_ll, ll_ADlog]
         self.prepare_report(DateI,logs, l_df_e2a,l_sl)
         machine_report_fnwp=self.iFH.get_machine_report_fnwp(DateI)
@@ -148,18 +186,18 @@ class Experiment(Strategy_agent_base,Process):
         ##update holding
         ll_log_bought,ll_log_Earnsold,ll_log_balancesold,ll_log_Losssold,ll_log_fail_action,ll_log_holding_with_no_action\
             =[],[],[],[],[],[]
-        for Model_idx,sl in enumerate(l_sl):
+        for emidx,sl in enumerate(l_sl):
             l_log_bought, l_log_Earnsold, l_log_balancesold, l_log_Losssold, l_log_fail_action, l_log_holding_with_no_action\
                 = [], [], [], [], [], []
             for stock in sl:
                 flag, datas, mess=self.get_AfterClosing_Nprice_HFQRatio(stock,DateI)
                 assert flag, "the HFQ informat for {0} {1} does not exsts. error message:{1}".format(stock, DateI, mess)
                 assert datas[0]!=0 or not datas[2],"{0} {1} {2}".format(stock, DateI, datas)
-                l_df_account[Model_idx].at[stock, "AfterClosing_NPrice"]  = datas[0]
-                l_df_account[Model_idx].at[stock, "AfterClosing_HFQRatio"]= datas[1]
-                l_df_account[Model_idx].at[stock, "Tradable_flag"] = datas[2]
-                if stock in l_df_aresult[Model_idx].index:
-                    mess =self.update_holding_with_action_result(l_df_account[Model_idx], l_df_aresult[Model_idx],stock,DateI)
+                l_df_account[emidx].at[stock, "AfterClosing_NPrice"]  = datas[0]
+                l_df_account[emidx].at[stock, "AfterClosing_HFQRatio"]= datas[1]
+                l_df_account[emidx].at[stock, "Tradable_flag"] = datas[2]
+                if stock in l_df_aresult[emidx].index:
+                    mess =self.update_holding_with_action_result(l_df_account[emidx], l_df_aresult[emidx],stock,DateI)
                     if not mess.startswith("Success"):
                         l_log_fail_action.append([stock,mess])
                     else:
@@ -174,11 +212,11 @@ class Experiment(Strategy_agent_base,Process):
                             else:
                                 l_log_balancesold.append(stock+":"+mi[1])
                 else:
-                    if l_df_account[Model_idx].loc[stock]["Holding_Gu"]!=0:
+                    if l_df_account[emidx].loc[stock]["Holding_Gu"]!=0:
                         l_log_holding_with_no_action.append([stock, "{0} start holding with no action".
-                                                            format(l_df_account[Model_idx].loc[stock]["HoldingStartDateI"])])
+                                                            format(l_df_account[emidx].loc[stock]["HoldingStartDateI"])])
 
-                self.Clean_account_step_inform(l_df_account[Model_idx],stock)
+                self.Clean_account_step_inform(l_df_account[emidx],stock)
             ll_log_bought.append(l_log_bought)
             ll_log_Earnsold.append(l_log_Earnsold)
             ll_log_balancesold.append(l_log_balancesold)
@@ -189,8 +227,8 @@ class Experiment(Strategy_agent_base,Process):
         Cash_afterclosing +=sum([df_aresult["Sell_Return"].sum()-df_aresult["Buy_Invest"].sum() for df_aresult in l_df_aresult])
         l_MarketValue_afterclosing=[df_account["Holding_Invest"].sum() for df_account in l_df_account]
         #mumber_of_stock_could_buy = int(Cash_afterclosing//self.min_invest)
-        cash_to_use=Cash_afterclosing if Cash_afterclosing<self.iec.total_invest/2 else min((Cash_afterclosing+ sum(l_MarketValue_afterclosing))/2,Cash_afterclosing)
-        mumber_of_stock_could_buy = int(cash_to_use // self.iec.min_invest)
+        cash_to_use=Cash_afterclosing if Cash_afterclosing<self.iec.dfec.loc[0]["total_invest"]/2 else min((Cash_afterclosing+ sum(l_MarketValue_afterclosing))/2,Cash_afterclosing)
+        mumber_of_stock_could_buy = int(cash_to_use // self.iec.dfec.loc[0]["min_invest"])
         self.save_df_account(l_df_account, DateI)
         self.update_save_account_detail(df_account_detail, DateI, Cash_afterclosing,l_MarketValue_afterclosing)
         print ("After_Closing, Cash:{0:.2f} ".format(Cash_afterclosing), end=" ")
@@ -199,7 +237,7 @@ class Experiment(Strategy_agent_base,Process):
         print("total {0:.2f}".format(Cash_afterclosing+sum(l_MarketValue_afterclosing)))
 
         ll_holding=[[True if Holding_Gu!=0 else False for Holding_Gu in df_account["Holding_Gu"].tolist()] for df_account in l_df_account]
-        assert all([row["strategy_fun"]=="Buy_Strategy_multi_time_Direct_sell" for _, row in self.isc.dfsc.iterrows()])
+        #assert all([row["strategy_fun"]=="Buy_Strategy_multi_time_Direct_sell" for _, row in self.iec.dfec.iterrows()])
         ll_Eval_Profit_low_flag=[[False for _ in sl] for sl in l_sl]  # not used in Buy_Strategy_multi_time_Direct_sell
 
         ll_a,ll_ADlog=self.get_next_day_action(DateI, l_df_account,mumber_of_stock_could_buy, ll_holding, ll_Eval_Profit_low_flag)
@@ -245,10 +283,10 @@ class Experiment(Strategy_agent_base,Process):
 
     def run(self):
         from contextlib import redirect_stdout, redirect_stderr
-        AStart_idx, AStartI = self.get_closest_TD(self.iec.StartI, True)
-        AEnd_idx, AEndI = self.get_closest_TD(self.iec.EndI, False)
+        AStart_idx, AStartI = self.get_closest_TD(self.iec.dfec.loc[0]["StartI"], True)
+        AEnd_idx, AEndI = self.get_closest_TD(self.iec.dfec.loc[0]["EndI"], False)
         assert AStartI <= AEndI
-        if self.iec.flag_Print_on_screen_or_file:
+        if self.iec.dfec.loc[0]["flag_Print_on_screen_or_file"]:
             newstdout = sys.__stdout__
             newstderr = sys.__stderr__
             stdoutfnwp,stderrfnwp="",""
@@ -274,37 +312,74 @@ class Experiment(Strategy_agent_base,Process):
                 newstdout.flush()
                 newstderr.flush()
             self.E_Stop.set()
-
-def One_batch_experiment(portfolio,dfbatch):
-
-    Strategies=list(set(dfbatch["strategy"].to_list()))
-    assert len(Strategies)==1
-    iStrategy = Strategy_Config(portfolio, Strategies[0])
+#batch config
+{
+    "l_GPU":[0,0],
+    "Experiements":
+    {
+       "eR1":{
+	        "total_invest":1000000,
+	        "min_invest":50000,
+	        "StartI": 20200201,
+	        "EndI":20200401,
+	        "flag_Print_on_screen_or_file":False,
+            	"strategy_fun":"Buy_Strategy_multi_time_Direct_sell",
+	        "EP_titles":["Model_idx","SL_Tag","SL_Idx"],
+	        "EP_values":[[0, "Eval", 0]]
+      	    },
+       "eR2":{
+	        "total_invest":1000000,
+	        "min_invest":50000,
+	        "StartI": 20200201,
+	        "EndI":20200401,
+	        "flag_Print_on_screen_or_file":False,
+            	"strategy_fun":"Buy_Strategy_multi_time_Direct_sell",
+	        "EP_titles":["Model_idx","SL_Tag","SL_Idx"],
+	        "EP_values":[[0, "Eval", 0],[1, "Eval", 0]]
+   	        },
+       "eR3":{
+	        "total_invest":1000000,
+	        "min_invest":50000,
+	        "StartI": 20200201,
+	        "EndI":20200401,
+	        "flag_Print_on_screen_or_file":False,
+	        "strategy_fun":"Buy_Strategy_multi_time_Direct_sell",
+	        "EP_titles":["Model_idx","SL_Tag","SL_Idx"],
+	        "EP_values":[[0, "Eval", 0],[0, "Eval", 0],[1, "Eval", 0],[1, "Eval", 0]]
+   	        }
+    }
+}
+def One_batch_experiment(portfolio, strategy,Dparam):
+    # 1. set pysical GPU in Strategy
+    iStrategy = Strategy_Config(portfolio, strategy,Dparam["l_GPU"] if len(Dparam["l_GPU"])!=0 else "")
     iStrategy.initialization_strategy()
+    #2. how many experiement to run
+    l_Experiement=Dparam["Experiements"].keys()
+    Num_experiment=len(l_Experiement)
+
+
 
     iManager = Manager()
-    ll_Agent2GPU = [iManager.list() for _ in list(range(iStrategy.NumModel))]
-    lll_GPU2Agent = [[iManager.list() for _ in range(len(dfbatch))] for _ in list(range(iStrategy.NumModel))]
-    l_E_Stop_GPUs= [iManager.Event() for _ in list(range(iStrategy.NumModel))]
+    ll_Agent2GPU = [iManager.list() for _ in range(len(iStrategy.dfsc))]
+    lll_GPU2Agent = [[iManager.list() for _ in range(Num_experiment)] for _ in list(range(len(iStrategy.dfsc)))]
+    l_E_Stop_GPUs= [iManager.Event() for _ in range(len(iStrategy.dfsc))]
 
     iTrader_GPUs=[]
     for Modle_idx,row in iStrategy.dfsc.iterrows():
         os.environ["CUDA_VISIBLE_DEVICES"] = str(row["GPU_idx"])
-        #iTrader_GPU = Trader_GPU(Strategy_Config(portfolio,Strategies[0]),l_E_Stop_GPUs[Modle_idx], ll_Agent2GPU[Modle_idx], lll_GPU2Agent[Modle_idx])
-        iTrader_GPU = Trader_GPU(portfolio,Strategies[0], Modle_idx,l_E_Stop_GPUs[Modle_idx],
+        iTrader_GPU = Trader_GPU(portfolio,strategy, Modle_idx,l_E_Stop_GPUs[Modle_idx],
                                  ll_Agent2GPU[Modle_idx], lll_GPU2Agent[Modle_idx])
         iTrader_GPU.daemon = True
         iTrader_GPU.start()
         iTrader_GPUs.append(iTrader_GPU)
 
-    L_Experiement_Stop_Events = [iManager.Event() for _ in list(range(len(dfbatch)))]
+    L_Experiement_Stop_Events = [iManager.Event() for _ in range(Num_experiment)]
     iProcesses = []
-    for experiement_idx, row in dfbatch.iterrows():
-
-        experiment_config_params=row["total_invest"], row["min_invest"], row["StartI"], row["EndI"], row["flag_Print_on_screen_or_file"]
-        iProcess = Experiment(portfolio, row["strategy"], row["experiment"], experiment_config_params,
+    for experiement_idx, experiement in enumerate(l_Experiement):
+        DEcofig=Dparam["Experiements"][experiement]
+        iProcess = Experiment(portfolio, strategy,experiement, DEcofig,
                             experiement_idx,ll_Agent2GPU,
-                            [lll_GPU2Agent[Modle_idx][experiement_idx] for Modle_idx in list(range(iStrategy.NumModel))],
+                            [lll_GPU2Agent[Modle_idx][experiement_idx] for Modle_idx in list(range(len(iStrategy.dfsc)))],
                             L_Experiement_Stop_Events[experiement_idx])
         iProcess.daemon = True
         iProcess.start()
@@ -320,28 +395,33 @@ def One_batch_experiment(portfolio,dfbatch):
     for iTrader_GPU in iTrader_GPUs:
         iTrader_GPU.join()
 
+
+
 def main(argv):
     if sys.argv[1]=="Batch":
         portfolio = sys.argv[2]
-        for batch_config_name in sys.argv[3:]:
-            dfbatch = pd.read_csv(os.path.join("/home/rdchujf/n_workspace/AT", portfolio, "{0}.csv".format(batch_config_name)))
-            One_batch_experiment(portfolio, dfbatch)
-    elif len(sys.argv)==3:
-        portfolio,batch_config_name = sys.argv[1],sys.argv[2]
-        dfbatch = pd.read_csv(
-            os.path.join("/home/rdchujf/n_workspace/AT", portfolio, "{0}.csv".format(batch_config_name)))
-        One_batch_experiment(portfolio, dfbatch)
+        strategy = sys.argv[3]
+        for batch_config_name in sys.argv[4:]:
+            fnwp=os.path.join(AT_base_dir, portfolio, strategy, "{0}.json".format(batch_config_name))
+            Dparam=json.load(open(fnwp,"r"), object_pairs_hook=OrderedDict )
+            One_batch_experiment(portfolio, strategy,Dparam)
+    elif len(sys.argv)==4:
+        portfolio,strategy,batch_config_name = sys.argv[1],sys.argv[2],sys.argv[3]
+        fnwp = os.path.join(AT_base_dir, portfolio, strategy, "{0}.json".format(batch_config_name))
+        Dparam = json.load(open(fnwp, "r"), object_pairs_hook=OrderedDict)
+        One_batch_experiment(portfolio, strategy,Dparam)
     elif len(sys.argv)==5:
         portfolio, strategy  ,experiment,GPU_idx= sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4]
         assert GPU_idx in ["0","1"]
-        iec=Experiment_Config(portfolio,strategy,experiment,[])
-        dfbatch=pd.DataFrame([strategy,experiment,GPU_idx,iec.total_invest,iec.min_invest,iec.StartI,iec.EndI,iec.flag_Print_on_screen_or_file],
-            columns=["strategy","experiment","GPUI","total_invest","min_invest","StartI","EndI","flag_Print_on_screen_or_file"])
-        One_batch_experiment(portfolio, dfbatch)
+        Dparam=OrderedDict()
+        Dparam["l_GPU"]=[GPU_idx]
+        Dparam["Experiements"]=OrderedDict()
+        Dparam["Experiements"][experiment]=OrderedDict()
+        One_batch_experiment(portfolio,strategy, Dparam)
     else:
         print ("python Agent_Trader.py portfolio strategy experiment GPUI")
-        print ("python Agent_Trader.py portfolio Config_name")
-        print ("python Agent_Trader.py Batch portfolio Config_name1,Config_name2....")
+        print ("python Agent_Trader.py portfolio strategy Config_name")
+        print ("python Agent_Trader.py Batch portfolio strategy Config_name1,Config_name2....")
 
 if __name__ == '__main__':
     main(sys.argv)

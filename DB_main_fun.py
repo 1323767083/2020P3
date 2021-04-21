@@ -2,9 +2,12 @@ import sys,os
 import pandas as pd
 from datetime import date
 from DB_Base import DB_Base
-from DBI_Base import DBI_init,StockList
+from DBI_Base import DBI_init,StockList,DBI_init_with_TD
 from DBTP_Creater import DBTP_Creater,DBTP_creator_on_SLperiod,DBTP_creator
 from DB_FTP import Get_Data_After_closing
+from DBR_Reader import Raw_HFQ_Index
+
+
 def find_addon_last_day(param_name):
     Addon_IN_One_dnwp = "/home/rdchujf/DB_raw_addon/Config"
     param_fnwp = os.path.join(Addon_IN_One_dnwp, "{0}.csv".format(param_name))
@@ -82,3 +85,52 @@ def addon_in_one(param_name, DateI,flag_Print_on_screen_or_file):
     if not flag_Print_on_screen_or_file:
         print("Output will be direct to {0}".format(stdoutfnwp))
         print("Error will be direct to {0}".format(stderrfnwp))
+
+
+
+
+def Add_new_index_to_DBI(l_index_code):
+    #sample l_index_code=["SH000300", "SH000905"]
+    Raw_Normal_Lumpsum_EndDayI = 20210226
+    i = DBI_init_with_TD()
+    period=i.nptd[i.nptd>Raw_Normal_Lumpsum_EndDayI]
+    IRIdx = Raw_HFQ_Index("Index")
+    IRHFQ = Raw_HFQ_Index("HFQ")
+    dfs = []
+    #for index_code in
+    for index_code in l_index_code:
+        flag, df, mess = IRIdx.get_lumpsum_df(index_code)
+        if not flag: assert False, mess
+        df = df[df["date"] <= str(Raw_Normal_Lumpsum_EndDayI)]
+        df.drop_duplicates(subset=["date"],
+                           inplace=True)  # should set subset as duplicate row has minor difference in float
+        assert not any(df.duplicated(["date"])), "these are duplicated rows {0}".format(df[df.duplicated(["date"])])
+        df.reset_index(inplace=True, drop=True)
+        DBIdf = df
+
+        for DayI in period:
+            hfq_flag, hfq_rawdf, hfq_mess = IRHFQ.get_addon_df(DayI)
+            if not hfq_flag:
+                Error_mess = "{0} {1} {2}".format(hfq_mess, DayI, hfq_mess)
+                assert False, Error_mess
+            else:
+                print(hfq_mess)
+
+            if DBIdf[DBIdf["date"] == str(DayI)].empty:
+                df_found = hfq_rawdf[hfq_rawdf["code"] == index_code]
+                assert len(df_found) == 1, "{0}raw HFQ_index file {1} record {2}".format(DayI, index_code, len(df_found))
+                input = df_found.iloc[0].values
+                if input.size == 0:
+                    assert False, "No Data for {0} at {1} in addon HFQ_index file".format(index_code, DayI)
+                DBIdf.loc[len(DBIdf)] = input[:-3]  # the last three column is HFQ related inform
+                DBIdf.sort_values(by="date", inplace=True)
+                # DBIdf.to_csv(fnwp,index=False)
+                DBIdf.reset_index(inplace=True, drop=True)
+                print(["Addon indexes Update", index_code, True, "Success"])
+            else:
+                print(["Addon indexes Update", index_code, True, "Already updated"])
+        # fnwp=i.get_DBI_index_fnwp(index_code)
+        fnwp = os.path.join("/mnt/pdata_disk2Tw/RL_data_additional/index/", "{0}.csv".format(index_code))
+        df.to_csv(fnwp, index=False)
+        dfs.append(df)
+    return dfs
