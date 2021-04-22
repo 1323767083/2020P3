@@ -100,6 +100,9 @@ class Agent_Sub(Process):
             self.i_record_send_to_server=record_send_to_server(dirwp ,self.lc.flag_record_buffer_to_server)
 
     def run(self):
+        SL_dir=os.path.join(self.lc.system_working_dir,"SL_Trained")
+        if not os.path.exists(SL_dir): os.mkdir(SL_dir)
+        pd.DataFrame(self.stock_list, columns=["Stock"]).to_csv(os.path.join(SL_dir, "SL_Trained_P{0}.csv".format(self.process_idx)),index=False)
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name, self.process_name))
         random.seed(2)
         np.random.seed(2)

@@ -264,7 +264,7 @@ class Strategy_agent_base(DBI_init_with_TD):
             min_invest=row["min_invest"]
             for action, stock in zip(ll_a[emidx],l_sl[emidx]):
                 if not df_account.at[stock, "Tradable_flag"]:
-                    print("these situation should already be removed before call save_next_day_action {0} {1}".format(stock, DateI), file=sys.__stdout__)
+                    print("these situation should already be removed before call save_next_day_action {0} {1}".format(stock, DateI))
                     continue
                 if action ==0:
                     df_e2a.at[stock, "Action"] = "Buy"

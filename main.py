@@ -43,10 +43,10 @@ class Remove_DNFN:
         self.RemoveFN()
 
 class Remove_DNFN_Explore_Agent(Remove_DNFN):
-    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=[],["ExploreAgent"],["ExploreAgent"],["ExploreAgent"]
+    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=["SL_Trained"],["ExploreAgent"],["ExploreAgent"],["ExploreAgent"]
 
 class Remove_DNFN_Eval_Agent(Remove_DNFN):
-    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=["analysis","CC","WR"],["EvalAgent"],["EvalAgent"],["EvalAgent"]
+    SubDNs,SubDN_Tags,FNPip_Tags,FNLog_Tags=["SL_Evaled","analysis","CC","WR"],["EvalAgent"],["EvalAgent"],["EvalAgent"]
 
 class Remove_DNFN_Main(Remove_DNFN):
     SubDNs, SubDN_Tags, FNPip_Tags, FNLog_Tags = [], [], [], []

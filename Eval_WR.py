@@ -5,7 +5,7 @@ class WR_handler:
         self.lc=lc
         self.process_name=process_name
         self.logger=logger
-        self.log_WR_column=["BW","BZ","BR","NW","NZ","NR","NA"]
+        self.log_WR_column=["DateI","BW","BZ","BR","NW","NZ","NR","NA"]
         self.log_WRs=[]
         self.log_PAs=[]
 
@@ -38,6 +38,6 @@ class WR_handler:
         return [l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)]
 
     def add_log(self,ll_log):
-        l_WR,l_PA=ll_log
-        self.log_WRs.append(self.Fabricate_WR(l_WR))
-        self.log_PAs.append(self.Fabricate_PA(l_PA))
+        Current_dateI,l_WR,l_PA=ll_log
+        self.log_WRs.append([Current_dateI]+self.Fabricate_WR(l_WR))
+        self.log_PAs.append([Current_dateI]+self.Fabricate_PA(l_PA))

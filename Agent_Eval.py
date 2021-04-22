@@ -132,7 +132,9 @@ class EvalSub(Process):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name, self.process_name))
         self.logger.info("start at eval loop count {0}".format(self.Share_eval_loop_count.value))
         self.CurrentPhase=0 # 0 wait for self.E_Start1Round set  # 1 do eval
-
+        SL_dir=os.path.join(self.lc.system_working_dir,"SL_Evaled")
+        if not os.path.exists(SL_dir): os.mkdir(SL_dir)
+        pd.DataFrame(self.stock_list,columns=["Stock"]).to_csv(os.path.join(SL_dir,"SL_Evaled_P{0}.csv".format(self.process_idx)),index=False)
         while not self.E_stop.is_set():
             if self.CurrentPhase==0:  #wait for round start
                 if self.E_Start1Round.is_set():
@@ -184,6 +186,7 @@ class EvalSub(Process):
 
     def run_env_one_step(self):
         l_WR,l_PA=[],[] # only used in Flag_WR_log is True
+        CurrentDateI=0
         for idx, i_env in enumerate(self.data.l_i_env):
             if not self.data.l_idx_valid_flag[idx]:
                 if self.Flag_WR_log:
@@ -226,12 +229,16 @@ class EvalSub(Process):
                     else:
                         self.data.l_done_flag[idx] = done
             if self.Flag_WR_log:
+                if CurrentDateI==0:
+                    CurrentDateI=i_env.i_get_data.get_the_dateI()
+                else:
+                    assert CurrentDateI==i_env.i_get_data.get_the_dateI(),"Current DateI {0} and get_teh_DateI should same".format(CurrentDateI,i_env.i_get_data.get_the_dateI())
                 l_WR.append(i_env.iRW.check_right_or_wrong())
                 l_PA.append(i_env.iRW.check_profit())
         if self.Flag_WR_log:
             #["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
             #self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])
-            self.i_WRH.add_log([l_WR,l_PA])
+            self.i_WRH.add_log([CurrentDateI,l_WR,l_PA])
     def name_pipe_cmd(self):
         cmd_list = self.inp.check_input_immediate_return()
         if cmd_list is not None:

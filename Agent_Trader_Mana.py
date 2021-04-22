@@ -21,7 +21,37 @@ def List_Strategies_Config(portfolio):
     dfr=dfr[["Strategy","RL_system_name","RL_Model_ET","GPU_idx","GPU_mem","TPDB_Name","SL_Name"]]
     return dfr
 
-def ana_earning(portfolio,strategy,experiment):
+
+def get_months_statics_Index(index_code, MonthIs):
+    lr = []
+    for MonthI in MonthIs:
+        i = DBI_init_with_TD()
+        _, SDateI = i.get_closest_TD(MonthI * 100 + 1, True)
+        _, EDateI = i.get_closest_TD(MonthI * 100 + 31, False)
+        fnwp = i.get_DBI_index_fnwp(index_code)
+        dfi = pd.read_csv(fnwp)
+        dfim = dfi[(dfi["date"] >= SDateI) & (dfi["date"] <= EDateI)]
+        ops = dfim["open_price"].values
+        op25 = np.percentile(ops, 25, axis=0)
+        op50 = np.percentile(ops, 50, axis=0)
+        op75 = np.percentile(ops, 75, axis=0)
+        MStart = ops[0]
+        MEnd = ops[-1]
+        lr.append([op25 / MStart - 1, op50 / MStart - 1, op75 / MStart - 1, MEnd / MStart - 1])
+    df = pd.DataFrame(lr, columns=["R25M1", "R50M1", "R75M1", "REndM1"])
+    return df
+
+
+def get_MonthIs(YearIs, StartMonthI=1, EndMonthI=12):
+    LastYearidx = len(YearIs) - 1
+    lr = []
+    for idx, YearI in enumerate(YearIs):
+        lr.extend([YearI * 100 + MonthI for MonthI in
+                   list(range(StartMonthI if idx == 0 else 1, EndMonthI + 1 if idx == LastYearidx else 13, 1))])
+    return lr
+
+
+def ana_earning(portfolio,strategy,experiment,ref_index=""):
     account_detail_fnwp=os.path.join(AT_dir,portfolio,strategy,experiment,"AT_AccountDetail.csv")
     dfec = pd.read_csv(os.path.join(AT_dir, portfolio,strategy, experiment,"experiment_config.csv"))
 
@@ -60,6 +90,13 @@ def ana_earning(portfolio,strategy,experiment):
     allaxes[1].set_xticks(list(range(len(dfm))))
     allaxes[1].set_xticklabels([str(MonthI) for MonthI in dfm["MonthI"].tolist()],rotation=90)
     allaxes[1].legend(loc='upper left')
+    if len(ref_index)!=0:
+        dfrefidx=get_months_statics_Index(ref_index, dfm["MonthI"].values)
+        ax3=allaxes[1].twinx()
+        for title in dfrefidx.columns:
+            ax3.plot(dfrefidx[title],label=title)
+        ax3.legend(loc='upper right')
+
     return df, dfm
 
 
@@ -156,11 +193,7 @@ def get_per_tran_result(portfolio, strategy, experiment):
             ll_log_bought, ll_log_Earnsold, ll_log_balancesold, ll_log_Losssold,\
             ll_log_fail_action, ll_log_holding_with_no_action,\
             ll_ADlog, ll_a, adj_ll_a = datas
-            print(dfec)
             for emidx in list(range(len(dfec))):
-                print (emidx)
-                print (ll_log_Earnsold[emidx])
-                print(ll_log_Losssold[emidx])
                 for logs in [ll_log_Earnsold[emidx], ll_log_Losssold[emidx]]:
                     if len(logs) != 0:
                         for log in logs:
@@ -194,25 +227,3 @@ def get_tran_detail(portfolio, strategy, experiment, threadhold):
     return df, results
 
 
-'''
-from DBI_Base import DBI_init_with_TD
-import pandas as pd
-monthIs=[202101,202102,202103]
-shidx_fnwp="/mnt/pdata_disk2Tw/RL_data_additional/index/SH000001.csv"
-szidx_fnwp="/mnt/pdata_disk2Tw/RL_data_additional/index/SZ399001.csv"
-
-i=DBI_init_with_TD()
-i.nptd
-MonthI=202101
-_,SDateI=i.get_closest_TD(MonthI*100+1, True)
-_,EDateI=i.get_closest_TD(MonthI*100+31, False)
-dfi=pd.read_csv(shidx_fnwp)#, encoding="gb18030")
-dfim=dfi[(dfi["date"]>=SDateI)&(dfi["date"]<=EDateI)]
-dfim.reset_index(drop=True, inplace=True)
-print(dfim.iloc[0]["open_price"],dfim.iloc[-1]["open_price"])
-print(dfim["open_price"].max(), dfim["open_price"].min())
-
-Sidx=dfim.iloc[0]["open_price"]
-
-[dfim.iloc[-1]["open_price"]/Sidx-1,dfim["open_price"].max()/Sidx-1, dfim["open_price"].min()/Sidx-1]
-'''

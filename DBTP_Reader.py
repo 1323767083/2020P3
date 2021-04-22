@@ -92,6 +92,8 @@ class DBTP_Train_Reader(DBTP_Reader):
     def get_CloseNPrice(self):
         return self.npCloseNPrice[self.CTDidx-self.SDTDSidx]
 
+    def get_the_dateI(self):
+        return self.nptd[self.CTDidx]
 class DBTP_Eval_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=5 ):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
