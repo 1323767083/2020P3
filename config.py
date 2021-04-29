@@ -248,8 +248,9 @@ class gconfig(gconfig_data):
                 self.__dict__[str(item)] = str(self.__dict__[str(item)])
             # convert list with item in list is unicode
             elif type(self.__dict__[str(item)]) is list:
-                if type(self.__dict__[str(item)][0]) == str:
-                    self.__dict__[str(item)] = [str(iitem) for iitem in self.__dict__[str(item)]]
+                if len(self.__dict__[str(item)])!=0:
+                    if type(self.__dict__[str(item)][0]) == str:
+                        self.__dict__[str(item)] = [str(iitem) for iitem in self.__dict__[str(item)]]
             else:
                 continue
 

@@ -146,7 +146,7 @@ class env_reward:
             return raw_profit
 
     def Success_sell_new(self,profit):
-        return -1 if profit < 0 else 0 if profit <= 0.01 else 1
+        return
 
     def hist_scale(self):
         return -0.3*self.scale_factor, 0.3*self.scale_factor, 0.01*self.scale_factor

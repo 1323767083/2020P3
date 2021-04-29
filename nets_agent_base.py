@@ -121,41 +121,29 @@ class LVSV_component:
                     immediate_lv = keras.layers.MaxPool1D(pool_size=maxpool, padding='valid',name=pool_name)(immediate_lv_t) #strides=1,不注明就是和pool_size一样
         lv_sv_joint_state = keras.layers.Reshape((self.nc.l_filter_l[-1],), name=name + "LV_SV_joint")(immediate_lv)
         return lv_sv_joint_state
-    '''
-    def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type, flag_stride_1):
-        assert padding_type in ['same', 'valid']
-        immediate = input_vector
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
-            assert flag in ["C", "I"]
-            prefix=name+str(idx)
-            conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
-            if flag == "C":
-                assert  immediate.shape[1]!=1 or immediate.shape[2]!=1, "should not be all 1, {0}".format(immediate.shape)
-                strides=(1,1) if flag_stride_1 else (kernel if immediate.shape[1]!=1 else 1,kernel if immediate.shape[2]!=1 else 1)
-                a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm,strides=strides)(immediate)
-                if maxpool > 1 and a.shape[1] > 1 and a.shape[2] > 1:  # todo dirty solution for 2D only
-                    if flag_stride_1:
-                        a = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid', name=pool_nm)(a)  # strides=(1,1),不注明就是和pool_size一样
-                    else:
-                        assert False, "while taking stride 3 not allow to maxpool"
-                immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
-            else:
-                assert kernel == 0
-                immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
-                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
-                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
-        output_sv = keras.layers.Flatten(name=name)(immediate)
-        return output_sv
-        '''
 
     def _get_2D_state_base(self,input_vector, name,kernel_l,filter_l,maxpool_l, flag_level, padding_type, flag_stride_1, flag_residence=False):
         assert padding_type in ['same', 'valid']
+        if flag_residence:
+            l_flag_Lresidence=[]
+            flag_not_zero_maxpool_met=False
+            for maxpool in maxpool_l:
+                if not flag_not_zero_maxpool_met:
+                    if maxpool==0:
+                        l_flag_Lresidence.append(True)
+                    else:
+                        flag_not_zero_maxpool_met=True
+                        l_flag_Lresidence.append(False)
+                else:
+                    l_flag_Lresidence.append(False)
+        else:
+            l_flag_Lresidence=[False for _ in maxpool_l]
         immediate = input_vector
-        for idx, [kernel, filter, maxpool, flag] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level)):
-            assert flag in ["C", "I"]
+        for idx, [kernel, filter, maxpool, flag_CI,flag_Lresidence ] in enumerate(zip(kernel_l,filter_l,maxpool_l, flag_level,l_flag_Lresidence)):
+            assert flag_CI in ["C", "I"]
             prefix=name+str(idx)
             conv_nm, pool_nm, relu_nm = prefix + '_conv', prefix + '_pool', prefix + '_relu'
-            if flag == "C":
+            if flag_CI == "C":
                 assert  immediate.shape[1]!=1 or immediate.shape[2]!=1, "should not be all 1, {0}".format(immediate.shape)
                 strides=(1,1) if flag_stride_1 else (kernel if immediate.shape[1]!=1 else 1,kernel if immediate.shape[2]!=1 else 1)
                 a = keras.layers.Conv2D(filters=filter, padding=padding_type, kernel_size=kernel, name=conv_nm,strides=strides)(immediate)
@@ -166,7 +154,7 @@ class LVSV_component:
                     else:
                         assert False, "while taking stride 3 not allow to maxpool"
                 else:
-                    if not flag_residence:
+                    if not flag_Lresidence:
                         immediate = keras.layers.LeakyReLU(name=relu_nm)(a)
                     else:
                         immediate=keras.layers.LeakyReLU(name=relu_nm)(a)

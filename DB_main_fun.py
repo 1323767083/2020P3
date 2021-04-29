@@ -40,7 +40,9 @@ def addon_in_one(param_name, DateI,flag_Print_on_screen_or_file):
     else:
         if lastdayIs[0] >= DateI:
             print("DBI has updated to {0} and should not call Addon_In_One with {1}".format(lastdayIs[0], DateI))
-            return
+            a=input("(C)ontinue or (Q)uit")
+            if a!="C":
+                return
 
     from contextlib import redirect_stdout, redirect_stderr
     if flag_Print_on_screen_or_file:
