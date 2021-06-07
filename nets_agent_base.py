@@ -1,6 +1,5 @@
 import tensorflow.keras as keras
 import tensorflow as tf
-from tensorflow.keras.layers import Lambda
 import numpy as np
 import os,re
 import config as sc
@@ -162,8 +161,11 @@ class LVSV_component:
             else:
                 assert kernel == 0
                 immediate = self.cc.Inception_2D_module(filter, immediate, name=conv_nm)
-                if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
-                    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
+                #if maxpool > 1 and immediate.shape[1]>1 and immediate.shape[2]>1:  #todo dirty solution for 2D only:
+                #    immediate = keras.layers.MaxPool2D(pool_size=maxpool, padding='valid',name=pool_nm)(immediate) #strides=(1,1),不注明就是和pool_size一样
+                if maxpool > 1:
+                    t_maxpool=(maxpool if immediate.shape[1] > 1 else 1, maxpool if  immediate.shape[2] > 1 else 1)
+                    immediate = keras.layers.MaxPool2D(pool_size=t_maxpool, padding='valid', name=pool_nm)(immediate)
         output_sv = keras.layers.Flatten(name=name)(immediate)
         return output_sv
 
@@ -235,6 +237,54 @@ class LVSV_component:
                                            self.nc.l_filter_l,
                                            self.nc.l_maxpool_l, self.nc.flag_l_level,'same',True,flag_residence=True)
         return keras.layers.Concatenate(axis=1, name=name + "LV_SV_joint")([lv_state, SV_state])
+
+
+    def CNN2DV6_get_SV_state(self, input_sv, name):
+        return input_sv
+
+    def CNN2DV6_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        adj_input_lv1=keras.layers.Reshape((input_lv.shape[1], input_lv.shape[2], 1))(input_lv)
+        adj_input_lv2 = keras.layers.Lambda(lambda x: x[:,0:1,:,:], name=name + "_adj_lv2")(adj_input_lv1)
+
+        adj_input_lv3 = keras.layers.Conv2D(filters=2, padding='same', kernel_size=1, name=name + "_adj_lv3")(adj_input_lv2)
+        adj_input_sv = keras.layers.Lambda(lambda x: x[:,0:1, :,:], name=name + "_adj_sv")(input_sv)
+        lv_sv=keras.layers.Concatenate(axis=2, name=name + "LV_SV_joint")([adj_input_lv3, adj_input_sv])
+        lvsv_state = self._get_2D_state_base(lv_sv, name + "LVSV", self.nc.l_kernel_l,
+                                           self.nc.l_filter_l,
+                                           self.nc.l_maxpool_l, self.nc.flag_l_level,'same',True,flag_residence=True)
+        return lvsv_state
+
+
+    def CNN2DV7_get_SV_state(self, input_sv, name):
+        a=keras.layers.Reshape((241, 2))(input_sv)
+        for idx in list(range(len(self.nc.s_kernel_l))):
+            perfix=name+"sv"+str(idx)
+            conv_nm, pool_nm, relu_nm = perfix + '_conv', perfix + '_pool', perfix + '_relu'
+            a = keras.layers.Conv1D(filters=self.nc.s_filter_l[idx], padding='valid', kernel_size=self.nc.s_kernel_l[idx], strides=1,name=conv_nm)(a)
+            if a.shape[1] > 1:
+                a = keras.layers.MaxPool1D(pool_size=self.nc.s_maxpool_l[idx], padding='valid', name=pool_nm)(a)
+            a = keras.layers.LeakyReLU(name=relu_nm)(a)
+        output_sv = keras.layers.Flatten(name=name+"svOutput")(a)
+        return output_sv
+
+    def CNN2DV7_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        adj_input_lv=keras.layers.Lambda(lambda x: x[:, :, :9], name=name + "_adj_lv")(input_lv)
+        a=keras.layers.Reshape((9, 1), name=name + "Reshape_adj_lv")(adj_input_lv)
+        for idx in list(range(len(self.nc.l_kernel_l))):
+            perfix=name+"lv"+str(idx)
+            conv_nm, pool_nm, relu_nm = perfix + '_conv', perfix + '_pool', perfix + '_relu'
+            a = keras.layers.Conv1D(filters=self.nc.l_filter_l[idx], padding='valid', kernel_size=self.nc.l_kernel_l[idx], strides=1,name=conv_nm)(a)
+            if a.shape[1] > 1:
+                a = keras.layers.MaxPool1D(pool_size=self.nc.l_maxpool_l[idx],padding='valid', name=pool_nm)(a)
+            a = keras.layers.LeakyReLU(name=relu_nm)(a)
+        output_lv = keras.layers.Flatten(name=name)(a)
+        b = keras.layers.Lambda(lambda x: x[:, :, 9:], name=name + "_adj_lv2")(input_lv)
+        b = keras.layers.Reshape((43,),name=name + "Reshape_adj_lv2")(b)
+        lv_sv = keras.layers.Concatenate(axis=1, name=name + "LVSVOutput")([output_lv, input_sv,b])
+
+        return lv_sv
 
 
 

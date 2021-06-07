@@ -186,6 +186,9 @@ class gconfig_data:
         self.l_CC_group_strategy_fun=float('nan')
         self.l_CC_group_low_profit_threadhold=float("nan")
         self.l_CC_min_invest_per_round=float("nan")
+
+        self.Choice_reward_function="legacy"   #"RightWrong", "RightWrong_0to03_0"
+        self.flag_train_drop_unbuy_record=True   # unbuy record not send to train ?
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -275,8 +278,8 @@ class gconfig(gconfig_data):
 
         assert self.CLN_trainer in ["PPO_trainer"],self.CLN_trainer
 
-        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5"]   #remove "RNN","RCN"
-        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5"] #remove "RNN","RCN"
+        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5","CNN2DV6","CNN2DV7"]   #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5","CNN2DV6","CNN2DV7"] #remove "RNN","RCN"
         assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
             self.OS_AV_shape = (self.LHP + 1,)

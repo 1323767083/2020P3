@@ -85,10 +85,8 @@ def addon_in_one(param_name, DateI,flag_Print_on_screen_or_file):
             print(row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]))
             DBTP_creator(row["DBTP_Name"], row["SL_Name"], row["SL_tag"], int(row["SL_idx"]), DateI, DateI, 10, False)
     if not flag_Print_on_screen_or_file:
-        print("Output will be direct to {0}".format(stdoutfnwp))
-        print("Error will be direct to {0}".format(stderrfnwp))
-
-
+        print("Output will be direct to {0} size {1}".format(stdoutfnwp,os.path.getsize(stdoutfnwp)))
+        print("Error will be direct to {0} size {1}".format(stderrfnwp,os.path.getsize(stderrfnwp)))
 
 
 def Add_new_index_to_DBI(l_index_code):

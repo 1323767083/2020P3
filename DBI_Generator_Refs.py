@@ -9,7 +9,8 @@ def _Gen_Potential_Nprice_Base(inputs, time_interval_list):
             total_amount = df_acc["Volume"].iloc[-1]
             return [True, df_acc[df_acc["Volume"] >= 0.5 * total_amount].index[0]]
     else:
-        return [False, 0.0]
+        assert False, "Tinpai has been checked and tinpai data has been generated before calling to generate DBI data"
+        #return [False, 0.0]
 
 class Potential_Nprice_930(DBI_Generator_Base):
     ShapesM = [2]

@@ -161,7 +161,7 @@ class RightorWrong:
         self.YNprice, self.YHFQratio,self.YFlag_Tradable, self.Yaction = self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction
         self.TNprice, self.THFQratio,self.TFlag_Tradable,self.Taction = Nprice, HFQratio, Flag_Tradable,Acutal_action
 
-
+    #two check function for WR Eval
     def check_right_or_wrong(self):
         if self.YFlag_Tradable and self.TFlag_Tradable:
             YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
@@ -174,27 +174,7 @@ class RightorWrong:
                 return 10 if YHPrice>THPrice else 11 if YHPrice==THPrice else 12
         else:
             return -1
-    '''
-    def check_right_or_wrong_tinpai_wrong(self):
-        if self.YFlag_Tradable and self.TFlag_Tradable:
-            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
-            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
-            if self.Yaction==0:
-                #return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
-                return 0 if YHPrice>THPrice else 1 if YHPrice==THPrice else 2
-            else:
-                # return "NW" if YHPrice<THPrice else "NZ" if YHPrice==THPrice else "NR"
-                return 10 if YHPrice>THPrice else 11 if YHPrice==THPrice else 12
-        elif self.YFlag_Tradable and not self.TFlag_Tradable:
-            if self.Yaction==0:
-                # return "BW"
-                return 0
-            else:
-                # return "NW" 
-                return 10
-        else:
-            return -1
-    '''
+
     def check_profit(self):
         if self.YFlag_Tradable and self.TFlag_Tradable:
             YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
@@ -208,6 +188,43 @@ class RightorWrong:
         else:
             shift_factor = -10
             return shift_factor                              # [-10]      centralized at -10  should be ==-10
+
+    # three reward function for Train
+    def get_reward(self):
+        raw_reward=self.check_right_or_wrong()
+        adj_reward=raw_reward%10
+        if adj_reward==0:
+            return -1
+        elif adj_reward==1:
+            return 0
+        else:
+            return 1
+
+    def RightWrong_0to03_0(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
+            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
+            raw_profit=THPrice / YHPrice - 1
+            if self.Yaction==0:
+                return -1 if raw_profit<0 else 0 if raw_profit<0.03 else 1
+            else:
+                return 1 if raw_profit < 0 else 0 if raw_profit < 0.03 else -1
+        else:
+            return 0
+
+
+    def RightWrong_on_real(self):
+
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            YHPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.YNprice, self.YHFQratio)
+            THPrice = self.ifhqconvert.get_hfqprice_from_Nprice(self.TNprice, self.THFQratio)
+            raw_profit=(THPrice / YHPrice - 1)*20
+            raw_profit= -1.0 if raw_profit <-1.0 else 1.0 if raw_profit>1.0 else  raw_profit
+            return  raw_profit if self.Yaction==0 else -raw_profit
+        else:
+            return 0
+
+
 
 
 class Simulator_intergrated:
@@ -241,6 +258,7 @@ class Simulator_intergrated:
         if lc.flag_record_sim:
             self.i_record_sim_stock_data=record_sim_stock_data(os.path.join(sc.base_dir_RL_system,
                                                         lc.RL_system_name,"record_sim"), stock,lc.flag_record_sim)
+
     def reset(self):
         self.i_account.reset()  # clear account inform if last period not sold out finally
         state, support_view_dic = self.i_get_data.reset_get_data()
@@ -287,7 +305,17 @@ class Simulator_intergrated:
         elif action_str == "Sell":  # sell
             flag_operation_result, return_message, current_profit = self.i_account.sell(support_view_dic["Nprice"],support_view_dic["HFQRatio"])
             if flag_operation_result  and return_message == "Success":
-                reward = self.i_reward.Success_sell(current_profit)
+                if self.lc.Choice_reward_function =="legacy":
+                    reward = self.i_reward.Success_sell(current_profit)
+                elif self.lc.Choice_reward_function =="RightWrong":
+                    reward = self.iRW.get_reward()
+                elif self.lc.Choice_reward_function == "RightWrong_0to03_0":
+                    reward = self.iRW.RightWrong_0to03_0()
+                elif self.lc.Choice_reward_function == "RightWrong_on_real":
+                    reward = self.iRW.RightWrong_on_real()
+                else:
+                    assert False
+
             elif not flag_operation_result  and return_message == "Tinpai":
                 assert False, "This should be check ahead by Flag_Tradable"
             elif not flag_operation_result  and return_message == "No_holding":

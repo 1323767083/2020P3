@@ -229,10 +229,16 @@ class TD_memory_integrated:
         flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
         if not flag_in_HP:
             if idx_HP==-1:                  #NB phase not finished
-                del self.memory[:]
-                return False
-                #self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
-                #return True
+                if self.lc.flag_train_drop_unbuy_record:
+                    del self.memory[:]
+                    return False
+                else:
+                    raw_reward = self.memory[-1][2]    # if use RWR reward  this is possible raw_reward is not zero
+                    if raw_reward == 0:
+                        del self.memory[:]
+                        return False
+                    self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+                    return True
 
             else:
                 assert idx_HP>=0            #HP phase finished

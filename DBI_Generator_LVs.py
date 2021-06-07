@@ -87,3 +87,13 @@ class Sell_Dan(DBI_Generator_Base):
         result = [sell_da_dan_median_price, sell_da_dan_average_price, sell_xiao_dan_percent, sell_da_dan_percent]
         self.Result_Check_Shape(result)
         return result
+
+class TradableFlag(DBI_Generator_Base):
+    ShapesM = [1]
+    Input_Params = []
+    TitilesD = ["Flag_Tradable"]
+    TypesD = ["Flag_Tradable"]
+
+    def Gen(self, inputs):
+        return [True]
+    #"Tinpai has been checked and tinpai data has been generated before calling to generate DBI data"

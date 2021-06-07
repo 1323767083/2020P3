@@ -29,8 +29,8 @@ import numpy as np
         "Reference": {
             "Filters_In_order":[]
         }
-
-    }
+    },
+    "NumDBIDays": 20,
 }
 
 class DBTP_Base(DBI_init_with_TD):
@@ -52,6 +52,7 @@ class DBTP_Base(DBI_init_with_TD):
         self.DBINames = list(set(temp_list))
         assert len(self.DBINames) >= 1
         self.iDBIs = [DBI_Creater(DBI_name) for DBI_name in self.DBINames]
+        assert len(set([iDBI.TypeDefinition["TinpaiFun"] for iDBI in self.iDBIs]))==1, "DBTP used DBI should have same TinpaiFun"
 
         if len(self.DBTP_Definition["Param"])==0:
             self.Filters=[["LV_NPrice","LV_Volume"],["SV_NPrice","SV_Volume"],[]]
@@ -89,7 +90,18 @@ class DBTP_Base(DBI_init_with_TD):
                     self.FT_TitlesD_Flat[FT_idx].extend(self.MemTitlesD[found_idx[0][0]])
                     self.FT_ShapesM[FT_idx].append(self.MemShapesM[found_idx[0][0]])
 
+        if "NumDBIDays" not in self.DBTP_Definition.keys(): #legacy
+            self.DBTP_Definition["NumDBIDays"]=20
+        self.NumDBIDays=self.DBTP_Definition["NumDBIDays"]
 
+        fnwp=self.get_Input_DBTP_FT_TitleType_Detail_fnwp()
+        if not os.path.exists(fnwp):
+            df = pd.DataFrame(columns=["FeatureGroupName", "Title", "Type"])
+            for featureGroup_name, titles, Types, in zip(["LV", "SV", "Ref"], self.FT_TitlesD_Flat, self.FT_TypesD_Flat):
+                assert len(titles) == len(Types)
+                for title, Type in zip(titles, Types):
+                    df.loc[len(df)] = [featureGroup_name, title, Type]
+            df.to_csv(fnwp, index=False)
     def get_DBTP_data_fnwp(self, stock, dayI):
         dn=self.Dir_DBTP_WP
         for subdir in ["data",stock, str(dayI//100)]:
@@ -100,4 +112,8 @@ class DBTP_Base(DBI_init_with_TD):
     def get_DBTP_data_log_fnwp(self, stock):
         return os.path.join(self.Dir_DBTP_log,"{0}.csv".format(stock))
 
+    def get_Input_DBTP_FT_TitleType_Detail_fnwp(self):
+        return os.path.join(self.Dir_DBTP_WP, "TitleTypeDetail_FT.csv")
 
+    def get_Output_DBTP_FT_TitleType_Detail_fnwp(self,label):
+        return os.path.join(self.Dir_DBTP_WP, "TitleTypeDetail_{0}_Sorted.csv".format(label))

@@ -1,4 +1,4 @@
-import os,json,random
+import os,json,random,pickle
 from DB_Base import DB_Base
 from DBR_Reader import RawData, Raw_HFQ_Index
 from collections import OrderedDict
@@ -30,11 +30,13 @@ DBI data structure
 '''
 {
    "Elements":["DateI","Price_VS_Mount","Sell_Dan","Buy_Dan","Norm_Average_Nprice_And_Mount_Whole_Day",
-               "Potential_Nprice_930","HFQ_Ratio","Exchange_Ratios"]
+               "Potential_Nprice_930","HFQ_Ratio","Exchange_Ratios"],
+    "TinpaiFun":"TinpaiZero"
 }
 
 {
-    "Elements":["Norm_Average_Nprice_And_Mount_Half_Day","Potential_Nprice_1300"]
+    "Elements":["Norm_Average_Nprice_And_Mount_Half_Day","Potential_Nprice_1300"],
+    "TinpaiFun": "TinpaiNAN"
 }
 
 class DBI_init(DB_Base):
@@ -517,6 +519,10 @@ class DBI_Base(DBI_init_with_TD):
             if not os.path.exists(dir): os.makedirs(dir)
         Type_fnwp=os.path.join(self.Dir_DBI_WP,"DBI_Definition.json")
         self.TypeDefinition = json.load(open(Type_fnwp, "r"), object_pairs_hook=OrderedDict)
+        if "TinpaiFun" not in self.TypeDefinition.keys():
+            self.TypeDefinition["TinpaiFun"]="TinpaiZero"
+        else:
+            assert self.TypeDefinition["TinpaiFun"] in ["TinpaiNAN","TinpaiZero"]
 
     def get_DBI_data_fnwp(self, stock, dayI):
         dn=self.Dir_DBI_WP_Data
@@ -528,4 +534,16 @@ class DBI_Base(DBI_init_with_TD):
     def get_DBI_log_fnwp(self, stock):
         return os.path.join(self.Dir_DBI_WP_Log,"{0}.csv".format(stock))
 
+    def Is_DBI_Oneday_exists(self, stock, dayI):
+        return os.path.exists(self.get_DBI_data_fnwp(stock, dayI))
 
+    def load_DBI(self, stock, dayI):
+        return pickle.load(open(self.get_DBI_data_fnwp(stock, dayI), "rb"))
+
+    def dump_DBI(self, stock, dayI, result_L):
+        pickle.dump(result_L, open(self.get_DBI_data_fnwp(stock, dayI), 'wb'))
+
+    def print_DBI(self,stock, dayI):
+        data_L=self.load_DBI(stock, dayI)
+        for data, title in zip(data_L,self.TypeDefinition["Elements"]):
+            print (title, data)

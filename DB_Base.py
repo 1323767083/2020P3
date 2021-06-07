@@ -118,7 +118,10 @@ class DB_Base:
         except ValueError as e:
             # this is to handle 13 in file as 12.99999997 situation
             if "cannot safely convert passed user dtype of int64 for float64 dtyped data" in str(e) or "undefined" in str(e):
-                df = pd.read_csv(fnwp, header=0, names=self.title_qz)
+                df = pd.read_csv(fnwp, header=0, names=self.title_qz,low_memory=False)
+                #add low_memory=False is try to handle the warning like following
+                #"DtypeWarning: Columns (2,7,8,9,10) have mixed types.Specify dtype option on import or set low_memory=False."
+                #the logic behind that is in exception handling, will fore the dtype, not need to guess dtype
                 df.dropna(inplace=True)
                 df.reset_index(inplace=True, drop=True) # this is to correct the empty row index(index without row) casued by drop row
                 for item in list(self.dtype_qz.keys()):
@@ -133,7 +136,8 @@ class DB_Base:
             else:
                 if os.path.exists(self.raw_error_log_fnwp):
                     dflog = pd.read_csv(self.raw_error_log_fnwp, header=0, names=["fnwp"], dtype={"fnwp": str})
-                    dflog = dflog.append([fnwp], ignore_index=True)
+                    dflog.loc[len(dflog)]=[fnwp]
+                    #dflog = dflog.append([fnwp], ignore_index=True)
                 else:
                     dflog = pd.DataFrame([[fnwp]], columns=["fnwp"])
                 dflog.to_csv(self.raw_error_log_fnwp, index=False)

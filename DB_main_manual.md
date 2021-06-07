@@ -84,6 +84,34 @@ Guide to update DBI
       home/rdchujf/DB_raw/Normal/decompress/202006/20200612/000001.csv
     
     4.python DB_main.py Generate_DBTP_Process TPVTest1 SLV300 4 True
+       0.### 注意不要同时运行两个 上面的指令， 比如
+        python DB_main.py Generate_DBTP_Process DBTP_1M1D SL300V1 20 True
+        python DB_main.py Generate_DBTP_Process DBTP_1M1D SL500V1 20 True
+        SL300V1 和 SL500V1 有重叠的股票， 会导致DBI 的 log （。csv） 同时写而出错
+        出错信息：
+            Process Process_Generate_DBTP-18:
+                Traceback (most recent call last):
+                  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+                    self.run()
+                  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 206, in run
+                    flag, mess=self.iDBTP_Creater.DBTP_generator(Stock, self.StartI, self.EndI)
+                  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 151, in DBTP_generator
+                    flag, mess=self.buff.Add(Stock,DayI)
+                  File "/home/rdchujf/remote_sw/DBTP_Creater.py", line 46, in Add
+                    flag,mess=iDBI.Generate_DBI_day( Stock, DayI)
+                  File "/home/rdchujf/remote_sw/DBI_Creater.py", line 149, in Generate_DBI_day
+                    self.log_append_keep_new([[True, DayI, "Success" + "Generate" ]], logfnwp, ["Result", "Date", "Message"])
+                  File "/home/rdchujf/remote_sw/DB_Base.py", line 197, in log_append_keep_new
+                    dfo.sort_values(by=[unique_check_title],inplace=True)
+                  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/frame.py", line 4933, in sort_values
+                    k, kind=kind, ascending=ascending, na_position=na_position
+                  File "/home/rdchujf/anaconda3/envs/p37/lib/python3.7/site-packages/pandas/core/sorting.py", line 274, in nargsort
+                    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+                TypeError: '<' not supported between instances of 'int' and 'str'
+        出错处理：
+            根据Process Process_Generate_DBTP-18 找到 process17 Output log 最后一行股票， 到DBI 该股票的 log 中删掉最后一行
+            然后把17stocklist 剩下的股票以 f 中讲的补全 
+        
       根据
       a. 最后的 True 只能 用在 SL_Definition.json 之定义一个 list， 否则 第二次process 启动会覆盖第一次的结果
       b. SLV1 的 SL_Definition.json 里定义的 train 、eval stock list 和 起始终止时间
