@@ -188,13 +188,16 @@ class TD_memory_integrated:
         self.output_buffer = output_buffer
         self.i_actionOBOS=actionOBOS(self.lc.train_action_type)
         self.iavh=AV_Handler(self.lc)
-        #self.get_verified_record =getattr(self,lgc.TD_get_verified_record)
+        '''
+        ##Delete V2_OS
         if "V2" in self.lc.system_type:
             self.get_verified_record=self.V2_verified_train_record
         elif "V3" in self.lc.system_type:
+        '''
+        if "V3" in self.lc.system_type:
             self.get_verified_record = self.V3_verified_train_record
         else:
-            assert False, "{0} only support V2 V3".format(self.__class__.__name__)
+            assert False, "{0} only support V3".format(self.__class__.__name__)
 
     def get_sample(self, memory, n):
         s, a, _, _, done, support_view_dic = memory[0]
@@ -206,7 +209,8 @@ class TD_memory_integrated:
         for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
-
+    '''
+    ##Delete V2_OS
     def V2_verified_train_record(self):
         _, _, _, Ls_, Ldone, Lsupport_view_dic = self.memory[-1]
         flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
@@ -223,7 +227,7 @@ class TD_memory_integrated:
         else:                       #HP phase not finished
             del self.memory[:]
             return False
-
+    '''
     def V3_verified_train_record(self):
         _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
         flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))

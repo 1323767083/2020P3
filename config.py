@@ -167,14 +167,20 @@ class gconfig_data:
         self.train_num_action = float("nan") #
 
         self.OB_AV_shape=()
+        '''
+        ##Delete V2_OS
         self.OS_AV_shape=()
+        '''
         self.raw_AV_shape=()
 
         self.Plen=float("nan")
 
+        '''
+        ##Delete CC
         self.Max_TotalMoney=float("nan")  #todo obsolete to be delete
         self.low_profit_threadhold=float("nan") #todo obsolete to be delete
         self.CC_strategy_fun=""  #todo obsolete to be delete
+        '''
 
         #new add param, have default value here
         self.flag_train_random_explore=True
@@ -182,11 +188,13 @@ class gconfig_data:
         self.train_random_explore_prob_buy=0.2
         self.train_total_los_clip=0
         self.flag_use_av_in_model=True   #default if not in config than True
+        '''
+        ##Delete CC
         self.l_CC_group_invest_total_money=float('nan')
         self.l_CC_group_strategy_fun=float('nan')
         self.l_CC_group_low_profit_threadhold=float("nan")
         self.l_CC_min_invest_per_round=float("nan")
-
+        '''
         self.Choice_reward_function="legacy"   #"RightWrong", "RightWrong_0to03_0"
         self.flag_train_drop_unbuy_record=True   # unbuy record not send to train ?
 class gconfig(gconfig_data):
@@ -282,14 +290,22 @@ class gconfig(gconfig_data):
         assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5","CNN2DV6","CNN2DV7"] #remove "RNN","RCN"
         assert self.agent_method_apsv in ["HP"]
         if self.CLN_AV_Handler=="AV_Handler":
+            '''
+            ##Delete V2_OS
             self.OS_AV_shape = (self.LHP + 1,)
+            '''
             self.OB_AV_shape = (self.LNB + 1,)
         elif self.CLN_AV_Handler=="AV_Handler_AV1":
+            '''
+            ##Delete V2_OS
             self.OS_AV_shape = (1,)
+            '''
             self.OB_AV_shape = (1,)
         len_inform=len(self.account_inform_titles) + len(self.simulator_inform_titles) + len(self.PSS_inform_titles)
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1+1 +len_inform,)
         self.PLen = self.LHP + self.LNB
+        '''
+        ##Delete CC
         if self.l_CC_group_invest_total_money!=self.l_CC_group_invest_total_money:  # x!=x is true means x is nan means this param not in the config and keep the default
             self.l_CC_group_invest_total_money=[self.Max_TotalMoney if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else 0
                                                 for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
@@ -314,8 +330,12 @@ class gconfig(gconfig_data):
             self.l_CC_min_invest_per_round=[self.env_min_invest_per_round if CLN_env_get_data_eval=="DBTP_Eval_CC_Reader" else 0
                                           for CLN_env_get_data_eval in self.l_CLN_env_get_data_eval]
             #self.env_min_invest_per_round can not be set to nan as other evaluator(not CC) will use this value still
+        '''
 
         l_specific_param_title=[]
+
+        '''
+        ##Delete V2_OS
         if self.system_type == "LHPP2V2":
             assert self.P2_current_phase == "Train_Sell"
             self.train_action_type = "OS"
@@ -328,6 +348,8 @@ class gconfig(gconfig_data):
                 setattr(self.specific_param,item_title,self.Dict_specifc_param[item_title])
 
         elif self.system_type == "LHPP2V3":   #V3 means buy policy
+        '''
+        if self.system_type == "LHPP2V3":  # V3 means buy policy
             assert self.P2_current_phase == "Train_Buy"
             self.train_action_type = "OB"
             self.train_num_action = 2

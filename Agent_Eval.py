@@ -1,6 +1,9 @@
 from Agent_Comm import *
 from State import *
+'''
+##Delete CC
 from Eval_CC import Eval_CC
+'''
 from Eval_WR import WR_handler
 class EvalMain(Process):
     def __init__(self,lc,E_Stop_Agent_Eval, L_E_Start1Round,L_Eval2GPU,LL_GPU2Eval,Share_eval_loop_count):
@@ -11,7 +14,10 @@ class EvalMain(Process):
         self.logger= lcom.setup_logger(self.lc,self.process_name,flag_file_log=True, flag_screen_show=True)
         self.inp = pcom.name_pipe_cmd(self.lc,self.process_name)
         self.current_eval_count = self.lc.start_eval_count // self.lc.num_train_to_save_model
+        '''
+        ##Delete CC
         self.i_Eval_CC=Eval_CC(lc)
+        '''
     def run(self):
         setproctitle.setproctitle("{0}_{1}".format(self.lc.RL_system_name,self.process_name))
         self.logger.info("{0} start".format(self.process_name))
@@ -50,6 +56,8 @@ class EvalMain(Process):
                 elif self.current_phase ==1: # wait all subs finish this round
                     if len(self.L_Eval2GPU) != 0:
                         process_idx, stacted_state = self.L_Eval2GPU.pop()
+                        '''
+                        ##Delete CC
                         if self.i_Eval_CC.Is_ProcessIdx_CCProcessIdx(process_idx):
                             raw_result = self.i_eb.choose_action_CC(stacted_state, "Eval")
                             return_flag,return_dateI= self.i_Eval_CC.CC_handler(process_idx, stacted_state,raw_result,self.LL_GPU2Eval)
@@ -58,10 +66,17 @@ class EvalMain(Process):
                         else:
                             result = self.i_eb.choose_action(stacted_state, "Eval")
                             self.LL_GPU2Eval[process_idx].append(result)
+                        '''
+                        result = self.i_eb.choose_action(stacted_state, "Eval")
+                        self.LL_GPU2Eval[process_idx].append(result)
+
                     if all([not E_Start1Round.is_set() for E_Start1Round in self.L_E_Start1Round])and len(self.L_Eval2GPU) == 0:
                         self.logger.info("Eval GPU finish eval count {0}".format(eval_loop_count))
                         self.current_phase = 0
+                        '''
+                        ##Delete CC
                         self.i_Eval_CC.Stop_Record_on_ET(eval_loop_count)
+                        '''
                 else:
                     assert False, "only support current phase 0. wait for wait ready 1. wait for round finish bu get {0}".format(self.current_phase)
                 self.name_pipe_cmd()
@@ -108,6 +123,9 @@ class EvalSub(Process):
         self.data = Client_Datas_Eval(self.lc, self.process_working_dir, self.lc.data_name, self.stock_list, self.SL_StartI,
                                  self.SL_EndI, self.logger, self.lc.l_CLN_env_get_data_eval[self.process_group_idx],
                                  called_by="Eval")
+        '''
+        ##Delete CC
+        ##Delete Legacy
         self.Flag_CC_log, self.Flag_WR_log, self.Flag_Lagecy_log=False,False,False
         if self.lc.l_CLN_env_get_data_eval[self.process_group_idx]=="DBTP_Eval_CC_Reader":
             self.Flag_CC_log=True
@@ -122,6 +140,10 @@ class EvalSub(Process):
             self.l_i_tran_id = [transaction_id(stock, start_id=0) for stock in self.stock_list]
             self.i_prepare_summary_are_1ET = ana_reward_data_A3C_worker_interface(self.lc.RL_system_name,
                                                             self.process_group_name,self.process_idx,self.stock_list,lc)
+        '''
+
+        assert self.lc.l_CLN_env_get_data_eval[self.process_group_idx] == "DBTP_Eval_WR_Reader"
+        self.Flag_WR_log = True
         if self.Flag_WR_log:
             self.i_WRH= WR_handler(self.lc, self.process_name, self.process_group_name, self.logger)
         self.i_ac = actionOBOS(self.lc.train_action_type)
@@ -138,8 +160,11 @@ class EvalSub(Process):
         while not self.E_stop.is_set():
             if self.CurrentPhase==0:  #wait for round start
                 if self.E_Start1Round.is_set():
+                    '''
+                    ##Delete Legacy
                     if self.Flag_Lagecy_log:
                         self.i_are_ssdi.start_round(self.Share_eval_loop_count.value)
+                    '''
                     self.data.eval_reset_data()
                     self.CurrentPhase=1
                     random.seed(3)
@@ -160,6 +185,8 @@ class EvalSub(Process):
                         self.data.l_a, self.data.l_ap, self.data.l_sv = result
                         self.Flag_Wait_GPU_Response= False
                         if not any(self.data.l_idx_valid_flag):
+                            '''
+                            ##Delete Legacy
                             if self.Flag_Lagecy_log:
                                 fnwps=self.i_prepare_summary_are_1ET._get_fnwp__are_summary_1ET1G(
                                     self.Share_eval_loop_count.value,
@@ -173,6 +200,8 @@ class EvalSub(Process):
                                     self.logger.info("finish eval_loop_count {0} but fail in generate 1ET summary due to {1}".
                                                      format(self.Share_eval_loop_count.value,Summery_count__mess))
                             elif self.Flag_WR_log:
+                            '''
+                            if self.Flag_WR_log:
                                 self.i_WRH.save(self.Share_eval_loop_count.value)
                             self.E_Start1Round.clear()
                             self.CurrentPhase = 0
@@ -196,17 +225,23 @@ class EvalSub(Process):
                     s, support_view_dic = i_env.reset()
                     self.data.l_s[idx] = s
                     if support_view_dic["flag_all_period_explored"]:
+                        '''
+                        ##Delete Legacy
                         if self.Flag_Lagecy_log:
                             self.i_are_ssdi.round_save(self.data, idx, flag_finished=True)
                             self.l_i_tran_id[idx].reset_flag_holding()  # to solve the new eval continue with the last trans_id
+                        '''
                         self.data.l_idx_valid_flag[idx] = False
                     else:
                         if self.data.l_i_episode_init_flag[idx]:
                             self.data.l_i_episode_init_flag[idx] = False
                         else:
+                            '''
+                            ##Delete Legacy
                             if self.Flag_Lagecy_log:
                                 self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=False)
                                 self.i_are_ssdi.finish_episode(self.data, idx, flag_finished=True)
+                            '''
                     if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
                         self.data.l_done_flag[idx] = True
                     else:
@@ -218,12 +253,15 @@ class EvalSub(Process):
                     ap =self.data.l_ap[idx]
                     s_, r, done, support_view_dic, actual_action = i_env.step(a)
                     self.data.l_s[idx] = s_
+                    '''
+                    ##Delete Legacy
                     if self.Flag_Lagecy_log:
                         self.data.l_t[idx] += 1
                         self.data.l_r[idx].append(r)
                         flag_holding=self.i_av_handler.Is_Holding_Item(self.data.l_s[idx][2][0])
                         trans_id = self.l_i_tran_id[idx].get_transaction_id(flag_new_holding=True if flag_holding else False)
                         self.i_are_ssdi.in_round(self.data, idx, actual_action, ap, r, support_view_dic, trans_id,flag_holding)
+                    '''
                     if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
                         self.data.l_done_flag[idx] = True
                     else:

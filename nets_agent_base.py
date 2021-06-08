@@ -347,6 +347,8 @@ class net_agent_base:
         }
         self.i_action = actionOBOS(lc.train_action_type)
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
+        '''
+        ##Delete V2_OS
         assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
         if self.lc.system_type== "LHPP2V2":
             self.av_shape = self.lc.OS_AV_shape
@@ -356,12 +358,19 @@ class net_agent_base:
             self.choose_action_CC=None
             assert self.lc.P2_current_phase == "Train_Sell"
         else:
+        '''
+        if self.lc.system_type == "LHPP2V3":
             self.av_shape = self.lc.OB_AV_shape
             self.get_av = self.i_cav.get_OB_AV
             self.layer_label = "OB"
             assert self.lc.P2_current_phase == "Train_Buy"
             self.choose_action=self.V3_choose_action
+            '''
+            ##Delete CC
             self.choose_action_CC=self.V3_choose_action_CC
+            '''
+        else:
+            assert False
 
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
@@ -404,7 +413,8 @@ class net_agent_base:
         else:
             p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
         return p,v
-
+    '''
+    ##Delete V2_OS
     def V2_choose_action(self, state, calledby="Eval"):
         assert self.lc.P2_current_phase == "Train_Sell"
         lv, sv, av = state
@@ -423,7 +433,7 @@ class net_agent_base:
                 l_ap.append(sell_prob.ravel())
             l_sv.append(SV[0])
         return l_a, l_ap, l_sv
-
+    '''
     def V3_choose_action(self,state,calledby):
         assert self.lc.P2_current_phase == "Train_Buy"
         _, _, av = state
@@ -463,6 +473,18 @@ class net_agent_base:
                 l_sv.append(buy_sv[0])
         return l_a, l_ap,l_sv
 
+    def V3_get_AP_AT(self,state,calledby):
+        assert self.lc.P2_current_phase == "Train_Buy"
+        buy_probs, buy_SVs = self.predict(state)
+        if not hasattr(self, "OS_agent"):
+            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
+            self.i_OS_action=actionOBOS("OS")
+        #sel_probs, sell_SVs = self.OS_agent.predict(state)
+        sel_probs, _ = self.OS_agent.predict(state)
+        return buy_probs,sel_probs  # This only used in CC eval ,so AP and sv information in not necessary
+
+    '''
+    ##Delete CC
     def V3_choose_action_CC(self,state,calledby):
         assert self.lc.P2_current_phase == "Train_Buy"
         buy_probs, buy_SVs = self.predict(state)
@@ -475,14 +497,5 @@ class net_agent_base:
         l_buy_a  = [self.i_action.I_nets_choose_action(buy_prob) for buy_prob in buy_probs ]
         l_sell_a  = [self.i_OS_action.I_nets_choose_action(sell_prob) for sell_prob in sel_probs ]
         return l_buy_a,l_sell_a  # This only used in CC eval ,so AP and sv information in not necessary
-
-    def V3_get_AP_AT(self,state,calledby):
-        assert self.lc.P2_current_phase == "Train_Buy"
-        buy_probs, buy_SVs = self.predict(state)
-        if not hasattr(self, "OS_agent"):
-            self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
-            self.i_OS_action=actionOBOS("OS")
-        #sel_probs, sell_SVs = self.OS_agent.predict(state)
-        sel_probs, _ = self.OS_agent.predict(state)
-        return buy_probs,sel_probs  # This only used in CC eval ,so AP and sv information in not necessary
+    '''
 

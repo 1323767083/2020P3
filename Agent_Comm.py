@@ -6,8 +6,10 @@ import pipe_comm as pcom
 import logger_comm  as lcom
 import config as sc
 from recorder import record_send_to_server
-
+'''
+##Delete CC
 from vresult_data_reward import ana_reward_data_A3C_worker_interface
+'''
 from Buffer_comm import buffer_series,buffer_to_train
 
 from env import Simulator_intergrated
@@ -84,8 +86,8 @@ class Client_Datas_Eval(Client_Datas_Common):
             if len(self.l_log_a_r_e[idx]) != 0:
                 self.logger.error("len(self.l_log_a_r_e[{0}]) != 0".format(idx))
                 assert len(self.l_log_a_r_e[idx]) == 0
-
-
+'''
+##Delete Legacy
 class are_ssdi_handler:
     def __init__(self, lc,process_name, process_working_dir, logger):
         self.lc=lc
@@ -166,4 +168,4 @@ class transaction_id:
 
     def reset_flag_holding(self): # to solve the new eval continue with the last trans_id
         self.flag_holding = False
-
+'''

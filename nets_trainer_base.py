@@ -34,15 +34,21 @@ class PPO_trainer:
                                           "M_advent": self.M_advent,"lc": lc}
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
+        '''
+        ##Delete V2_OS
         assert self.lc.system_type in["LHPP2V2","LHPP2V3"]
         if self.lc.system_type== "LHPP2V2":
             self.av_shape = self.lc.OS_AV_shape
             self.get_av = self.i_cav.get_OS_AV
             assert self.lc.P2_current_phase == "Train_Sell"
         else:
+        '''
+        if self.lc.system_type == "LHPP2V3":
             self.av_shape = self.lc.OB_AV_shape
             self.get_av = self.i_cav.get_OB_AV
             assert self.lc.P2_current_phase == "Train_Buy"
+        else:
+            assert False
 
     def select_optimizer(self, name, learning_rate):
         assert name in ["Adam", "SGD", "Adagrad", "Adadelta"]

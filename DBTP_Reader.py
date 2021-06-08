@@ -94,6 +94,9 @@ class DBTP_Train_Reader(DBTP_Reader):
 
     def get_the_dateI(self):
         return self.nptd[self.CTDidx]
+
+'''
+##Delete Legacy
 class DBTP_Eval_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=5 ):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
@@ -127,10 +130,13 @@ class DBTP_DayByDay_reader(DBTP_Train_Reader):
             support_view_dic["flag_all_period_explored"] = True
             self.EvalTillTDidx = self.SDTDSidx
         return [lv,sv],support_view_dic
+'''
 
-
-
+'''
+##Delete CC
 class DBTP_Eval_CC_Reader(DBTP_Train_Reader):
+'''
+class DBTP_Eval_WR_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI, PLen=30,eval_reset_total_times=0):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
         self.flag_init=True
@@ -167,5 +173,8 @@ class DBTP_Eval_CC_Reader(DBTP_Train_Reader):
             support_view_dic["Flag_Force_Next_Reset"] = False
         return [lv,sv], support_view_dic, Flag_Done
 
+'''
+##Delete CC
 class DBTP_Eval_WR_Reader(DBTP_Eval_CC_Reader):
     pass
+'''
