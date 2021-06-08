@@ -124,3 +124,38 @@ for index_code in ["SH000001","SZ399001"]:
         else:
             print(["Addon indexes Update", index_code, True, "Already updated"])
 
+
+def NB_Debug_DBI_data():
+    import os
+    import numpy as np
+    from DBI_Base import DBI_Base
+    idb = DBI_Base("DBI_V1")
+    period = idb.nptd[idb.nptd >= 20180101]
+    stocks = os.listdir("/mnt/pdata_disk2Tw/RL_data_additional/I_DB/DBI_V1/Data/")
+    print(np.random.choice(period, 1), np.random.choice(stocks, 1))
+
+    idb.print_DBI(np.random.choice(stocks, 1)[0], np.random.choice(period, 1)[0])
+
+def NB_Debug_Generate_DBTP_data():
+    from DBTP_Creater import DBTP_Creater
+    i = DBTP_Creater("DBTP_1M1D")
+
+    flag, mess = i.buff.Add("SH600000", 20210531)
+    print(i.buff.Is_Ready())
+    result_datas = i.create_DBTP_Raw_Data_From_DBI()
+    HFQ_Ratio = i.buff.get_np_item("HFQ_Ratio", [1])
+
+    i.iFilters.LV_Together(result_datas, HFQ_Ratio)
+    i.iFilters.SV_Together(result_datas, HFQ_Ratio)
+
+    import pickle
+    fnwp = "/mnt/pdata_disk2Tw/RL_data_additional/TP_DB/DBTP_1M1D/data/SH600000/202105/20210531.pickle"
+    a = pickle.load(open(fnwp, "rb"))
+
+    for FT_idx in [0, 1, 2]:
+        assert all(result_datas[FT_idx][a[FT_idx] != result_datas[FT_idx]])
+
+def NB_Create_DBTP():
+    from DBTP_Creater import DBTP_Creater
+    i = DBTP_Creater("DBTP_1M20D")
+    i.DBTP_generator("SH600000", 20210531, 20210531)

@@ -111,7 +111,7 @@ class DBTP_Creater(DBTP_Base):
                     assert self.Filters[Fidx][-1] == Filter, "Sanity Filter should be the last one {0}".format(
                         self.Filters[Fidx])
                     result_datas = getattr(self.iFilters, Filter)(result_datas)
-                elif ["Together"] in component[-1]:
+                elif "Together" in component[-1]:
                     if len(HFQ_Ratio)==0:
                         HFQ_Ratio = self.buff.get_np_item("HFQ_Ratio", [1])
                     result_datas, HFQ_Ratio,dict_idxs = getattr(self.iFilters, Filter)(result_datas, HFQ_Ratio)

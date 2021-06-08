@@ -233,8 +233,8 @@ class EvalSub(Process):
                     CurrentDateI=i_env.i_get_data.get_the_dateI()
                 else:
                     assert CurrentDateI==i_env.i_get_data.get_the_dateI(),"Current DateI {0} and get_teh_DateI should same".format(CurrentDateI,i_env.i_get_data.get_the_dateI())
-                l_WR.append(i_env.iRW.check_right_or_wrong())
-                l_PA.append(i_env.iRW.check_profit())
+                l_WR.append(i_env.i_reward.check_right_or_wrong())
+                l_PA.append(i_env.i_reward.check_profit())
         if self.Flag_WR_log:
             #["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
             #self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])

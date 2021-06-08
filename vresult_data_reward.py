@@ -7,7 +7,7 @@ import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import progressbar
 import pickle
-from env import env_reward
+from env import Reward_intergrated
 from vresult_data_com import get_data_start_end,are_esi_reader
 from DBI_Base import DBI_init_with_TD,DBI_Base,StockList
 import config as sc
@@ -489,10 +489,11 @@ class ana_reward_plot:
 
     def hist_reward(self, ax, EvalT,hist_param):
         if len(hist_param)==0:
-            min_, max_, show_step  = env_reward(self.i_ana_data.lgc.eval_scale_factor,
+            min_, max_, show_step  = Reward_intergrated(self.i_ana_data.lgc.Choice_reward_function,
+                                                        self.i_ana_data.lgc.eval_scale_factor,
                                                       self.i_ana_data.lgc.eval_shift_factor,
                                                       self.i_ana_data.lgc.eval_flag_clip,
-                                                      self.i_ana_data.lgc.eval_flag_punish_no_action).hist_scale()
+                                                      ).hist_scale()
         else:
             max_, min_, show_step=hist_param
             print(max_, min_, show_step)
