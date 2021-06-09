@@ -3,17 +3,8 @@ import config as sc
 from recorder import record_sim_stock_data
 from State import *
 from action_comm import actionOBOS
-'''
-##Delete CC
-##Delete Legacy
-from DBTP_Reader import DBTP_Train_Reader, DBTP_Eval_Reader,DBTP_DayByDay_reader,DBTP_Eval_CC_Reader,DBTP_Eval_WR_Reader
-'''
 from DBTP_Reader import DBTP_Train_Reader,DBTP_Eval_WR_Reader
 from DBI_Base import hfq_toolbox
-'''
-##Delete CC
-from Eval_CC import Eval_CC
-'''
 #roughly buy 0.0003
 #roughly sell 0.0013
 
@@ -22,11 +13,6 @@ class env_account:
     param_guo_hu_fei            = 0.0002
     param_jin_shou_fei          = 0.0000487
     param_quan_shang_yong_jin   = 0.00025
-    '''
-    ##Delete CC
-    def __init__(self,lc, stock,flag_CC=False):
-        self.lc, self.stock, self.flag_CC=lc, stock,flag_CC
-    '''
     def __init__(self,lc, stock):
         self.lc, self.stock=lc, stock
         self.i_hfq_tb = hfq_toolbox()
@@ -88,11 +74,6 @@ class env_account:
 
     def buy(self, trade_Nprice, trade_hfq_ratio):
         self._clean_step_result()
-        '''
-        ##Delete CC
-        if not self.flag_CC and self.Buy_Times >= self.max_num_invest:
-            return False, "Exceed_limit"
-        '''
         if self.Buy_Times >= self.max_num_invest:
             return False, "Exceed_limit"
         else:
@@ -275,45 +256,17 @@ class Simulator_intergrated:
         self.lc=lc
         self.calledby=calledby
         self.i_PSS = globals()[lc.CLN_AV_state](self.lc,self.calledby)
-        '''
-        ##Delete CC
-        self.i_Eval_CC=Eval_CC(self.lc)
-        '''
         if self.calledby == "Explore":
             assert CLN_get_data == "DBTP_Train_Reader"
-            '''
-            ##Delete CC
-            self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=False)
-            '''
             self.i_account = globals()[lc.CLN_env_account](self.lc, stock)
             self.i_reward = Reward_intergrated(lc.Choice_reward_function,lc.train_scale_factor, lc.train_shift_factor, lc.train_flag_clip)
             self.i_get_data = globals()[CLN_get_data](data_name, stock,StartI, EndI,lc.PLen)
-            '''
-            ##Delete CC
-            self.CC_flag=False
-            '''
         else:
             assert self.calledby == "Eval"
-
-            '''
-            ##Delete CC
-            ##Delete Legacy
-            assert CLN_get_data in ["DBTP_Eval_Reader","DBTP_DayByDay_reader", "DBTP_Eval_CC_Reader","DBTP_Eval_WR_Reader"]
-            '''
             assert CLN_get_data in ["DBTP_Eval_WR_Reader"]
             self.i_reward = Reward_intergrated(lc.Choice_reward_function,lc.eval_scale_factor, lc.eval_shift_factor, lc.eval_flag_clip)
             self.i_get_data = globals()[CLN_get_data](data_name, stock, StartI, EndI, lc.PLen,
                                                               eval_reset_total_times=lc.evn_eval_rest_total_times)
-            '''
-            ##Delete CC
-
-            if self.i_Eval_CC.Is_V3EvalCC(CLN_get_data,calledby):
-                self.CC_flag = True
-                self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=True)
-            else:
-                self.CC_flag = False
-                self.i_account = globals()[lc.CLN_env_account](self.lc, stock,flag_CC=False)
-            '''
 
             self.i_account = globals()[lc.CLN_env_account](self.lc, stock)
 
@@ -390,13 +343,6 @@ class Simulator_intergrated:
         return return_message,reward,state, support_view_dic
 
     def step(self,Input_action):
-        '''
-        ##Delete CC
-        if self.CC_flag:
-            action, PSS_action = self.i_Eval_CC.Extract_V3EvalCC_MultiplexAction(Input_action)
-        else:
-            action, PSS_action = Input_action, 0
-        '''
         action, PSS_action = Input_action, 0
         adj_action = self.i_PSS.check_need_force_state(action)
         if adj_action!=action and action==0:

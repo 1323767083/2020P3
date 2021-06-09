@@ -188,12 +188,6 @@ class TD_memory_integrated:
         self.output_buffer = output_buffer
         self.i_actionOBOS=actionOBOS(self.lc.train_action_type)
         self.iavh=AV_Handler(self.lc)
-        '''
-        ##Delete V2_OS
-        if "V2" in self.lc.system_type:
-            self.get_verified_record=self.V2_verified_train_record
-        elif "V3" in self.lc.system_type:
-        '''
         if "V3" in self.lc.system_type:
             self.get_verified_record = self.V3_verified_train_record
         else:
@@ -209,25 +203,6 @@ class TD_memory_integrated:
         for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
-    '''
-    ##Delete V2_OS
-    def V2_verified_train_record(self):
-        _, _, _, Ls_, Ldone, Lsupport_view_dic = self.memory[-1]
-        flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
-        if not flag_in_HP:
-            if idx_HP == -1:       #NB phase not finished
-                del self.memory[:]
-                return False
-            else:
-                assert idx_HP>=0,  idx_HP  #HP phase finished
-                del self.memory[:-(idx_HP+1)]
-                #self.iavh.set_final_record_AV(self.memory[-1][0][2][0])  #-1 last record 0 means state in memory 2 means AV 0 means av item has shape (0,13)
-                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
-                return True
-        else:                       #HP phase not finished
-            del self.memory[:]
-            return False
-    '''
     def V3_verified_train_record(self):
         _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
         flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))

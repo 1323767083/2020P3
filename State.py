@@ -16,27 +16,9 @@ class Phase_State(Phase_Data):
         Phase_Data.__init__(self,lc)
         assert calledby in ["Explore", "Eval"]
         self.i_av=globals()[lc.CLN_AV_Handler](lc)
-        '''
-        ##Delete V2_OS
-        for tag in ["V2","V3"]:
-            if tag in self.lc.system_type :
-                getattr(self,"Init_Phase_State_{0}_{1}".format(tag,calledby))()
-                break
-        else:
-            assert False, "{0} only support V2 V3".format(self.__class__.__name__)
-        '''
         assert "V3" in self.lc.system_type
         getattr(self, "Init_Phase_State_{0}_{1}".format("V3", calledby))()
 
-    '''
-    ##Delete V2_OS
-
-    def Init_Phase_State_V2_Explore(self):
-        self.CuPs_force_flag = [True, True]
-   
-    def Init_Phase_State_V2_Eval(self):
-        self.CuPs_force_flag = [True, False]
-    '''
 
     def Init_Phase_State_V3_Explore(self):
         #self.CuPs_force_flag = [True, True]

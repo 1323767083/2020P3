@@ -6,10 +6,6 @@ import pipe_comm as pcom
 import logger_comm  as lcom
 import config as sc
 from recorder import record_send_to_server
-'''
-##Delete CC
-from vresult_data_reward import ana_reward_data_A3C_worker_interface
-'''
 from Buffer_comm import buffer_series,buffer_to_train
 
 from env import Simulator_intergrated
@@ -86,86 +82,3 @@ class Client_Datas_Eval(Client_Datas_Common):
             if len(self.l_log_a_r_e[idx]) != 0:
                 self.logger.error("len(self.l_log_a_r_e[{0}]) != 0".format(idx))
                 assert len(self.l_log_a_r_e[idx]) == 0
-'''
-##Delete Legacy
-class are_ssdi_handler:
-    def __init__(self, lc,process_name, process_working_dir, logger):
-        self.lc=lc
-        self.process_name=process_name
-        self.process_working_dir=process_working_dir
-        self.ongoing_save_count = -1
-        self.logger=logger
-        self.log_are_column=["action", "reward", "episode", "day", "action_result"]
-
-        for ap_idx in range(lc.train_num_action):
-            self.log_are_column.append("p{0}".format(ap_idx))
-        self.log_are_column.append("state_value")
-        self.log_are_column.extend(["holding", "trade_Nprice", "trans_id"])
-
-    def _eval_save(self,data,idx,eval_count):
-        if eval_count ==0:
-            del data.l_log_a_r_e[idx][:]
-            return
-        log_a_r_e_fn="{0}_T{1}.csv".format(self.lc.log_a_r_e_fn_seed,eval_count)
-        log_a_r_e_fn_fnwp=os.path.join(self.process_working_dir,data.stock_list[idx],log_a_r_e_fn )
-        df_log = pd.DataFrame(data.l_log_a_r_e[idx],columns=self.log_are_column)
-        df_log.to_csv(log_a_r_e_fn_fnwp, index=False, float_format='%.4f')
-        del data.l_log_a_r_e[idx][:]
-        return
-
-    def round_save(self, data, idx, flag_finished):
-        self.finish_episode(data, idx, flag_finished)
-        self.logger.info("{0} round saved".format(data.stock_list[idx]))
-        if self.ongoing_save_count ==-1:
-            self.logger.error("self.ongoing_save_count is -1")
-            assert self.ongoing_save_count !=-1
-        self._eval_save(data, idx, self.ongoing_save_count)
-
-    def finish_episode(self, data,idx, flag_finished):
-        if len(data.l_r[idx])!=0:
-            r_sum = data.l_r[idx][-1]
-        else:
-            r_sum=0
-        self.logger.info("stock:{0} episode:{1} period_len:{2} reward:{3:.2f} {4} episode add to record"
-                        .format(data.stock_list[idx], data.l_i_episode[idx],data.l_t[idx], r_sum,
-                                "finished" if flag_finished else "unfinished"))
-        data.l_i_episode[idx] += 1
-        data.l_t[idx] = 0
-        del data.l_r[idx][:]
-
-    def start_round(self, save_count):
-        self.ongoing_save_count=save_count
-
-    def in_round(self, data, idx, a, ap, r, sv_dic, trans_id,holding_flag):
-        item=[a, r, data.l_i_episode[idx], sv_dic["DateI"], sv_dic["action_return_message"]]
-        for ap_idx in range(self.lc.train_num_action):
-            item.append(ap[ap_idx])
-        item.append(data.l_sv[idx])
-        item.extend([holding_flag, sv_dic["Nprice"], trans_id])
-        data.l_log_a_r_e[idx].append(item)
-
-class transaction_id:
-    not_in_transaction = "Not_in_trans"
-    def __init__(self, stock, start_id=0):
-        self.stock = stock
-        self.current_counter = start_id
-        self.flag_holding = False
-
-    def get_transaction_id(self, flag_new_holding):
-        if not self.flag_holding and not flag_new_holding:
-            self.current_trans_id = self.not_in_transaction
-        elif not self.flag_holding and flag_new_holding:
-            self.current_counter += 1
-            self.current_trans_id = "{0}_T{1}".format(self.stock, self.current_counter)
-        elif self.flag_holding and flag_new_holding:
-            # keep current trans _id
-            pass
-        elif self.flag_holding and not flag_new_holding:
-            # keep current trans _id, but status change while self.flag_holding=flag_new_holding
-            pass
-        self.flag_holding = flag_new_holding
-        return self.current_trans_id
-
-    def reset_flag_holding(self): # to solve the new eval continue with the last trans_id
-        self.flag_holding = False
-'''

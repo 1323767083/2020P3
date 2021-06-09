@@ -95,47 +95,6 @@ class DBTP_Train_Reader(DBTP_Reader):
     def get_the_dateI(self):
         return self.nptd[self.CTDidx]
 
-'''
-##Delete Legacy
-class DBTP_Eval_Reader(DBTP_Train_Reader):
-    def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=5 ):
-        DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
-        self.eval_reset_count=0
-        self.eval_reset_total_times=eval_reset_total_times
-
-    def reset_get_data(self):
-        state, support_view_dic=DBTP_Train_Reader.reset_get_data(self)
-        self.eval_reset_count +=1
-        if self.eval_reset_count > self.eval_reset_total_times:
-            support_view_dic["flag_all_period_explored"] = True
-            self.eval_reset_count = 0
-        else:
-            support_view_dic["flag_all_period_explored"] = False
-        return state, support_view_dic
-
-class DBTP_DayByDay_reader(DBTP_Train_Reader):
-    def __init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen=30,eval_reset_total_times=0):
-        DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
-        self.EvalTillTDidx= self.SDTDSidx
-
-    def reset_get_data(self):
-        self.CTDidx = self.EvalTillTDidx
-        self.EvalTillTDidx+=1
-        self.ETDidx = self.CTDidx + self.PLen
-        lv, sv, ref=self.read_1day_TP_Data(self.Stock, self.nptd[self.CTDidx])
-        support_view_dic=self.Fill_support_view_with_ref(ref,self.Stock, self.nptd[self.CTDidx],self.CTDidx==self.ETDidx )
-        if self.EvalTillTDidx <= self.SDTDEidx - self.PLen:
-            support_view_dic["flag_all_period_explored"] = False
-        else:
-            support_view_dic["flag_all_period_explored"] = True
-            self.EvalTillTDidx = self.SDTDSidx
-        return [lv,sv],support_view_dic
-'''
-
-'''
-##Delete CC
-class DBTP_Eval_CC_Reader(DBTP_Train_Reader):
-'''
 class DBTP_Eval_WR_Reader(DBTP_Train_Reader):
     def __init__(self, DBTP_Name, Stock, SDateI, EDateI, PLen=30,eval_reset_total_times=0):
         DBTP_Train_Reader.__init__(self, DBTP_Name, Stock, SDateI, EDateI,PLen)
@@ -173,8 +132,3 @@ class DBTP_Eval_WR_Reader(DBTP_Train_Reader):
             support_view_dic["Flag_Force_Next_Reset"] = False
         return [lv,sv], support_view_dic, Flag_Done
 
-'''
-##Delete CC
-class DBTP_Eval_WR_Reader(DBTP_Eval_CC_Reader):
-    pass
-'''
