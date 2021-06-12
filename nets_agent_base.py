@@ -287,6 +287,19 @@ class LVSV_component:
         return lv_sv
 
 
+    def CNN2DV8_get_SV_state(self, input_sv, name):
+        return input_sv
+
+    def CNN2DV8_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        lv_net = Residule_Conv1D_Compoment(self.nc.l_filter_l, self.nc.l_kernel_l,
+                                           [1 for _ in self.nc.l_filter_l], f"{name}lv")
+        sv_net = Repeat_Residule_Conv1D_Compoment(self.nc.s_filter_l, self.nc.s_kernel_l,
+                                                  [1 for _ in self.nc.s_filter_l], f"{name}sv")
+        lvr = lv_net.Residule_Conv1D(input_lv)
+        svr = sv_net.Repeat_Residule_Conv1D(input_sv)
+        lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svr])
+        return lsvr
 
     def get_ap_av_HP(self, inputs, name):
         if self.lc.flag_use_av_in_model:
@@ -333,6 +346,44 @@ class V2OS_4_OB_agent:
         else:
             p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
         return p,v
+
+class Residule_Conv1D_Compoment:
+    def __init__(self, lfilter, lkernel, lstride, name):
+        self.lconv, self.lbn, self.lactivation, self.lproject = [], [], [], []
+        for lidx in list(range(len(lfilter))):
+            self.lconv.append(
+                keras.layers.Conv1D(filters=lfilter[lidx], kernel_size=lkernel[lidx], strides=lstride[lidx],
+                                    padding="same", name=f"{name}cov{lidx}"))
+            self.lbn.append(keras.layers.BatchNormalization(name=f"{name}BN{lidx}"))
+            self.lactivation.append(keras.layers.LeakyReLU(name=f"{name}Activation{lidx}"))
+            self.lproject.append(
+                keras.layers.Conv1D(filters=lfilter[lidx], kernel_size=lkernel[lidx], strides=lstride[lidx],
+                                    padding="same", name=f"{name}project{lidx}"))
+        self.Pooling = keras.layers.GlobalMaxPooling1D(name=f"{name}Pooling")
+
+    def Residule_Conv1D(self, inputs):
+        layerInput=inputs
+        for lidx in list(range(len(self.lconv))):
+            imediate = self.lconv[lidx](layerInput)
+            layerProject = self.lproject[lidx](layerInput)
+            imediate = self.lbn[lidx](imediate)
+            imediate = self.lactivation[lidx](imediate)
+            layerInput = imediate + layerProject
+        LayerOutput = self.Pooling(layerInput)
+        return LayerOutput
+
+class Repeat_Residule_Conv1D_Compoment:
+    def __init__(self, sv_filters,sv_kernels, sv_strides,name):
+        super().__init__()
+        self.sv_sub_net=Residule_Conv1D_Compoment(sv_filters,sv_kernels, sv_strides,name)
+        self.concate = tf.keras.layers.Concatenate( name=f"{name}Concate")
+
+    def Repeat_Residule_Conv1D(self, inputs, *args, **kwargs):
+        lr = []
+        #for idx in list(range(inputs.shape[1])):
+        for idx in list(range(5)):
+            lr.append(self.sv_sub_net.Residule_Conv1D(inputs[:, idx, :, :]))
+        return self.concate(lr)
 
 class net_agent_base:
     def __init__(self, lc):
