@@ -14,26 +14,14 @@ class Phase_Data:
 class Phase_State(Phase_Data):
     def __init__(self,lc,calledby):
         Phase_Data.__init__(self,lc)
-        assert calledby in ["Explore", "Eval"]
         self.i_av=globals()[lc.CLN_AV_Handler](lc)
-        assert "V3" in self.lc.system_type
-        getattr(self, "Init_Phase_State_{0}_{1}".format("V3", calledby))()
-
-
-    def Init_Phase_State_V3_Explore(self):
-        #self.CuPs_force_flag = [True, True]
-        self.CuPs_force_flag = [False, True]
-    def Init_Phase_State_V3_Eval(self):
-        #self.CuPs_force_flag = [False, False]
-        self.CuPs_force_flag = [False, True]  # V3 is to evaluate buy agent, so need to forece sell all holding if possible
+        self.CuPs_force_flag = [False, True] if calledby=="Explore" else [False, True]
 
     def check_need_force_state(self, action):
         if self._Is_Phase_Last_Step() and self.CuPs_force_flag[self.CuP]:
-            adj_action=self.CuPs_exit_actions[self.CuP]
-            return adj_action
+            return self.CuPs_exit_actions[self.CuP]
         else:
             return action
-
 
     def reset_phase_state(self,l_av_inform,Flag_Force_Next_Reset):
         self.CuP=self.P_init
@@ -42,13 +30,15 @@ class Phase_State(Phase_Data):
         return np.array(raw_av).reshape(1, -1)
 
     def update_phase_state(self, action, return_message, l_inform, PSS_action,Flag_Force_Next_Reset):
+        assert PSS_action==0, "multi buy should be removed from code"
+        '''
         assert PSS_action in [0,1], "Only support PSS_action has value 0,1 not {0}".format(PSS_action)
         if PSS_action==1:
             assert action == 0, "PSS_action=1 only workwith action=0 means multibuy, action cannot {0}".format(action)
             if return_message=="Success":
                 self.CuP = self.P_init
                 self.CuPs_idx = [0 for _ in range(self.P_Num)] ##TODO check??
-
+        '''
         if self._Is_Phase_Last_Step():
             return self._Update_Phase_Last_Step(action, return_message,l_inform,Flag_Force_Next_Reset)
         else:
@@ -129,7 +119,7 @@ class AV_Handler(Phase_Data):
         return [0 for _ in range(self.lc.raw_AV_shape[0])]
 
     def fabricate_av(self,CuPs_idx,CuP,l_av_inform,actual_action,Flag_Force_Next_Reset,flag_CuP_finished, flag_CuP_Successed):
-        assert len(l_av_inform)==len(self.lc.account_inform_titles)+len(self.lc.simulator_inform_titles)
+        assert len(l_av_inform)==len(self.lc.account_inform_titles)+len(self.lc.simulator_inform_titles),f"{len(l_av_inform)} {len(self.lc.account_inform_titles)} {len(self.lc.simulator_inform_titles)}"
         Raw_AV = self.Fresh_Raw_AV()
         for Pid in list(range(len(CuPs_idx))):
             if Pid<CuP:
@@ -208,11 +198,10 @@ class AV_Handler(Phase_Data):
     def get_inform_in_all(self, raw_av):
         return raw_av[self.PFinal_idx+1:self.PFinal_idx+1+self.len_inform]
 
-    def Is_Force_Next_Reset(self,raw_av):
-        return raw_av[self.PFlag_Force_Next_Reset]
 
     def set_Tinpai_huaizhang(self,raw_av): #this is to store the the Holding_Invest due to tinpai and alsoholding period end
-        raw_av[self.PTinpai_huaizhang]=raw_av[self.PHolding_Invest]
+        #raw_av[self.PTinpai_huaizhang]=raw_av[self.PHolding_Invest]
+        raw_av[getattr(self, f"P{'Tinpai_huaizhang'}")] = raw_av[getattr(self, f"P{'Holding_Invest'}")]
 
 class AV_Handler_AV1(AV_Handler):
     def get_OS_AV(self,raw_av):
@@ -220,3 +209,196 @@ class AV_Handler_AV1(AV_Handler):
 
     def get_OB_AV(self,raw_av):
         return raw_av[:,self.PFinal_idx:self.PFinal_idx+1]
+
+
+class AV_Handler_AV1_V2:
+    # LNB  number of not buy days
+    # +1   normal buy/ force_buy on last day (need also show status in raw av)
+    # +2   code  0,0 means this phase not start  1,0 means this phase Success finished 0,1 this phase finish with error
+    #     ( last day buy/force buy not sucess due to tinpai)
+    # LHP  number of holding days
+    # +1   normal sell/ force_buy on last day (need also show status in raw av)
+    # +2   code  0,0 means this phase not start  1,0 means this phase Success finished 0,1 this phase finish with error
+    #     ( last day sell/force sell not success due to tinpai)
+    #+1   Flag_Force_Next_Reset especially for CC Eval force next is reset flag
+    #+1   Whether this is final record for optimize pupose
+    #+len(self.lc.account_inform_titles)
+    #+len(self.lc.simulator_inform_titles)
+    #+len(self.lc.PSS_inform_titles)
+    def __init__(self,lc):
+        self.lc=lc
+        self.P_Num = 2  # total Number of Phases
+        self.P_NB = 0  # Phase no buy
+        self.P_HP = 1  # phase holding period
+        self.P_END = 2  # finished
+        self.P_init = self.P_NB
+        self.CuPs_exit_actions = [0, 2]
+
+        self.len_inform=len(self.lc.account_inform_titles) + len(self.lc.simulator_inform_titles) + len(self.lc.PSS_inform_titles)
+        assert self.lc.raw_AV_shape == (self.lc.LNB + 1 +2+ self.lc.LHP + 1+2 +1+1+self.len_inform,)
+        self.PAVStart_idx=[0,self.lc.LNB + 1 +2]
+        self.PResStart_idx = [self.lc.LNB + 1, self.lc.LNB + 1 +2+ self.lc.LHP + 1]
+        self.PFlag_Force_Next_Reset = self.lc.LNB + 1 + 2 + self.lc.LHP + 1 + 2
+        self.PFinal_idx= self.lc.LNB + 1 +2+ self.lc.LHP + 1 +2+1
+        for idx, title in enumerate(self.lc.account_inform_titles + self.lc.simulator_inform_titles + self.lc.PSS_inform_titles):
+            setattr(self, "P{0}".format(title),  self.PFinal_idx+1+idx)
+
+
+    # Following functions are single
+    def Fresh_Raw_AV(self):
+        return [0 for _ in range(self.lc.raw_AV_shape[0])]
+
+    def set_final_record_AV(self,raw_av):
+        raw_av[self.PFinal_idx]=1
+    def check_final_record_AV(self,raw_av):
+        return raw_av[self.PFinal_idx]==1
+
+    def Is_Phase_Finished(self,raw_av, phase):
+        return True if any(raw_av[self.PResStart_idx[phase]:self.PResStart_idx[phase]+2]) else False
+
+    def Is_Phase_Error_Finished(self, raw_av,Pid ):
+        assert Pid <self.P_END
+        return True if raw_av[self.PResStart_idx[Pid]]==0 and raw_av[self.PResStart_idx[Pid]+1]==1 else False
+
+    def Is_Phase_Success_finished(self, raw_av,Pid ):
+        assert Pid < self.P_END
+        return True if raw_av[self.PResStart_idx[Pid]]==1 and raw_av[self.PResStart_idx[Pid]+1]==0 else False
+
+
+    def get_trans_status_On_S_(self, raw_av):
+        if self.Is_Phase_Success_finished(raw_av, self.P_HP): #Success finished Trans
+            return True,True
+        elif self.Is_Phase_Success_finished(raw_av, self.P_NB):  #not start Trans
+            return False, False
+        else:                                                     #Failed finished Trans  Tinpai
+            return True, False
+
+    def fabricate_av(self,CuPs_idx,CuP,l_av_inform,actual_action,Flag_Force_Next_Reset,flag_CuP_finished, flag_CuP_Successed):
+        assert len(l_av_inform)==len(self.lc.account_inform_titles)+len(self.lc.simulator_inform_titles),f"{len(l_av_inform)} {len(self.lc.account_inform_titles)} {len(self.lc.simulator_inform_titles)}"
+        Raw_AV = self.Fresh_Raw_AV()
+        for Pid in list(range(len(CuPs_idx))):
+            if Pid<CuP:
+                Raw_AV[self.PAVStart_idx[Pid] + CuPs_idx[Pid]] = 1
+                #if CuPs_idx[Pid]== self.CuPs_limits[Pid]: #
+                if CuPs_idx[Pid] == self.lc.LNB:  #AV_Handler_AV1_V2 for LNB and LHP always is 1
+                    Raw_AV[self.PResStart_idx[Pid] + 1] = 1  # fail
+                else:
+                    Raw_AV[self.PResStart_idx[Pid] + 0 ] = 1  # since Pid < CuP already enter next phase this phase should finished successfully
+            elif Pid == CuP:
+                Raw_AV[self.PAVStart_idx[Pid] + CuPs_idx[Pid]] = 1
+                if flag_CuP_finished:
+                    if flag_CuP_Successed:
+                        Raw_AV[self.PResStart_idx[Pid] + 0] = 1
+                        if Pid+1!=self.P_END:
+                            Raw_AV[self.PAVStart_idx[Pid+1] + CuPs_idx[Pid+1]] = 1  #while change phase success should set next phase status in av
+                    else:
+                        Raw_AV[self.PResStart_idx[Pid] + 1] = 1
+        Raw_AV[self.PFlag_Force_Next_Reset]=Flag_Force_Next_Reset
+        Raw_AV[self.PFinal_idx + 1:self.PFinal_idx + 1+len(l_av_inform)]=l_av_inform
+        Raw_AV[self.PFinal_idx + 1 + len(l_av_inform):self.PFinal_idx + 1 + len(l_av_inform)+1] = [actual_action]
+        return np.array(Raw_AV).reshape(1, -1)
+
+    def Is_Holding_Item(self, raw_av):
+        if self.Is_Phase_Success_finished(raw_av, self.P_NB): #P_NB Success finished
+            if self.Is_Phase_Success_finished(raw_av, self.P_HP):  # P_HP phase success or error finished
+                return False
+            else:
+                return True
+        else:
+            if self.Is_Phase_Error_Finished(raw_av, self.P_NB):
+                return True # this is fake holding message to avoidfe choose action to select buy
+            else:
+                return False # still in P_NB phase
+
+
+class AV_Handler_No_AccountInform:
+    # LNB  number of not buy days
+    # +1   normal buy/ force_buy on last day (need also show status in raw av)
+    # +2   code  0,0 means this phase not start  1,0 means this phase Success finished 0,1 this phase finish with error
+    #     ( last day buy/force buy not sucess due to tinpai)
+    # LHP  number of holding days
+    # +1   normal sell/ force_buy on last day (need also show status in raw av)
+    # +2   code  0,0 means this phase not start  1,0 means this phase Success finished 0,1 this phase finish with error
+    #     ( last day sell/force sell not success due to tinpai)
+    #+1   Flag_Force_Next_Reset especially for CC Eval force next is reset flag
+    #+1   Whether this is final record for optimize pupose
+    def __init__(self,lc):
+        self.lc=lc
+        self.P_Num = 2  # total Number of Phases
+        self.P_NB = 0  # Phase no buy
+        self.P_HP = 1  # phase holding period
+        self.P_END = 2  # finished
+        self.P_init = self.P_NB
+        self.CuPs_exit_actions = [0, 2]
+        assert self.lc.raw_AV_shape == (self.lc.LNB + 1 + 2 + self.lc.LHP + 1 + 2 + 1 + 1,)
+
+        self.PAVStart_idx=[0,self.lc.LNB + 1 +2]
+        self.PResStart_idx = [self.lc.LNB + 1, self.lc.LNB + 1 +2+ self.lc.LHP + 1]
+        self.PFlag_Force_Next_Reset = self.lc.LNB + 1 + 2 + self.lc.LHP + 1 + 2
+        self.PFinal_idx= self.lc.LNB + 1 +2+ self.lc.LHP + 1 +2+1
+
+
+    # Following functions are single
+    def Fresh_Raw_AV(self):
+        return [0 for _ in range(self.lc.raw_AV_shape[0])]
+
+    def set_final_record_AV(self,raw_av):
+        raw_av[self.PFinal_idx]=1
+    def check_final_record_AV(self,raw_av):
+        return raw_av[self.PFinal_idx]==1
+
+    def Is_Phase_Finished(self,raw_av, phase):
+        return True if any(raw_av[self.PResStart_idx[phase]:self.PResStart_idx[phase]+2]) else False
+
+    def Is_Phase_Error_Finished(self, raw_av,Pid ):
+        assert Pid <self.P_END
+        return True if raw_av[self.PResStart_idx[Pid]]==0 and raw_av[self.PResStart_idx[Pid]+1]==1 else False
+
+    def Is_Phase_Success_finished(self, raw_av,Pid ):
+        assert Pid < self.P_END
+        return True if raw_av[self.PResStart_idx[Pid]]==1 and raw_av[self.PResStart_idx[Pid]+1]==0 else False
+
+
+    def get_trans_status_On_S_(self, raw_av):
+        if self.Is_Phase_Success_finished(raw_av, self.P_HP): #Success finished Trans
+            return True,True
+        elif self.Is_Phase_Success_finished(raw_av, self.P_NB):  #not start Trans
+            return False, False
+        else:                                                     #Failed finished Trans  Tinpai
+            return True, False
+
+    def fabricate_av(self,CuPs_idx,CuP,Flag_Force_Next_Reset,flag_CuP_finished, flag_CuP_Successed):
+        Raw_AV = self.Fresh_Raw_AV()
+        for Pid in list(range(len(CuPs_idx))):
+            if Pid<CuP:
+                Raw_AV[self.PAVStart_idx[Pid] + CuPs_idx[Pid]] = 1
+                if CuPs_idx[Pid] == self.lc.LNB:  #AV_Handler_No_AccountInform for LNB and LHP always is 1
+                    Raw_AV[self.PResStart_idx[Pid] + 1] = 1  # fail
+                else:
+                    Raw_AV[self.PResStart_idx[Pid] + 0 ] = 1  # since Pid < CuP already enter next phase this phase should finished successfully
+            elif Pid == CuP:
+                Raw_AV[self.PAVStart_idx[Pid] + CuPs_idx[Pid]] = 1
+                if flag_CuP_finished:
+                    if flag_CuP_Successed:
+                        Raw_AV[self.PResStart_idx[Pid] + 0] = 1
+                        if Pid+1!=self.P_END:
+                            Raw_AV[self.PAVStart_idx[Pid+1] + CuPs_idx[Pid+1]] = 1  #while change phase success should set next phase status in av
+                    else:
+                        Raw_AV[self.PResStart_idx[Pid] + 1] = 1
+        Raw_AV[self.PFlag_Force_Next_Reset]=Flag_Force_Next_Reset
+        return np.array(Raw_AV).reshape(1, -1)
+
+    def Is_Holding_Item(self, raw_av):
+        if self.Is_Phase_Success_finished(raw_av, self.P_NB): #P_NB Success finished
+            if self.Is_Phase_Success_finished(raw_av, self.P_HP):  # P_HP phase success or error finished
+                return False
+            else:
+                return True
+        else:
+            if self.Is_Phase_Error_Finished(raw_av, self.P_NB):
+                return True # this is fake holding message to avoidfe choose action to select buy
+            else:
+                return False # still in P_NB phase
+
+    def Is_Force_Next_Reset(self,raw_av):
+        return raw_av[self.PFlag_Force_Next_Reset]

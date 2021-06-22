@@ -19,23 +19,14 @@ class actionOBOS:
     #used in TD_buffer,  from TD_buffer to train
     def I_TD_buffer(self,actionarray):
         assert actionarray.shape[1]==4
-        return actionarray[:,:2] if self.action_type == "OB" else actionarray[:,2:]
-
-    # used in A3C_worker
-    def _action_2_actionarray(self, action):
-        a_onehot = np.zeros((1, 4))
-        a_onehot[0, action] = 1
-        return a_onehot
-
-    def _get_prob_from_AParray(self,AParray, action):
-        assert len(AParray) == 2
-        if self.action_type == "OS":
-            return -1 if action<2 else AParray[action-2]  # -1  record will be removed by TD_buffer and sainity cheked the remove at optimize_com
-        else: #self.action_type == "OB":
-            return -1 if action>=2 else AParray[action]  # -1  record will be removed by TD_buffer and sainity cheked the remove at optimize_com
+        assert self.action_type == "OB"
+        return actionarray[:, :2]
 
     def I_A3C_worker_explorer(self, actual_action,ap):
-        a_onehot = self._action_2_actionarray(actual_action)
-        old_ap = self._get_prob_from_AParray(ap, actual_action)
+        assert self.action_type=="OB"
+        a_onehot = np.zeros((1, 4))
+        a_onehot[0, actual_action] = 1
+        old_ap=-1 if actual_action >= 2 else ap[actual_action]
         assert type(old_ap) is np.float32 or type(old_ap) is int
-        return a_onehot, old_ap
+        return a_onehot,old_ap
+

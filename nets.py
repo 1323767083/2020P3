@@ -91,8 +91,6 @@ class Train_Brain:
             custom_dic.update(self.named_loss(self.Tmodel, loss_this_round))
             self.tensorboard.on_epoch_end(self.tensorboard_batch_id,custom_dic)
             self.tensorboard_batch_id += 1
-            if self.lc.flag_record_state:
-                self.mc.rv.recorder_brainer([self.Tmodel.metrics_names, loss_this_round])
         return num_record_to_train
 
 

@@ -105,7 +105,7 @@ class EvalSub(Process):
         if self.Flag_WR_log:
             self.i_WRH= WR_handler(self.lc, self.process_name, self.process_group_name, self.logger)
         self.i_ac = actionOBOS(self.lc.train_action_type)
-        self.i_av_handler=AV_Handler(self.lc)
+
 
 
     def run(self):
@@ -166,7 +166,7 @@ class EvalSub(Process):
                     else:
                         if self.data.l_i_episode_init_flag[idx]:
                             self.data.l_i_episode_init_flag[idx] = False
-                    if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                    if self.data.l_i_env[idx].i_av.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
                         self.data.l_done_flag[idx] = True
                     else:
                         self.data.l_done_flag[idx] = False
@@ -177,7 +177,7 @@ class EvalSub(Process):
                     ap =self.data.l_ap[idx]
                     s_, r, done, support_view_dic, actual_action = i_env.step(a)
                     self.data.l_s[idx] = s_
-                    if self.i_av_handler.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
+                    if self.data.l_i_env[idx].i_av.Is_Force_Next_Reset(self.data.l_s[idx][2][0]):
                         self.data.l_done_flag[idx] = True
                     else:
                         self.data.l_done_flag[idx] = done
@@ -186,8 +186,8 @@ class EvalSub(Process):
                     CurrentDateI=i_env.i_get_data.get_the_dateI()
                 else:
                     assert CurrentDateI==i_env.i_get_data.get_the_dateI(),"Current DateI {0} and get_teh_DateI should same".format(CurrentDateI,i_env.i_get_data.get_the_dateI())
-                l_WR.append(i_env.i_reward.check_right_or_wrong())
-                l_PA.append(i_env.i_reward.check_profit())
+                l_WR.append(i_env.check_right_or_wrong())
+                l_PA.append(i_env.check_profit())
         if self.Flag_WR_log:
             #["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
             #self.i_WRH.log_WRs.append([l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)])

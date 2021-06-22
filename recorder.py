@@ -5,7 +5,7 @@ import datetime as dt
 import config as sc
 import pandas as pd
 from DBTP_Reader import DBTP_Reader
-
+'''
 class record_variable_DBTP(DBTP_Reader):
     def __init__(self, lc):
 
@@ -188,19 +188,19 @@ class record_variable_DBTP(DBTP_Reader):
 
     def read_SC_CC_data_raw(self, sc, cc):
         assert False, "legacy debug purpose, not support in class {0}".format(self.__class__.__name__)
-
-
+'''
+'''
 class record_send_to_server:
-    '''
-    pickle data structure
-    a[0]------------------how many record
-    a[0][0]---------------state
-    a[0][1]---------------action
-    a[0][2]---------------reward
-    a[0][3]---------------state_
-    a[0][4]---------------last_flag
-    a[0][5]---------------support_view
-    '''
+
+    #pickle data structure
+    #a[0]------------------how many record
+    #a[0][0]---------------state
+    #a[0][1]---------------action
+    #a[0][2]---------------reward
+    #a[0][3]---------------state_
+    #a[0][4]---------------last_flag
+    #a[0][5]---------------support_view
+
 
     def __init__(self,dirwp,flag_recorder=True):
         self.flag_recorder=flag_recorder
@@ -216,7 +216,8 @@ class record_send_to_server:
         l_index=[[item[5][0,0]["stock"],item[5][0,0]["date"]]for item in inputs]
         df=pd.DataFrame(l_index, columns=["stock","date"])
         df.to_csv(idxfnwp, index=False)
-
+'''
+'''
 class record_sim_stock_data:
     def __init__(self,dirwp,stock,flag_recorder=True):
         self.flag_recorder=flag_recorder
@@ -235,8 +236,8 @@ class record_sim_stock_data:
             return None
         [lv,sv],support_view=pickle.load(open(fnwp,"rb"))
         return lv, sv, support_view
-
-
+'''
+'''
 class get_recorder_OS_losses:
     def __init__(self,system_name):
         param_fnwp = os.path.join(sc.base_dir_RL_system, system_name, "config.json")
@@ -311,7 +312,8 @@ class get_recorder_OS_losses:
     def get_losses(self):
         for stc in self.L_tcs:
             self.get_losses_per_stc(stc)
-
+'''
+'''
 import miscellaneous
 class record_data_verify:
     dir_buffer="record_send_buffer"
@@ -398,4 +400,4 @@ class record_data_verify:
         rs_reward = rs[0][4][idx]
         print(cs_reward)
         print(rs_reward)
-
+'''

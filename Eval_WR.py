@@ -35,7 +35,7 @@ class WR_handler:
 
     def Fabricate_WR(self, l_WR):
         # ["BW", "BZ", "BR", "NW", "NZ", "NR", "NA"]
-        return [l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)]
+        return [l_WR.count(0),l_WR.count(1),l_WR.count(2),l_WR.count(10),l_WR.count(11),l_WR.count(12),l_WR.count(-1)+l_WR.count(-10)]
 
     def add_log(self,ll_log):
         Current_dateI,l_WR,l_PA=ll_log

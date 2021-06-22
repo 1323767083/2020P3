@@ -187,7 +187,7 @@ class TD_memory_integrated:
         self.gamma = self.lc.Brain_gamma
         self.output_buffer = output_buffer
         self.i_actionOBOS=actionOBOS(self.lc.train_action_type)
-        self.iavh=AV_Handler(self.lc)
+        self.iavh = globals()[lc.CLN_AV_Handler](lc)
         if "V3" in self.lc.system_type:
             self.get_verified_record = self.V3_verified_train_record
         else:
@@ -203,41 +203,42 @@ class TD_memory_integrated:
         for idx in list(reversed(list(range(Num_record)))):
             AccR=self.memory[idx][2]+AccR*self.gamma
         return AccR
+
     def V3_verified_train_record(self):
         _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
-        flag_in_HP, idx_HP=self.iavh.get_HP_status_On_S_(Ls_[2].reshape((-1,)))
-        if not flag_in_HP:
-            if idx_HP==-1:                  #NB phase not finished
-                if self.lc.flag_train_drop_unbuy_record:
-                    del self.memory[:]
-                    return False
-                else:
-                    raw_reward = self.memory[-1][2]    # if use RWR reward  this is possible raw_reward is not zero
-                    if raw_reward == 0:
-                        del self.memory[:]
-                        return False
-                    self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
-                    return True
-
+        flag_finishNB, flag_finish_HP=self.iavh.get_trans_status_On_S_(Ls_[2].reshape((-1,)))
+        if flag_finishNB and flag_finish_HP:
+            raw_reward = self.memory[-1][2]
+            if raw_reward == 0:
+                del self.memory[:]
+                return False
+            assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
+            del self.memory[-1:]
+            self.memory[-1][2] = raw_reward * self.gamma ** 1
+            self.iavh.set_final_record_AV(self.memory[-1][3][2][
+                                              0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+            return True
+        elif not flag_finishNB and not flag_finish_HP:
+            if self.lc.flag_train_drop_unbuy_record:
+                del self.memory[:]
+                return False
             else:
-                assert idx_HP>=0            #HP phase finished
                 raw_reward = self.memory[-1][2]
-                if raw_reward==0:
+                if raw_reward == 0:
                     del self.memory[:]
                     return False
-                del self.memory[-(idx_HP + 1):]
-                self.memory[-1][2] = raw_reward * self.gamma ** (idx_HP + 1)
-                del self.memory[:-1]  # this is to remove all the non action as FDn is only 1, so rest no action reward is 0
-
-                #self.iavh.set_final_record_AV(self.memory[-1][0][2][0])
-                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
-                return True
-        else:                               #HP phase not finished
-            assert idx_HP==self.lc.LHP
-            assert Lsupport_view_dic["action_return_message"] == "Tinpai", \
-                " V3 has forece sell in Explore so only fail finish HP is Tinpai"
+                assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
+                del self.memory[-1:]
+                self.memory[-1][2] = raw_reward * self.gamma ** 1
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][
+                                                  0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+            return True
+        else:
+            assert   flag_finishNB and not flag_finish_HP
+            assert not Lsupport_view_dic["Flag_Tradable"], " V3 has forece sell in Explore so only fail finish HP is Tinpai"
             del self.memory[:]  # as it is tinpai so can not avoid should not punish
             return False
+
 
     def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
         self.memory.append([si, aa04, r, si_, done, support_view_dic])

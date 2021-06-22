@@ -110,9 +110,6 @@ class Train_Process(Process):
         Ds["l_recieved_count"][int(accumulate_item_get * 1.0 / 100) if accumulate_item_get < 1000 else 10] += 1
         Ds["accumulate_item_get_this_train_count"]=accumulate_item_get
         numb_record_trained = i_brain.optimize()
-        if self.lc.flag_record_state:
-            i_brain.mc.rv.recorder_process([Ds["train_count"], Ds["saved_trc"], Ds["print_trc"]])
-            i_brain.mc.rv.saver()
         optimized_Flag =True if numb_record_trained>0 else False
         return optimized_Flag
 

@@ -1,11 +1,10 @@
-import os,re, random,time,setproctitle
+import os,re, random,time,setproctitle,pickle
 import pandas as pd
 import numpy as np
 from multiprocessing import Process,Event
 import pipe_comm as pcom
 import logger_comm  as lcom
 import config as sc
-from recorder import record_send_to_server
 from Buffer_comm import buffer_series,buffer_to_train
 
 from env import Simulator_intergrated

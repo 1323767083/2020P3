@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow.keras as keras
 import numpy as np
+import pandas as pd
 from nets_agent_base import *
 from recorder import *
 def get_trainer_nc(lc):
@@ -20,8 +21,6 @@ class PPO_trainer:
     def __init__(self,lc):
         self.gammaN = lc.Brain_gamma ** lc.TDn
         self.i_policy_agent = net_agent_base(lc)
-        if lc.flag_record_state:
-            self.rv = globals()[lc.CLN_record_variable](lc)
         self.lc=lc
         self.nc=get_trainer_nc(lc)
 
@@ -35,8 +34,6 @@ class PPO_trainer:
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
         if self.lc.system_type == "LHPP2V3":
-            self.av_shape = self.lc.OB_AV_shape
-            self.get_av = self.i_cav.get_OB_AV
             assert self.lc.P2_current_phase == "Train_Buy"
         else:
             assert False
@@ -61,10 +58,7 @@ class PPO_trainer:
         Tmodel = keras.models.load_model(model_AIO_fnwp, compile=True, custom_objects=self.load_model_custom_objects)
         p = Tmodel.get_layer("Action_prob").output
         v = Tmodel.get_layer("State_value").output
-        if self.lc.flag_use_av_in_model:
-            Pmodel = keras.Model(inputs=Tmodel.inputs[:3], outputs=[p, v], name="P")
-        else:
-            Pmodel = keras.Model(inputs=Tmodel.inputs[:2], outputs=[p, v], name="P")
+        Pmodel = keras.Model(inputs=Tmodel.inputs[:2], outputs=[p, v], name="P")
         return Tmodel, Pmodel
 
     def _vstack_states(self,i_train_buffer):
@@ -83,17 +77,6 @@ class PPO_trainer:
         return True, [n_s_lv,n_s_sv,n_s_av,n_a,n_r,n_s__lv,n_s__sv,n_s__av],\
                [s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view]
 
-    def get_reward(self, n_r, v, n_s__av, l_support_view):
-        l_adjR=[]
-        for item_r, item_v, item_av,item_support_view in zip(n_r, v, n_s__av,l_support_view):
-            assert len(item_r)==1
-            if self.i_cav.check_final_record_AV(item_av):
-                l_adjR.append(item_r)
-            else: #todo more specific assert to check whether following case meet the LNB setting LNB==1 following should not happen
-                #if self.lc.system_type =="LHPP2V3":
-                #    assert False, "{0} {1} ".format("this is for LNB=1",item_support_view)
-                l_adjR.append(item_r + self.lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
-        return np.array(l_adjR)
 
     def extract_y(self, y):
         prob =          y[:, : self.lc.train_num_action]
@@ -103,15 +86,6 @@ class PPO_trainer:
         oldAP =   y[:, 2*self.lc.train_num_action+2:   2*self.lc.train_num_action+2+1]
         return prob, v, input_a, advent,oldAP
 
-    def join_loss_policy_part_old(self,y_true,y_pred):
-        prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
-        prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
-        loss_policy = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
-                        tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
-        assert loss_policy.shape[1]==1,loss_policy.shape
-        return tf.reduce_mean(-loss_policy,axis=0)
-    #compare with old m new is to avoid policy losss is huge, which is very seldom, but if happen totally distroy the learning
-    #normally loss is at 0.02 scale
     def join_loss_policy_part(self,y_true,y_pred):
         prob, v, input_a, advent,oldAP= self.extract_y(y_pred)
         prob_ratio = tf.reduce_sum(prob * input_a, axis=-1, keepdims=True) / (oldAP+1e-10)
@@ -119,9 +93,9 @@ class PPO_trainer:
         loss_policy_origin = self.lc.LOSS_POLICY * keras.backend.minimum(prob_ratio * tf.stop_gradient(advent),
                         tf.clip_by_value(prob_ratio,clip_value_min=1 - self.lc.LOSS_clip, clip_value_max=1 + self.lc.LOSS_clip) * tf.stop_gradient(advent))
 
-        loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-10, clip_value_max=10)
-        assert loss_policy.shape[1] == 1, loss_policy.shape
-        return tf.reduce_mean(-loss_policy,axis=0)
+        #loss_policy =tf.clip_by_value(loss_policy_origin,clip_value_min=-10, clip_value_max=10)
+        assert loss_policy_origin.shape[1] == 1, loss_policy_origin.shape
+        return tf.reduce_mean(-loss_policy_origin,axis=0)
 
 
     def join_loss_entropy_part(self, y_true, y_pred):
@@ -172,63 +146,60 @@ class PPO_trainer:
         input_a = keras.Input(shape=(self.lc.train_num_action,), dtype='float32', name='input_action')
         input_oldAP = keras.Input(shape=(1,), dtype='float32', name='input_oldAP')
         input_r = keras.Input(shape=(1,), dtype='float32', name='input_reward')
-        if self.lc.flag_use_av_in_model:
-            input_av = keras.Input(shape=self.av_shape, dtype='float32', name='input_account')
-            p, v =self.i_policy_agent.layers_with_av([input_lv,input_sv,input_av],"P")
-            advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
-            Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
-            con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
-            Tmodel = keras.Model(inputs=[input_lv, input_sv, input_av, input_a,input_r,input_oldAP], outputs=[con_out], name=name)
-            Pmodel =keras.Model(inputs=[input_lv, input_sv, input_av], outputs=[p, v], name="P")
-        else:
-            p, v = self.i_policy_agent.layers_without_av([input_lv, input_sv], "P")
-            advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
-            Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
-            con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
-            Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_r, input_oldAP],
-                                 outputs=[con_out], name=name)
-            Pmodel =keras.Model(inputs=[input_lv, input_sv], outputs=[p, v], name="P")
+        p, v = self.i_policy_agent.layers_without_av([input_lv, input_sv], "P")
+        advent = keras.layers.Lambda(lambda x: x[0] - x[1], name="advantage")([input_r, v])
+        Optimizer = self.select_optimizer(self.lc.Brain_optimizer, self.lc.Brain_leanring_rate)
+        con_out = keras.layers.Concatenate(axis=1, name="train_output")([p, v, input_a, advent,input_oldAP])
+        Tmodel = keras.Model(inputs=[input_lv, input_sv, input_a, input_r, input_oldAP],
+                               outputs=[con_out], name=name)
+        Pmodel =keras.Model(inputs=[input_lv, input_sv], outputs=[p, v], name="P")
         Tmodel.compile(optimizer=Optimizer, loss=self.join_loss, metrics=self.comile_metrics)
         return Tmodel, Pmodel
+
+    def get_reward(self, n_r, v, n_s__av, l_support_view):
+        l_adjR=[]
+        for item_r, item_v, item_av,item_support_view in zip(n_r, v, n_s__av,l_support_view):
+            assert len(item_r)==1
+            if self.i_cav.check_final_record_AV(item_av):
+                l_adjR.append(item_r)
+            else: #todo more specific assert to check whether following case meet the LNB setting LNB==1 following should not happen
+                if self.lc.system_type =="LHPP2V3" and self.lc.LHP==1 and self.lc.LNB==1:
+                    assert False, "In this situation only one record for train per experiement this situation not happen"
+                l_adjR.append(item_r + self.lc.Brain_gamma**item_support_view[0,0]["SdisS_"] * item_v)
+        return np.array(l_adjR)
 
 
     def optimize_com(self, i_train_buffer, Pmodel, Tmodel):
         flag_data_available, stack_states, raw_states=self._vstack_states(i_train_buffer)
         if not flag_data_available:
             return 0, None,None
-        s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
+        #s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
+        _, _, _, _, _, _, _, _, _, l_support_view = raw_states
         n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
         fake_y = np.ones((self.lc.batch_size, 1))
         n_old_ap = np.array([item[0, 0]["old_ap"] for item in l_support_view])
         assert not any(n_old_ap==-1), " -1 add in a3c_worker should be removed at TD_buffer" #todo dobule check this original in v2 not in v3
+        if self.lc.flag_debug_optimize_get_reward:
+            df_describe = pd.DataFrame(n_old_ap)
+            print (f"here2 {df_describe.describe()}")
         num_record_to_train = len(n_s_lv)
         assert num_record_to_train == self.lc.batch_size, "num_record_to_train={0} != lc.batch_size={1} n_s_lv={2}".format(num_record_to_train ,self.lc.batch_size,n_s_lv)
-        if self.lc.flag_use_av_in_model:
-            _, v = Pmodel.predict({'input_l_view': n_s__lv, 'input_s_view': n_s__sv, 'input_account': self.get_av(n_s__av)})
-            rg = self.get_reward(n_r, v, n_s__av, l_support_view)
-            n_av = self.get_av(n_s_av)
-            assert not any(n_av), " all av should be 0"
-            loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
-                                                     'input_account': n_av,
-                                                     'input_action': n_a, 'input_reward': rg,
-                                                     "input_oldAP":n_old_ap }, fake_y)
-        else:
-            _, v = Pmodel.predict({'input_l_view': n_s__lv, 'input_s_view': n_s__sv})
-            rg = self.get_reward(n_r, v, n_s__av, l_support_view)
-            loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
-                                                     'input_action': n_a, 'input_reward': rg,
-                                                     "input_oldAP":n_old_ap }, fake_y)
+        _, v = Pmodel.predict({'input_l_view': n_s__lv, 'input_s_view': n_s__sv})
+        rg = self.get_reward(n_r, v, n_s__av, l_support_view)
+        loss_this_round = Tmodel.train_on_batch({'input_l_view': n_s_lv, 'input_s_view': n_s_sv,
+                                                 'input_action': n_a, 'input_reward': rg,
+                                                 "input_oldAP":n_old_ap }, fake_y)
+
+
         #n_r # v # rg
         Custom_Dic={
             "Count_minue_r":(n_r<0).sum(),
             "Count_0_r":(n_r == 0).sum(),
             "Count_positive_r": (n_r > 0).sum(),
-            "r_mean":n_r.mean()
+            "r_mean":n_r.mean(),
+            "Num_buy":n_a[:,0].sum(),
+            "Num_No_Action": n_a[:, 1].sum()
         }
-
-
-        if self.lc.flag_record_state:
-            self.rv.check_need_record([Tmodel.metrics_names,loss_this_round])
-            self.rv.recorder_trainer([s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view])
         return num_record_to_train,loss_this_round,Custom_Dic
+
 

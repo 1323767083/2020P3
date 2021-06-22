@@ -91,14 +91,8 @@ class Agent_Sub(Process):
         '''modify move_get actula to action common '''
         self.i_ac = actionOBOS(self.lc.train_action_type)
 
-        #self.max_record_sent_per_update_weight=int((self.lc.num_train_to_save_model*self.lc.batch_size/self.lc.num_workers)+20*self.lc.batch_size)
         self.max_record_sent_per_update_weight=int((self.lc.num_train_to_save_model*self.lc.batch_size/
                                     (self.lc.num_workers*self.lc.brain_buffer_reuse_times))+20*self.lc.batch_size)
-
-        if self.lc.flag_record_buffer_to_server:
-            dirwp = os.path.join(sc.base_dir_RL_system, self.lc.RL_system_name, "record_send_buffer")
-            self.i_record_send_to_server=record_send_to_server(dirwp ,self.lc.flag_record_buffer_to_server)
-
     def run(self):
         SL_dir=os.path.join(self.lc.system_working_dir,"SL_Trained")
         if not os.path.exists(SL_dir): os.mkdir(SL_dir)
@@ -167,25 +161,26 @@ class Agent_Sub(Process):
                 a = self.data.l_a[idx]
                 #ap =self.data.l_ap[idx]
                 s_, r, done, support_view_dic, actual_action = i_env.step(a)
+                assert actual_action==a
                 self.data.l_done_flag[idx] = done
-                a_onehot04,support_view_dic["old_ap"]=self.i_ac.I_A3C_worker_explorer(actual_action, self.data.l_ap[idx])
+                a_onehot02,support_view_dic["old_ap"]=self.i_ac.I_A3C_worker_explorer(actual_action, self.data.l_ap[idx])
                 self.clean_support_view_from_worker_to_server(support_view_dic)
-                self.i_train_buffer_to_server.add_one_record(idx, s, a_onehot04, r, s_, done, support_view_dic)
+                self.i_train_buffer_to_server.add_one_record(idx, s, a_onehot02, r, s_, done, support_view_dic)
                 self.data.l_s[idx] = s_
 
     def clean_support_view_from_worker_to_server(self,support_view_dic):
         support_view_dic.pop("Flag_LastDay")
         support_view_dic.pop("Nprice")
         support_view_dic.pop("HFQRatio")
-        support_view_dic.pop("Flag_Tradable")
+        #support_view_dic.pop("Flag_Tradable")
         support_view_dic.pop("flag_all_period_explored")
 
         #support_view_dic.pop("Stock")  # add by Env need use by revorder state
         #support_view_dic.pop("DateI")  # add by Env need use by revorder state
 
         #not change following due to record need modified accordingly
-        #support_view_dic.pop("action_return_message") #env
-        #support_view_dic.pop("action_taken") #env
+        #remove support_view_dic.pop("action_return_message") #env
+        #remove support_view_dic.pop("action_taken") #env
         #remove "flag_force_sell" #support_view_dic.pop("flag_force_sell")    #av_state
         #support_view_dic.pop("old_ap")   #Explore_process
 
@@ -193,16 +188,17 @@ class Agent_Sub(Process):
         #support_view_dic.pop(""SdisS_"")
         # support_view_dic.pop("_support_view_dic")   #TD_intergrated
 
-        assert len(support_view_dic.keys())==5,support_view_dic.keys()
-
+        assert len(support_view_dic.keys())==4,support_view_dic.keys()
+        #['Flag_Tradable', 'Stock', 'DateI', 'old_ap']
     def worker_send_buffer_brain(self):
-        if self.i_train_buffer_to_server.get_len_train_buffer_to_server() > self.lc.num_train_record_to_brain:
+        if self.i_train_buffer_to_server.get_len_train_buffer_to_server() >= self.lc.num_train_record_to_brain:
             train_buffer_to_server = self.i_train_buffer_to_server.get_train_buffer_to_server()
             ## add sent explore brain train_count to each record to set
+            if self.lc.flag_debug_explore_save_send_to_server:
+                pickle.dump(train_buffer_to_server, open("/home/rdchujf/debug.pkle", "wb"))
+                assert False
             length_sent = len(train_buffer_to_server)
             train_buffer_to_send = list(train_buffer_to_server)
-            if self.lc.flag_record_buffer_to_server:
-                self.i_record_send_to_server.saver(train_buffer_to_send)
             self.L_output.append([self.process_idx, self.i_bs.set_get_next(), train_buffer_to_send])
             self.i_train_buffer_to_server.empty_train_buffer_to_server()
             return length_sent

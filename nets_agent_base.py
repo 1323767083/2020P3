@@ -301,52 +301,38 @@ class LVSV_component:
         lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svr])
         return lsvr
 
+    def CNN2DV9_get_SV_state(self, input_sv, name):
+        return input_sv
+
+    def CNN2DV9_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        lv_net = Residule_Conv1D_Compoment(self.nc.l_filter_l, self.nc.l_kernel_l,
+                                           [1 for _ in self.nc.l_filter_l], f"{name}lv")
+        sv_net = Repeat_Residule_Conv1D_Compoment(self.nc.s_filter_l, self.nc.s_kernel_l,
+                                                  [1 for _ in self.nc.s_filter_l], f"{name}sv")
+        svr_net = Residule_Conv1D_Compoment([64,128], [3,3],[1 for _ in range(2)], f"{name}svr")
+        lvr = lv_net.Residule_Conv1D(input_lv)
+        svr = sv_net.Repeat_Residule_Conv1D(input_sv)
+        svr =keras.layers.Reshape((5,128),name=name + "ReshapeSVr")(svr)
+        svrr=svr_net.Residule_Conv1D(svr)
+        lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svrr])
+        return lsvr
+
+
     def get_ap_av_HP(self, inputs, name):
-        if self.lc.flag_use_av_in_model:
-            js, input_av = inputs
-            input_state = keras.layers.Concatenate(axis=-1,                      name=name + "_input")([js, input_av])
-        else:
-            input_state = inputs[0]
+        input_state = inputs[0]
         state = self.cc.construct_denses(self.nc.dense_l, input_state,       name=name + "_commonD")
         Pre_a = self.cc.construct_denses(self.nc.dense_prob[:-1], state,     name=name + "_Pre_a")
         ap = keras.layers.Dense(self.nc.dense_prob[-1], activation='softmax',name="Action_prob")(Pre_a)
         Pre_sv = self.cc.construct_denses(self.nc.dense_advent[:-1], state,name=name + "_Pre_sv")
         sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='linear',name="State_value")(Pre_sv)
-        #sv = keras.layers.Dense(self.nc.dense_advent[-1], activation='tanh', name="State_value")(Pre_sv)
         return ap, sv
 
 class V2OS_4_OB_agent:
     def __init__(self,lc,ob_system_name, Ob_model_tc):
         self.lc=lc
-        if ob_system_name!="Just_sell":
-            self.model=self._load_model(ob_system_name, Ob_model_tc)
-            self.i_cav=globals()[self.lc.CLN_AV_Handler](lc)
-            self.predict=self.model_predict
-        else:
-            #self.predict=lambda x: [np.array([[1,0] for _ in range(lc.batch_size)]),np.NaN]
-            self.predict = lambda x: [np.array([[1, 0] for _ in x[0]]), np.NaN] # predict per explore term is all stock list in that process not batch
-
-    def _load_model(self, ob_system_name, Ob_model_tc):
-        OB_model_dir=os.path.join(sc.base_dir_RL_system, ob_system_name, "model")
-        model_config_fnwp=os.path.join(OB_model_dir, "config.json")
-        regex = r'weight_\w+T{0}.h5'.format(Ob_model_tc)
-        lfn=[fn for fn in os.listdir(OB_model_dir) if re.findall(regex, fn)]
-        assert len(lfn)==1, "{0} model with train count {1} not found".format(ob_system_name,Ob_model_tc)
-        weight_fnwp=os.path.join(OB_model_dir, lfn[0])
-        load_jason_custom_objects={"softmax": keras.backend.softmax,"tf":tf, "concatenate":keras.backend.concatenate,"lc":self.lc}
-        model = keras.models.model_from_json(open(model_config_fnwp, "r").read(),custom_objects=load_jason_custom_objects)
-        model.load_weights(weight_fnwp)
-        print("successful load model form {0} {1}".format(model_config_fnwp, weight_fnwp))
-        return model
-
-    def model_predict(self, state):
-        lv, sv, av = state
-        if self.lc.flag_use_av_in_model:
-            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.i_cav.get_OS_AV(av)})
-        else:
-            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
-        return p,v
-
+        assert ob_system_name=="Just_sell", "Only support Just_sell"
+        self.predict = lambda x: [np.array([[1, 0] for _ in x[0]]), np.NaN] # predict per explore term is all stock list in that process not batch
 class Residule_Conv1D_Compoment:
     def __init__(self, lfilter, lkernel, lstride, name):
         self.lconv, self.lbn, self.lactivation, self.lproject = [], [], [], []
@@ -399,8 +385,6 @@ class net_agent_base:
         self.i_action = actionOBOS(lc.train_action_type)
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
         if self.lc.system_type == "LHPP2V3":
-            self.av_shape = self.lc.OB_AV_shape
-            self.get_av = self.i_cav.get_OB_AV
             self.layer_label = "OB"
             assert self.lc.P2_current_phase == "Train_Buy"
             self.choose_action=self.V3_choose_action
@@ -410,13 +394,8 @@ class net_agent_base:
     def build_predict_model(self, name):
         input_lv = keras.Input(shape=self.nc.lv_shape, dtype='float32', name="{0}_input_lv".format(name))
         input_sv = keras.Input(shape=self.nc.sv_shape, dtype='float32', name="{0}_input_sv".format(name))
-        if self.lc.flag_use_av_in_model:
-            input_av = keras.Input(shape=self.av_shape, dtype='float32', name="{0}_input_av".format(name))
-            l_agent_output=self.layers_with_av([input_lv,input_sv,input_av], name)
-            self.model = keras.Model(inputs=[input_lv, input_sv, input_av], outputs=l_agent_output, name=name)
-        else:
-            l_agent_output = self.layers_without_av([input_lv, input_sv], name)
-            self.model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
+        l_agent_output = self.layers_without_av([input_lv, input_sv], name)
+        self.model = keras.Model(inputs=[input_lv, input_sv], outputs=l_agent_output, name=name)
         return self.model
 
     def layers_with_av(self, inputs, name):
@@ -443,10 +422,7 @@ class net_agent_base:
 
     def predict(self, state):
         lv, sv, av = state
-        if self.lc.flag_use_av_in_model:
-            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv, 'P_input_av': self.get_av(av)})
-        else:
-            p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
+        p, v = self.model.predict({'P_input_lv': lv, 'P_input_sv': sv})
         return p,v
     def V3_choose_action(self,state,calledby):
         assert self.lc.P2_current_phase == "Train_Buy"
@@ -455,33 +431,25 @@ class net_agent_base:
         if not hasattr(self, "OS_agent"):
             self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
             self.i_OS_action=actionOBOS("OS")
-        #sel_probs, sell_SVs = self.OS_agent.predict(state)
         sel_probs, _ = self.OS_agent.predict(state)
         l_a,l_ap,l_sv = [],[],[]
-        #for buy_prob, sell_prob, buy_sv, sell_sv, av_item in zip(buy_probs,sel_probs,buy_SVs,sell_SVs,av):
         for buy_prob, sell_prob, buy_sv, av_item in zip(buy_probs, sel_probs, buy_SVs, av):
             assert len(buy_prob)==2 and len(sell_prob) == 2
             if self.i_cav.Is_Holding_Item(av_item):
-                #action = np.random.choice([2, 3], p=sell_prob)
                 action = self.i_OS_action.I_nets_choose_action(sell_prob)
                 l_a.append(action)
                 l_ap.append(np.zeros_like(sell_prob))  # this is add zero and this record will be removed by TD_buffer before send to server for train
                 l_sv.append(np.NaN) #l_sv.append(sell_sv[0])
             else: # not have holding
-                if self.lc.flag_train_random_explore:
-                    if calledby=="Explore":
-                        #if np.random.choice([0, 1], p=[0.8,0.2]): #TODO need to find whether configure in config needed:
-                        if np.random.choice([0, 1],
-                                p=[1-self.lc.train_random_explore_prob_buy, self.lc.train_random_explore_prob_buy]):
-                            action=0
-                        else:
-                            action = self.i_action.I_nets_choose_action(buy_prob)
-                    elif calledby=="Eval":
-                        action = self.i_action.I_nets_choose_action(buy_prob)
+                if calledby=="Explore":
+                    if np.random.choice([0, 1], p=[1-self.lc.train_random_explore_prob_buy,self.lc.train_random_explore_prob_buy]):
+                        action=0
                     else:
-                        assert False, "Only support Explore and Eval as calledby not support {0}".format(calledby)
-                else:
+                        action = self.i_action.I_nets_choose_action(buy_prob)
+                elif calledby=="Eval":
                     action = self.i_action.I_nets_choose_action(buy_prob)
+                else:
+                    assert False, "Only support Explore and Eval as calledby not support {0}".format(calledby)
                 l_a.append(action)
                 l_ap.append(buy_prob)
                 l_sv.append(buy_sv[0])
@@ -493,7 +461,6 @@ class net_agent_base:
         if not hasattr(self, "OS_agent"):
             self.OS_agent = V2OS_4_OB_agent(self.lc,self.lc.P2_sell_system_name, self.lc.P2_sell_model_tc)
             self.i_OS_action=actionOBOS("OS")
-        #sel_probs, sell_SVs = self.OS_agent.predict(state)
         sel_probs, _ = self.OS_agent.predict(state)
         return buy_probs,sel_probs  # This only used in CC eval ,so AP and sv information in not necessary
 

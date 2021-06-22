@@ -162,6 +162,8 @@ class main(Process):
             self.L_Process_AgentSub.append(AgentP)
 
         tensorboard_dir = os.path.join(sc.base_dir_RL_system, self.lc.RL_system_name, "tensorboard")
+        if not os.path.exists(tensorboard_dir):
+            os.mkdir(tensorboard_dir)
         self.tensorboard_process = Process(target=start_tensorboard, args=(self.lc.tensorboard_port, tensorboard_dir,))
         self.tensorboard_process.start()
 
