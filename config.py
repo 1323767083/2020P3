@@ -58,7 +58,6 @@ class gconfig_data:
         self.CLN_buffer_to_train = float("nan") #"buffer_to_train"
         self.CLN_simulator = float("nan") #"Simulator"
         self.CLN_trainer = float("nan") #"PG_trainer",
-
         self.CLN_env_read_data = float("nan") #"R_T5"
         self.CLN_TDmemory = float("nan") #"TD_memory"
         self.CLN_GenStockList = float("nan") #"API_SH_sl"
@@ -66,13 +65,9 @@ class gconfig_data:
         self.train_scale_factor= float("nan")
         self.train_shift_factor= float("nan")
         self.train_flag_clip=float("nan")
-        self.train_flag_punish_no_action=float("nan")
         self.eval_scale_factor= float("nan")
         self.eval_shift_factor= float("nan")
         self.eval_flag_clip=float("nan")
-        self.eval_flag_punish_no_action=float("nan")
-
-        self.agent_method_sv= float("nan") #"CNN"
         self.agent_method_joint_lvsv= float("nan") #"CNN"
         self.agent_method_apsv= float("nan") #"HP"
 
@@ -113,13 +108,12 @@ class gconfig_data:
         self.percent_gpu_core_for_eva = float("nan") #0.2
         self.l_eval_num_process_group=[2]
         self.eval_num_process_each_group=3
-
+        self.eval_model_stride = 1  # in default eval model one by one
         # loss WEIGHT
         self.LOSS_POLICY = float("nan") #1.0
         self.LOSS_V = float("nan") #0.5
         self.LOSS_ENTROPY = float("nan") #0.01
         self.LOSS_clip = float("nan") #0.2
-        self.LOSS_sqr_threadhold = float("nan") #10
 
         # optimizer
         self.Brain_optimizer = float("nan") #"Adam"
@@ -151,22 +145,16 @@ class gconfig_data:
         self.P2_sell_system_name = float("nan") #""
         self.P2_sell_model_tc = float("nan") #-1
         # reward related
-
         self.CLN_AV_Handler=""
 
         # value set by config
         self.Dict_specifc_param = {} #{}
         self.train_action_type = float("nan") #""  # "OB,"OS,"BS"
         self.train_num_action = float("nan") #
-
-
         self.raw_AV_shape=()
-
         self.Plen=float("nan")
 
-
         #new add param, have default value here
-
         self.flag_train_store_AIO_model=True
         self.train_random_explore_prob_buy=0.2
         self.train_total_los_clip=0
@@ -176,7 +164,7 @@ class gconfig_data:
         #debug param
         self.flag_debug_explore_save_send_to_server =False
         self.flag_debug_optimize_get_reward=False
-
+        self.flag_debug_save_train_input=False
         #removed
         #self.flag_record_state = float("nan") #True
         #self.flag_record_buffer_to_server = float("nan") #False
@@ -192,6 +180,12 @@ class gconfig_data:
         #self.CLN_AV_state = ""
         #self.OB_AV_shape = ()
         #self.flag_train_random_explore=True
+
+        #self.eval_flag_punish_no_action=float("nan")
+        #self.train_flag_punish_no_action=float("nan")
+        #self.LOSS_sqr_threadhold = float("nan") #10
+
+        #self.agent_method_sv= float("nan") #"CNN"
 class gconfig(gconfig_data):
     def __init__(self):
         gconfig_data.__init__(self)
@@ -202,8 +196,8 @@ class gconfig(gconfig_data):
         self.actor_model_AIO_fn_seed = "train_model_AIO"
         self.actor_config_fn_seed = "config"
         self.actor_weight_fn_seed = "weight"
-        self.log_a_r_e_fn_seed = "log_a_r_e"
-        self.log_e_s_d_i_fn_seed = "log_s_s_d_i"
+        #self.log_a_r_e_fn_seed = "log_a_r_e"
+        #self.log_e_s_d_i_fn_seed = "log_s_s_d_i"
         self.command_pipe_seed = "pipe.command"
         self.specific_param=gconfig_specific()
         self.account_inform_holding_titles=["TransIDI", "Holding_Gu", "Holding_Invest", "Holding_HRatio", "Holding_NPrice","Buy_Times"]
@@ -279,8 +273,7 @@ class gconfig(gconfig_data):
 
         assert self.CLN_trainer in ["PPO_trainer"],self.CLN_trainer
 
-        assert self.agent_method_sv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5","CNN2DV6","CNN2DV7","CNN2DV8","CNN2DV9"]   #remove "RNN","RCN"
-        assert self.agent_method_joint_lvsv in ["CNN","CNN2D","CNN2Dvalid","CNN2DV2","CNN2DV3","CNN2DV4","CNN2DV5","CNN2DV6","CNN2DV7","CNN2DV8","CNN2DV9"] #remove "RNN","RCN"
+        assert self.agent_method_joint_lvsv in ["Residule","Inception","Inception1L"]
         assert self.agent_method_apsv in ["HP"]
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1 + 1,)
         self.PLen = self.LHP + self.LNB
@@ -291,7 +284,6 @@ class gconfig(gconfig_data):
             self.train_num_action = 2
             assert self.net_config["dense_prob"][-1] == self.train_num_action
             actionOBOS(self.train_action_type).sanity_check_action_config(self)
-
         else:
             assert False, "not support type: {0}".format(self.system_type)
 

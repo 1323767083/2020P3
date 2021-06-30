@@ -26,7 +26,7 @@ class EvalMain(Process):
             while not self.E_Stop_Agent_Eval.is_set():
                 if self.current_phase ==0 :  #wait weight file ready
                     if not self.flag_validate_current_eval_count:
-                        self.current_eval_count += 1
+                        self.current_eval_count += self.lc.eval_model_stride
                         eval_loop_count = self.current_eval_count * self.lc.num_train_to_save_model
                         self.flag_validate_current_eval_count = True
                         self.logger.info("Eval GPU  wait for Weights on {0}".format(eval_loop_count))

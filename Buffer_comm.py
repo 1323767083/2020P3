@@ -101,14 +101,11 @@ class brain_buffer_reuse:
         else:
             return [False] + [None for _ in range(self.tq_out_numb_col)]
 
-
     def reset_tb(self):
         for t_idx in range(self.tq_numb_col):
             del self.tq[t_idx][:]
 
-
     def _train_push_one(self, s, a, r, s_, flag_done, inform):
-
         self.tq[0].append(s[0])
         self.tq[1].append(s[1])
         self.tq[2].append(s[2])
@@ -122,7 +119,6 @@ class brain_buffer_reuse:
         self.tq[10].append(self.reuse_times)
         assert self.tq_count_idx==10
 
-
     def train_push_many(self, in_buffer):
         for iterm in in_buffer:
             s, a, r, s_, flag_done, inform = iterm
@@ -130,8 +126,6 @@ class brain_buffer_reuse:
 
     def get_buffer_size(self):
         return len(self.tq[0])
-
-
 
 #worker with eval / worker with eval prepare data send to server
 class buffer_to_train:
@@ -206,6 +200,60 @@ class TD_memory_integrated:
 
     def V3_verified_train_record(self):
         _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
+        #flag_SuccessNB, flag_SuccessHP=self.iavh.PhaseSuccessed_On_S_(Ls_[2].reshape((-1,)))
+        if self.iavh.Is_Phase_Success_finished(Ls_[2].reshape((-1,)),self.iavh.P_HP ):
+            raw_reward = self.memory[-1][2]
+            if raw_reward == 0:
+                del self.memory[:]
+                return False
+            assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
+            del self.memory[-1:]
+            self.memory[-1][2] = raw_reward * self.gamma ** 1
+            self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+            return True
+        elif self.iavh.Is_Phase_Error_Finished(Ls_[2].reshape((-1,)),self.iavh.P_NB ):
+            if self.lc.flag_train_drop_unbuy_record:
+                del self.memory[:]
+                return False
+            else:
+                raw_reward = self.memory[-1][2]
+                if raw_reward == 0:
+                    del self.memory[:]
+                    return False
+                assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
+                del self.memory[-1:]
+                self.memory[-1][2] = raw_reward * self.gamma ** 1
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+            return True
+        else:
+            assert   self.iavh.Is_Phase_Success_finished(Ls_[2].reshape((-1,)),self.iavh.P_NB )
+            assert not Lsupport_view_dic["Flag_Tradable"], " V3 has forece sell in Explore so only fail finish HP is Tinpai"
+            del self.memory[:]  # as it is tinpai so can not avoid should not punish
+            return False
+
+    def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
+        self.memory.append([si, aa04, r, si_, done, support_view_dic])
+        if done:
+            if not self.get_verified_record():
+                return
+            while len(self.memory) > 0:
+                n = len(self.memory)
+                assert n==1, " This is for the LNB and LHP all is 1"
+                SdisS_=self.FDn if n >= self.FDn else n
+                s, aa04, _, s_, train_done, support_view_dic, _support_view_dic = self.get_sample(self.memory, SdisS_)
+                adj_r = self.get_accumulate_R(SdisS_)
+                np_adj_r = np.array([[adj_r]])
+                adjust_a = self.i_actionOBOS.I_TD_buffer(aa04)
+                support_view_dic["_support_view_dic"] = dict(_support_view_dic)
+                support_view_dic["SdisS_"]=SdisS_
+                np_support_view = np.array([[support_view_dic]])
+                self.output_buffer.append([s, adjust_a, np_adj_r, s_, train_done, np_support_view])
+                self.memory.pop(0)
+
+
+
+    def V3_verified_train_record_old(self):
+        _, _, _, Ls_, _, Lsupport_view_dic = self.memory[-1]
         flag_finishNB, flag_finish_HP=self.iavh.get_trans_status_On_S_(Ls_[2].reshape((-1,)))
         if flag_finishNB and flag_finish_HP:
             raw_reward = self.memory[-1][2]
@@ -215,8 +263,7 @@ class TD_memory_integrated:
             assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
             del self.memory[-1:]
             self.memory[-1][2] = raw_reward * self.gamma ** 1
-            self.iavh.set_final_record_AV(self.memory[-1][3][2][
-                                              0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+            self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
             return True
         elif not flag_finishNB and not flag_finish_HP:
             if self.lc.flag_train_drop_unbuy_record:
@@ -230,30 +277,10 @@ class TD_memory_integrated:
                 assert len(self.memory) == 2, " for LNB and LHP all is 1 and success buy"
                 del self.memory[-1:]
                 self.memory[-1][2] = raw_reward * self.gamma ** 1
-                self.iavh.set_final_record_AV(self.memory[-1][3][2][
-                                                  0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
+                self.iavh.set_final_record_AV(self.memory[-1][3][2][0])  # -1 last record 3 means state_ in memory 2 means AV 0 means av item has shape (0,13)
             return True
         else:
             assert   flag_finishNB and not flag_finish_HP
             assert not Lsupport_view_dic["Flag_Tradable"], " V3 has forece sell in Explore so only fail finish HP is Tinpai"
             del self.memory[:]  # as it is tinpai so can not avoid should not punish
             return False
-
-
-    def add_to_train_buffer_to_server(self, si, aa04, r, si_, done, support_view_dic):
-        self.memory.append([si, aa04, r, si_, done, support_view_dic])
-        if done:
-            if not self.get_verified_record():
-                return
-            while len(self.memory) > 0:
-                n = len(self.memory)
-                SdisS_=self.FDn if n >= self.FDn else n
-                s, aa04, _, s_, train_done, support_view_dic, _support_view_dic = self.get_sample(self.memory, SdisS_)
-                adj_r = self.get_accumulate_R(SdisS_)
-                np_adj_r = np.array([[adj_r]])
-                adjust_a = self.i_actionOBOS.I_TD_buffer(aa04)
-                support_view_dic["_support_view_dic"] = dict(_support_view_dic)
-                support_view_dic["SdisS_"]=SdisS_
-                np_support_view = np.array([[support_view_dic]])
-                self.output_buffer.append([s, adjust_a, np_adj_r, s_, train_done, np_support_view])
-                self.memory.pop(0)

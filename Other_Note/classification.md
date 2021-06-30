@@ -25,11 +25,42 @@ mark:python code sample for residential network
 good explan for transformer
 https://www.youtube.com/watch?v=TQQlZhbC5ps
 
+A Transformer-based recommendation system
+https://keras.io/examples/structured_data/movielens_recommendations_transformers/
+
+The Illustrated Transformer
+https://jalammar.github.io/illustrated-transformer/
+
+Illustrated Guide to Transformers- Step by Step Explanation
+https://towardsdatascience.com/illustrated-guide-to-transformers-step-by-step-explanation-f74876522bc0
+
+The Annotated Transformer
+https://nlp.seas.harvard.edu/2018/04/03/attention.html
+
 
 理解语言的 Transformer 模型
 https://www.tensorflow.org/tutorials/text/transformer
 
+The Annotated GPT-2
+https://amaarora.github.io/2020/02/18/annotatedGPT2.html
 
+
+Transformer Network With 1D-CNN Feature Extraction (put conv1d lstm, multihead together in a model)
+https://www.kaggle.com/buchan/transformer-network-with-1d-cnn-feature-extraction
+
+
+Time Series Classification with Deep Learning  ( 
+1. include good explain for time seriese of cnn, inception and 
+2.include link for implementattion of inception network for time series)
+https://towardsdatascience.com/time-series-classification-with-deep-learning-d238f0147d6f
+
+Predicting Stock Prices with Echo State Networks
+https://towardsdatascience.com/predicting-stock-prices-with-echo-state-networks-f910809d23d4
+
+Gentle introduction to Echo State Networks
+https://towardsdatascience.com/gentle-introduction-to-echo-state-networks-af99e5373c68
+1. simple Eco state Network sample
+2. also introduce how to use the PCA
 
 Timeseries classification from scratch
 https://keras.io/examples/timeseries/timeseries_classification_from_scratch/
@@ -54,3 +85,9 @@ The reason is the following: the power of Neural Networks is due to the fact tha
 All common activation functions tend to behave like this: non-linear (i.e. very powerful) in the locality of zero, and very linear (or flat) further away from zero. That is why all data are usually scaled in the [0, 1] or in the [-1, 1] range. In this way, activation functions can give their best, and Neural Networks can learn all the most complex patterns in your data.
 When you work with CNNs, for example, most of pixel data come in the [0, 255] range. This is very bad for all activation functions, since between 0 and 255 pretty much any of them will look almost completely linear. In this way, your CNN wouldn't be able to learn much.
 https://datascience.stackexchange.com/questions/40535/efficacy-of-model-depends-on-scaling/40536
+
+
+Decision Transformer: Reinforcement Learning via Sequence Modeling (Research Paper Explained)
+https://www.youtube.com/watch?v=-buULmf7dec
+Lecture 12.3 Famous transformers (BERT, GPT-2, GPT-3)
+https://www.youtube.com/watch?v=MN__lSncZBs

@@ -24,12 +24,8 @@ class Simulator_intergrated:
             self.Choice_reward_function, self.scale_factor, self.shift_factor, self.flag_clip = \
                 lc.Choice_reward_function, lc.eval_scale_factor, lc.eval_shift_factor,lc.eval_flag_clip
 
-        if self.Choice_reward_function == "RightWrong":
-            self.rewardfun = self.get_reward_01
-        elif self.Choice_reward_function == "RightWrong_on_real":
-            self.rewardfun = self.get_reward_real
-        else:
-            assert False
+        self.rewardfun=getattr(self,self.Choice_reward_function)
+
         assert lc.CLN_AV_Handler in ["AV_Handler_No_AccountInform"]
         self.i_av = globals()[lc.CLN_AV_Handler](lc)
         assert self.lc.LNB==1 and self.lc.LHP==1
@@ -58,7 +54,7 @@ class Simulator_intergrated:
         state, support_view_dic, _ = self.i_get_data.next_get_data()
         if self.CuP!=self.i_av.P_NB:
             assert self.CuP==self.i_av.P_HP
-            assert Input_action==2,Input_action  # fored by Direct sell model
+            assert Input_action in [2,3],Input_action  # fored by Direct sell model or fail in NB phase take action=3
 
         if "Flag_Force_Next_Reset" in support_view_dic.keys():   #in the Train TP reader no this item in eavl WR TP Reader this is set
             Flag_Force_Next_Reset=support_view_dic["Flag_Force_Next_Reset"]
@@ -83,8 +79,9 @@ class Simulator_intergrated:
         self.THFQratio,self.TFlag_Tradable,self.Taction = support_view_dic["HFQRatio"], support_view_dic["Flag_Tradable"], Input_action
 
         self.THprice = self.ifhqconvert.get_hfqprice_from_Nprice(support_view_dic["Nprice"], self.THFQratio) if self.TFlag_Tradable else float("NaN")
-        self.raw_profit = self.THprice/self.YHprice-1.0016 if  self.YFlag_Tradable and self.TFlag_Tradable else float("NaN")
-
+        #self.raw_profit = self.THprice/self.YHprice-1.0016 if  self.YFlag_Tradable and self.TFlag_Tradable else float("NaN")
+        self.raw_profit = self.THprice / self.YHprice - 1.0016 if self.YFlag_Tradable and self.TFlag_Tradable else float(
+            "NaN")
         reward=self.rewardfun()
 
         return state, reward, Flag_Done, support_view_dic, Input_action
@@ -121,7 +118,7 @@ class Simulator_intergrated:
             return -10                              # [-10]      centralized at -10  should be ==-10
 
     # three reward function for Train
-    def get_reward_01(self):
+    def RightWrong(self):
         if self.YFlag_Tradable and self.TFlag_Tradable:
             if self.Yaction == 0:
                 # return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
@@ -135,9 +132,24 @@ class Simulator_intergrated:
         else:
             return 0
 
-    def get_reward_real(self):
+    def RightWrong_OnlyBuy(self):
         if self.YFlag_Tradable and self.TFlag_Tradable:
-            adj_raw_profit=(self.raw_profit-self.shift_factor)*self.scale_factor
+            if self.Yaction == 0:
+                # return "BW" if YHPrice<THPrice else "BZ" if YHPrice==THPrice else "BR"
+                return -1 if self.raw_profit < 0 else 0 if self.raw_profit == 0 else 1
+            elif self.Yaction==1:
+                # return "NW" if YHPrice<THPrice else "NZ" if YHPrice==THPrice else "NR"
+                return -0.0002
+            else:
+                assert self.Yaction!=self.Yaction   #reset
+                return 0
+        else:
+            return 0
+
+
+    def RightWrong_on_real(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            adj_raw_profit=(self.raw_profit+0.0016-self.shift_factor)*self.scale_factor
             clip_adj_raw_profit= -1.0 if adj_raw_profit <-1.0 else 1.0 if adj_raw_profit>1.0 else  adj_raw_profit
             if self.Yaction == 0:
                 return  clip_adj_raw_profit
@@ -148,3 +160,19 @@ class Simulator_intergrated:
                 return 0
         else:
             return 0
+
+    def RightWrong_on_real_OnlyBuy(self):
+        if self.YFlag_Tradable and self.TFlag_Tradable:
+            adj_raw_profit=(self.raw_profit+0.0016-self.shift_factor)*self.scale_factor
+            clip_adj_raw_profit= -1.0 if adj_raw_profit <-1.0 else 1.0 if adj_raw_profit>1.0 else  adj_raw_profit
+            if self.Yaction == 0:
+                return  clip_adj_raw_profit
+            elif self.Yaction==1:
+                return 0
+            else:
+                assert self.Yaction!=self.Yaction   #reset
+                return 0
+        else:
+            return 0
+
+

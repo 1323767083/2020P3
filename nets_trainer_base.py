@@ -4,7 +4,8 @@ import tensorflow.keras as keras
 import numpy as np
 import pandas as pd
 from nets_agent_base import *
-from recorder import *
+#from recorder import *
+import pickle,shutil
 def get_trainer_nc(lc):
     N_item_list = ["lv_shape", "sv_shape"]
     nc_item_list =[]
@@ -24,12 +25,12 @@ class PPO_trainer:
         self.lc=lc
         self.nc=get_trainer_nc(lc)
 
-        self.comile_metrics = [self.M_policy_loss, self.M_value_loss, self.M_entropy_loss, self.M_state_value, self.M_advent]
+        self.comile_metrics = [self.join_loss_policy_part, self.join_loss_sv_part, self.join_loss_entropy_part, self.M_state_value, self.M_advent]
                                #self.M_advent_low, self.M_advent_high]
         self.load_jason_custom_objects = {"softmax": keras.backend.softmax, "tf": tf, "concatenate": keras.backend.concatenate, "lc": lc}
         self.load_model_custom_objects = {"join_loss": self.join_loss, "tf": tf, "concatenate": keras.backend.concatenate,
-                                          "M_policy_loss": self.M_policy_loss, "M_value_loss": self.M_value_loss,
-                                          "M_entropy_loss": self.M_entropy_loss, "M_state_value": self.M_state_value,
+                                          "M_policy_loss": self.join_loss_policy_part, "M_value_loss": self.join_loss_sv_part,
+                                          "M_entropy_loss": self.join_loss_entropy_part, "M_state_value": self.M_state_value,
                                           "M_advent": self.M_advent,"lc": lc}
 
         self.i_cav = globals()[lc.CLN_AV_Handler](lc)
@@ -106,10 +107,7 @@ class PPO_trainer:
 
     def join_loss_sv_part(self, y_true, y_pred):
         prob, v, input_a, advent,oldAP = self.extract_y(y_pred)
-        if self.lc.LOSS_sqr_threadhold==0:  # 0 MEANS NOT TAKE SQR THREADHOLD
-            loss_value = self.lc.LOSS_V * tf.square(advent)
-        else:
-            loss_value = self.lc.LOSS_V * keras.backend.minimum (tf.square(advent),self.lc.LOSS_sqr_threadhold)
+        loss_value = self.lc.LOSS_V * tf.square(advent)
         assert loss_value.shape[1] == 1, loss_value.shape
         return tf.reduce_mean(loss_value,axis=0)
 
@@ -122,15 +120,6 @@ class PPO_trainer:
         if self.lc.train_total_los_clip!=0:
             loss=tf.clip_by_value(loss, clip_value_min=-self.lc.train_total_los_clip, clip_value_max=self.lc.train_total_los_clip)
         return loss
-
-    def M_policy_loss(self,y_true, y_pred):
-        return self.join_loss_policy_part(y_true, y_pred)
-
-    def M_entropy_loss(self,y_true, y_pred):
-        return self.join_loss_entropy_part(y_true, y_pred)
-
-    def M_value_loss(self,y_true, y_pred):
-        return self.join_loss_sv_part(y_true, y_pred)
 
     def M_state_value(self,y_true, y_pred):
         _, v, _, _,  _= self.extract_y(y_pred)
@@ -173,6 +162,7 @@ class PPO_trainer:
         flag_data_available, stack_states, raw_states=self._vstack_states(i_train_buffer)
         if not flag_data_available:
             return 0, None,None
+
         #s_lv, s_sv, s_av, a, r, s__lv, s__sv, s__av, done_flag, l_support_view = raw_states
         _, _, _, _, _, _, _, _, _, l_support_view = raw_states
         n_s_lv, n_s_sv, n_s_av, n_a, n_r, n_s__lv, n_s__sv, n_s__av=stack_states
@@ -190,16 +180,36 @@ class PPO_trainer:
                                                  'input_action': n_a, 'input_reward': rg,
                                                  "input_oldAP":n_old_ap }, fake_y)
 
-
+        buy_r=rg[n_a[:, 0] == 1]
+        NAction_r=rg[n_a[:, 1] == 1]
         #n_r # v # rg
         Custom_Dic={
-            "Count_minue_r":(n_r<0).sum(),
-            "Count_0_r":(n_r == 0).sum(),
-            "Count_positive_r": (n_r > 0).sum(),
+            "R_PRvsNR_Count":(n_r>0).sum()-(n_r < 0).sum(),
             "r_mean":n_r.mean(),
-            "Num_buy":n_a[:,0].sum(),
-            "Num_No_Action": n_a[:, 1].sum()
+            "buy_vs_NAction_Count":n_a[:,0].sum()-n_a[:, 1].sum(),
+            "buy_PRvsNR_Count": len(buy_r[buy_r>0])-len(buy_r[buy_r < 0]),
+            "buy_PRvsNR_Mean": (buy_r[buy_r > 0].mean() if len(buy_r[buy_r>0])>0 else 0)
+                               - abs(buy_r[buy_r < 0].mean()  if len(buy_r[buy_r<0])>0 else 0),
+            "NAction_Count": len(NAction_r),
         }
+
+        if self.lc.flag_debug_save_train_input:
+            if hasattr(self, "ii"):
+                self.ii+=1
+            else:
+                self.ii=0
+                self.debug_temp_dir=os.path.join("/mnt/data_disk2/debug",self.lc.RL_system_name)
+                if os.path.exists(self.debug_temp_dir):
+                    shutil.rmtree(self.debug_temp_dir)
+                    os.mkdir(self.debug_temp_dir)
+                else:
+                    os.mkdir(self.debug_temp_dir)
+            dnwp=os.path.join(self.debug_temp_dir, f"D{self.ii // 250}")
+            if not os.path.exists(dnwp):
+                os.mkdir(dnwp)
+            fnwp=os.path.join(dnwp, f"{self.ii}.pickle")
+            pickle.dump([raw_states,loss_this_round,Custom_Dic],open(fnwp,"wb"))
+
         return num_record_to_train,loss_this_round,Custom_Dic
 
 

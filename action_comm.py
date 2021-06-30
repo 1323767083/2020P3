@@ -26,7 +26,8 @@ class actionOBOS:
         assert self.action_type=="OB"
         a_onehot = np.zeros((1, 4))
         a_onehot[0, actual_action] = 1
-        old_ap=-1 if actual_action >= 2 else ap[actual_action]
-        assert type(old_ap) is np.float32 or type(old_ap) is int
+        #old_ap=-1 if actual_action >= 2 else ap[actual_action]
+        old_ap = np.NaN if actual_action >= 2 else ap[actual_action]
+        #assert type(old_ap) is np.float32 or type(old_ap) is int
         return a_onehot,old_ap
 

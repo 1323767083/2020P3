@@ -359,14 +359,6 @@ class AV_Handler_No_AccountInform:
         return True if raw_av[self.PResStart_idx[Pid]]==1 and raw_av[self.PResStart_idx[Pid]+1]==0 else False
 
 
-    def get_trans_status_On_S_(self, raw_av):
-        if self.Is_Phase_Success_finished(raw_av, self.P_HP): #Success finished Trans
-            return True,True
-        elif self.Is_Phase_Success_finished(raw_av, self.P_NB):  #not start Trans
-            return False, False
-        else:                                                     #Failed finished Trans  Tinpai
-            return True, False
-
     def fabricate_av(self,CuPs_idx,CuP,Flag_Force_Next_Reset,flag_CuP_finished, flag_CuP_Successed):
         Raw_AV = self.Fresh_Raw_AV()
         for Pid in list(range(len(CuPs_idx))):
@@ -387,18 +379,6 @@ class AV_Handler_No_AccountInform:
                         Raw_AV[self.PResStart_idx[Pid] + 1] = 1
         Raw_AV[self.PFlag_Force_Next_Reset]=Flag_Force_Next_Reset
         return np.array(Raw_AV).reshape(1, -1)
-
-    def Is_Holding_Item(self, raw_av):
-        if self.Is_Phase_Success_finished(raw_av, self.P_NB): #P_NB Success finished
-            if self.Is_Phase_Success_finished(raw_av, self.P_HP):  # P_HP phase success or error finished
-                return False
-            else:
-                return True
-        else:
-            if self.Is_Phase_Error_Finished(raw_av, self.P_NB):
-                return True # this is fake holding message to avoidfe choose action to select buy
-            else:
-                return False # still in P_NB phase
 
     def Is_Force_Next_Reset(self,raw_av):
         return raw_av[self.PFlag_Force_Next_Reset]
