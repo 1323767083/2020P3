@@ -64,9 +64,48 @@ class common_component:
         input_lv, input_sv = inputs
         lvr = Inception_Layer(num_group=2,width=3,nb_filters=32,name=f"{name}lv").Layers(input_lv)
         svr = Repeat_INCEPTION_Layer(num_group=3,width=3,nb_filters=32,name=f"{name}sv").Layer(input_sv)
-        svrr = keras.layers.Flatten()(svr)
+        svr = keras.layers.Reshape((640, 1), name=name + "ReshapeSVr")(svr)
+        svrr=  Inception_Layer(num_group=2, width=3, nb_filters=32, name=f"{name}svr").Layers(svr)
         lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svrr])
         return lsvr
+
+    def InceptionLSTM_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        lvr = Inception_Layer(num_group=2,width=3,nb_filters=32,name=f"{name}lv").Layers(input_lv)
+        svr = Repeat_INCEPTION_Layer(num_group=3,width=3,nb_filters=32,name=f"{name}sv").Layer(input_sv)
+        svr = keras.layers.Reshape((5, 128), name=name + "ReshapeSVr")(svr)
+        svrr= keras.layers.LSTM(512)(svr)
+        lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svrr])
+        return lsvr
+
+    def InceptionLSTMs_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        lvr = Inception_Layer(num_group=2,width=3,nb_filters=32,name=f"{name}lv").Layers(input_lv)
+        svr = Repeat_INCEPTION_Layer(num_group=3,width=3,nb_filters=32,name=f"{name}sv").Layer(input_sv)
+        svr = keras.layers.Reshape((5, 128), name=name + "ReshapeSVr")(svr)
+        lstmdepth=3
+        assert lstmdepth>1
+        svrr=svr
+        for idx in list(range(lstmdepth)):
+            if idx==lstmdepth-1:
+                svrr = keras.layers.LSTM(512)(svrr)
+            else:
+                svrr = keras.layers.LSTM(512, return_sequences=True)(svrr)
+        lsvr = tf.keras.layers.Concatenate(axis=-1)([lvr, svrr])
+        return lsvr
+
+    def LSTMsLSTMs_get_LV_SV_joint_state(self, inputs, name):
+        input_lv, input_sv = inputs
+        lv_net=LSTMs(4)
+        sv_net=TimeDistributedLSTMs(4)
+        svr_net=LSTMs(4)
+        lv = lv_net.Layers(input_lv)
+        sv =  sv_net.Layers(input_sv[:,:5,:,:])
+        svr = keras.layers.Reshape((5, 512), name=name + "ReshapeSVr")(sv)
+        svrr=svr_net.Layers(svr)
+        lsvr = tf.keras.layers.Concatenate(axis=-1)([lv, svrr])
+        return lsvr
+
 
     def get_ap_av_HP(self, inputs, name):
         input_state = inputs[0]
@@ -82,6 +121,37 @@ class V2OS_4_OB_agent:
         self.lc=lc
         assert ob_system_name=="Just_sell", "Only support Just_sell"
         self.predict = lambda x: [np.array([[1, 0] for _ in x[0]]), np.NaN]
+
+class LSTMs:
+    def __init__(self, depth):
+        self.depth=depth
+        self.L_lstm =[]
+        for idx in list(range(self.depth)):
+            if idx==self.depth-1:
+                self.L_lstm.append(keras.layers.LSTM(512))
+            else:
+                self.L_lstm.append(keras.layers.LSTM(512, return_sequences=True))
+    def Layers(self, input_tensor):
+        x=input_tensor
+        for idx in list(range(self.depth)):
+            x=self.L_lstm[idx](x)
+        return x
+
+class TimeDistributedLSTMs:
+    def __init__(self, depth):
+        self.depth=depth
+        self.L_lstm =[]
+        for idx in list(range(self.depth)):
+            if idx==self.depth-1:
+                self.L_lstm.append(keras.layers.TimeDistributed(keras.layers.LSTM(512)))
+            else:
+                self.L_lstm.append(keras.layers.TimeDistributed(keras.layers.LSTM(512, return_sequences=True)))
+    def Layers(self, input_tensor):
+        x=input_tensor
+        for idx in list(range(self.depth)):
+            x=self.L_lstm[idx](x)
+        return x
+
 
 class Residule_Conv1D_Compoment:
     def __init__(self, lfilter, lkernel, lstride, name):

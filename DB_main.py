@@ -36,8 +36,15 @@ def main(argv):
         i.init_DBI_lumpsum_HFQs()
     elif command == "Generate_DBTP":
         DBTP_Name, Stock, StartS, EndS=argv[1:]
-        i = DBTP_Creater(DBTP_Name)
-        i. DBTP_generator(Stock, int(StartS), int(EndS))
+        i = DBTP_Base(DBTP_Name)
+        tag = i.CLN_DBTPCreater[-2:]
+        assert tag in ["V1", "V2"], tag
+        if tag=="V1":
+            i = DBTP_CreaterV1(DBTP_Name)
+            i. DBTP_generator(Stock, int(StartS), int(EndS))
+        else:
+            i = DBTP_CreaterV2(DBTP_Name,[Stock],"Try")
+            i. DBTP_generator(int(StartS), int(EndS))
     elif command == "Generate_DBTP_Process":
         DBTP_Name, SL_Name, NumPS,str_flag_overwrite= argv[1:]
         DBTP_creator_on_SLperiod(DBTP_Name, SL_Name, int(NumPS),eval(str_flag_overwrite))

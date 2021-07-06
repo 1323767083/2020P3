@@ -273,8 +273,8 @@ class gconfig(gconfig_data):
 
         assert self.CLN_trainer in ["PPO_trainer"],self.CLN_trainer
 
-        assert self.agent_method_joint_lvsv in ["Residule","Inception","Inception1L"]
-        assert self.agent_method_apsv in ["HP"]
+        #assert self.agent_method_joint_lvsv in ["Residule","Inception","Inception1L"]
+        #assert self.agent_method_apsv in ["HP"]
         self.raw_AV_shape = (self.LNB + 1 + 2 + self.LHP + 1 + 2 + 1 + 1,)
         self.PLen = self.LHP + self.LNB
 

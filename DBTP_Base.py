@@ -6,6 +6,7 @@ from _collections import OrderedDict
 import pandas as pd
 import numpy as np
 {
+    "CLN_DBTPCreater":"DBTP_CreaterV2",
     "DataFromDBI":
     {
         "LV":{
@@ -31,6 +32,11 @@ import numpy as np
         }
     },
     "NumDBIDays": 20,
+    "V2Param": {
+        "BuyAtTimes": [94500],
+        "SellAtTimes": [94500],
+        "Profit_Scale": 100
+    }
 }
 
 class DBTP_Base(DBI_init_with_TD):
@@ -40,12 +46,16 @@ class DBTP_Base(DBI_init_with_TD):
         self.Dir_DBTP_WP=os.path.join(self.Dir_TPDB,self.DBTP_Name)
         DBTP_fnwp = os.path.join(self.Dir_DBTP_WP, "DBTP_Definition.json")
         for fndn in [self.Dir_DBTP_WP,DBTP_fnwp]:
-            assert os.path.exists(fndn),"DBI name folder with its Type_Definition.json should be ready before run the program"
+            assert os.path.exists(fndn),f"DBTP name folder with its Type_Definition.json should be ready before run the program {fndn}"
         self.Dir_DBTP_log = os.path.join(self.Dir_DBTP_WP, "log")
         for dn in [self.Dir_DBTP_log]:
             if not os.path.exists(dn): os.mkdir(dn)
 
         self.DBTP_Definition = json.load(open(DBTP_fnwp, "r"), object_pairs_hook=OrderedDict)
+        if "CLN_DBTPCreater" not in self.DBTP_Definition.keys():
+            self.CLN_DBTPCreater = "DBTP_Creater"
+        else:
+            self.CLN_DBTPCreater = "DBTP_CreaterV2"
         temp_list = []
         for L1_item in self.DBTP_Definition["DataFromDBI"].keys():
             temp_list.extend(self.DBTP_Definition["DataFromDBI"][L1_item].keys())
@@ -109,8 +119,20 @@ class DBTP_Base(DBI_init_with_TD):
             if not os.path.exists(dn): os.mkdir (dn)
         return os.path.join(dn,"{0}.pickle".format(dayI))
 
+    def get_DBTP_data_fnwpV2(self, dayI):
+        dn=self.Dir_DBTP_WP
+        for subdir in ["data",str(dayI//100)]:
+            dn = os.path.join(dn,subdir)
+            if not os.path.exists(dn): os.mkdir (dn)
+        return os.path.join(dn,"{0}.pickle".format(dayI))
+
+
     def get_DBTP_data_log_fnwp(self, stock):
         return os.path.join(self.Dir_DBTP_log,"{0}.csv".format(stock))
+
+    def get_DBTP_data_log_fnwpV2(self, DayI, Stock_list_name):
+        return os.path.join(self.Dir_DBTP_log,f"{Stock_list_name}_{DayI}.csv")
+
 
     def get_Input_DBTP_FT_TitleType_Detail_fnwp(self):
         return os.path.join(self.Dir_DBTP_WP, "TitleTypeDetail_FT.csv")
